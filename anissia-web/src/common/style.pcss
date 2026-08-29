@@ -1,0 +1,602 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&family=Noto+Sans+KR:wght@100..900&display=swap');
+@import "./tailwind.pcss";
+
+@layer base {
+    :root {
+        --font-family-sans: "Noto Sans KR", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Dotum", sans-serif;
+    }
+
+    :lang(ja) {
+        --font-family-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html.light {
+        color-scheme: light;
+
+        --as-canvas: #eef1f8;
+        --as-canvas-2: #e4e8f3;
+        --as-surface: rgba(255, 255, 255, .66);
+        --as-surface-2: rgba(255, 255, 255, .48);
+        --as-muted: #f2f4f7;
+        --as-line: rgba(15, 23, 42, .08);
+        --as-line-2: rgba(15, 23, 42, .16);
+        --as-ink: #0f1222;
+        --as-ink-2: #3d4557;
+        --as-ink-3: #666e83;
+        --as-brand: #4f6df5;
+        --as-brand-2: #3552e0;
+        --as-brand-soft: rgba(79, 109, 245, .11);
+        --as-danger: #d64545;
+        --as-success: #17916b;
+
+        --as-glass-line: rgba(255, 255, 255, .70);
+        --as-glass-line-2: rgba(255, 255, 255, .95);
+        --as-glass-strong: rgba(255, 255, 255, .88);
+        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .85);
+        --as-blur: 16px;
+
+        --as-bg-1: rgba(99, 102, 241, .16);
+        --as-bg-2: rgba(34, 211, 238, .13);
+        --as-bg-3: rgba(232, 121, 249, .10);
+
+        --as-gradient: linear-gradient(120deg, #7c5cf0 0%, #4f6df5 52%, #21b1e8 100%);
+        --as-on-brand: #ffffff;
+
+        --as-shadow-1: 0 1px 2px rgba(19, 26, 60, .04);
+        --as-shadow-2: 0 10px 30px -14px rgba(19, 26, 60, .18);
+        --as-shadow-3: 0 24px 60px -20px rgba(19, 26, 60, .28);
+        --as-shadow-brand: 0 8px 22px -8px rgba(79, 109, 245, .50);
+        --as-ring: 0 0 0 3px rgba(79, 109, 245, .16);
+    }
+
+    html.dark {
+        color-scheme: dark;
+
+        --as-canvas: #0b0b10;
+        --as-canvas-2: #131318;
+        --as-surface: rgba(29, 29, 38, .55);
+        --as-surface-2: rgba(168, 165, 190, .06);
+        --as-muted: rgba(168, 165, 190, .08);
+        --as-line: rgba(255, 255, 255, .07);
+        --as-line-2: rgba(255, 255, 255, .15);
+        --as-ink: #eceaf2;
+        --as-ink-2: #bcbac9;
+        --as-ink-3: #8f8c9e;
+        --as-brand: #e3aa9a;
+        --as-brand-2: #f4cbbe;
+        --as-brand-soft: rgba(227, 170, 154, .12);
+        --as-danger: #f47272;
+        --as-success: #3ecf9a;
+
+        --as-glass-line: rgba(255, 255, 255, .09);
+        --as-glass-line-2: rgba(255, 255, 255, .18);
+        --as-glass-strong: rgba(40, 40, 52, .85);
+        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .06);
+        --as-blur: 18px;
+
+        --as-bg-1: rgba(225, 145, 125, .10);
+        --as-bg-2: rgba(150, 115, 120, .06);
+        --as-bg-3: rgba(195, 120, 130, .06);
+
+        --as-gradient: linear-gradient(120deg, #f7d0c2 0%, #e3aa9a 55%, #c28270 100%);
+        --as-on-brand: #181110;
+
+        --as-shadow-1: 0 1px 2px rgba(0, 0, 0, .25);
+        --as-shadow-2: 0 10px 32px -14px rgba(0, 0, 0, .60);
+        --as-shadow-3: 0 28px 70px -24px rgba(0, 0, 0, .80);
+        --as-shadow-brand: 0 8px 24px -10px rgba(220, 150, 130, .35);
+        --as-ring: 0 0 0 3px rgba(227, 170, 154, .18);
+    }
+
+    html {
+        overflow-y: scroll;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+
+        background:
+            radial-gradient(52rem 34rem at 12% -10%, var(--as-bg-1), transparent 62%),
+            radial-gradient(44rem 30rem at 92% 6%, var(--as-bg-2), transparent 64%),
+            radial-gradient(60rem 40rem at 50% 115%, var(--as-bg-3), transparent 62%),
+            var(--as-canvas);
+        background-attachment: fixed;
+        color: var(--as-ink);
+    }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px }
+::-webkit-scrollbar-corner { background: transparent }
+
+html.light {
+    ::-webkit-scrollbar-track { background-color: transparent }
+    ::-webkit-scrollbar-thumb { background-color: rgba(20, 23, 29, .18); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(20, 23, 29, .34) }
+    ::selection { background: rgba(47, 111, 237, .16); color: #14171d }
+}
+
+html.dark {
+    ::-webkit-scrollbar-track { background-color: transparent }
+    ::-webkit-scrollbar-thumb { background-color: rgba(236, 234, 242, .16); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(236, 234, 242, .30) }
+    ::selection { background: rgba(227, 170, 154, .24); color: #eceaf2 }
+}
+
+html:has(#sc2009, #sc2015, #sc2024) {
+    body { background: none }
+
+    &.light {
+        background: #fff;
+        ::-webkit-scrollbar { width: 8px; height: 8px }
+        ::-webkit-scrollbar-track { background-color: #fafafa }
+        ::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, 0.2); border: 0; border-radius: 0; background-clip: border-box }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 0, 0, 0.4) }
+        ::selection { background: #eee; color: #007cd8 }
+    }
+    &.dark {
+        background: #000;
+        ::-webkit-scrollbar { width: 8px; height: 8px }
+        ::-webkit-scrollbar-track { background-color: #222 }
+        ::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border: 0; border-radius: 0; background-clip: border-box }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.4) }
+        ::selection { background: #1e1e1eb0; color: #a7975c }
+    }
+}
+
+.as-app {
+    color: var(--as-ink);
+
+    overflow-x: clip;
+
+    :where(.grid, .flex) > * {
+        min-width: 0;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1200px;
+        margin-inline: auto;
+    }
+}
+
+/*
+ * 좁은 화면에서는 가로 여백을 반으로 줄인다 — 400px 도 안 되는 폭에서 양쪽을 16px 씩 깎으면
+ * 글이 앉을 자리가 그만큼 줄고, 편집기에서는 그 손실이 그대로 쓰는 자리의 손실이 된다.
+ */
+.as-container, .as-page {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 0.5rem;
+}
+
+@media (min-width: 480px) {
+    .as-container, .as-page {
+        padding-inline: 1rem;
+    }
+}
+
+.as-page {
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .as-container, .as-page {
+        padding-inline: var(--spacing-gutter);
+    }
+    .as-page {
+        padding-top: 2.5rem;
+    }
+}
+
+.as-page-narrow {
+    @apply w-full mx-auto;
+    max-width: 480px;
+    padding-inline: 1rem;
+}
+
+.as-sections > * + * {
+    margin-top: var(--spacing-section);
+}
+
+.as-wordmark {
+    background: var(--as-wordmark-gradient, var(--as-gradient));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: .08em;
+}
+
+html.dark .as-wordmark {
+    --as-wordmark-gradient: linear-gradient(120deg, #fcf0eb 0%, #ebc6b8 45%, #b28d80 100%);
+}
+
+.as-section-title {
+    @apply relative inline-flex items-center gap-2.5 text-lg font-semibold;
+    color: var(--as-ink);
+    &::before {
+        content: "";
+        width: 2px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--as-gradient);
+    }
+}
+
+.as-page-title {
+    @apply text-2xl font-bold;
+    color: var(--as-ink);
+}
+
+.as-sub-title {
+    @apply block text-xs font-semibold uppercase;
+    letter-spacing: .08em;
+    color: var(--as-ink-3);
+}
+
+.as-desc {
+    @apply text-sm;
+    color: var(--as-ink-2);
+}
+
+.as-meta {
+    @apply text-xs tabular-nums;
+    color: var(--as-ink-3);
+}
+
+.as-page-head {
+    @apply mb-6;
+    > .as-desc { @apply mt-2 }
+}
+
+.as-empty {
+    @apply text-center py-24 text-lg;
+    color: var(--as-ink-3);
+}
+
+.as-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--as-line) 12%, var(--as-line) 88%, transparent);
+}
+
+.as-a-color {
+    a {
+        color: var(--as-brand);
+        transition: color .18s ease;
+        &:hover { color: var(--as-brand-2) }
+    }
+}
+
+.as-link {
+    color: var(--as-brand);
+    transition: color .18s ease;
+    &:hover { color: var(--as-brand-2) }
+}
+
+.as-box {
+    background: var(--as-surface);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 1px solid var(--as-glass-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+/*
+ * 글 한 편이 한 장으로 선다 — 작성자 줄이 머리, 본문이 몸이다.
+ * 둘을 따로 띄우면 한 편이 두 덩이로 갈려 보여서, 테두리와 그림자는 바깥 한 겹에만 건다.
+ *
+ * 바탕은 두 테마 모두 **불투명**하다 — 유리로 두면 뒤의 그러데이션이 글자 밑으로 비쳐
+ * 긴 글을 읽기 힘들다. 대신 바탕보다 한 단 올라온 색을 써서 떠 있는 느낌을 낸다.
+ * 불투명하니 blur 는 보이지도 않아 걷어냈다.
+ */
+.as-post {
+    background: var(--as-surface);
+    border: 1px solid var(--as-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--as-shadow-2);
+}
+
+/*
+ * 글 한 편의 안쪽 여백. 읽는 자리(`NoteView`)와 고쳐 쓰는 자리(`PostEditor`)가 이 값 하나를
+ * 같이 본다 — "수정" 을 눌렀을 때 글이 옆으로 밀리면 같은 글을 고치는 것처럼 보이지 않는다.
+ * 나비 코어가 `.nabi-content` 에 두르던 `12px 14px` 는 `nabi.pcss` 에서 걷어냈고, 이제 여백은
+ * 글이 앉은 종이가 혼자 두른다.
+ */
+:root {
+    --as-post-pad-x: 0.625rem;
+    --as-post-pad-y: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    :root {
+        --as-post-pad-x: 0.875rem;
+        --as-post-pad-y: 0.75rem;
+    }
+}
+
+/*
+ * 머리줄(작성자·날짜, 글쓰기에서는 주제)은 본문과 **다른 장**이다 — 가르는 선 대신 사이의 빈
+ * 자리가 둘을 나눈다. 종이의 라운드(20px)는 이 낮은 줄에는 너무 둥글어 알약처럼 보이므로
+ * 조작부의 라운드를 쓴다.
+ */
+.as-post-head {
+    padding: 0.4375rem var(--as-post-pad-x);
+    border-radius: var(--radius-ctl);
+}
+
+/* 본문도 같은 라운드를 쓴다 — 짧은 글 한 줄이 20px 라운드를 만나면 알약이 된다. */
+.as-post-body {
+    padding: var(--as-post-pad-y) var(--as-post-pad-x);
+    border-radius: var(--radius-ctl);
+}
+
+/*
+ * 고쳐 쓰는 종이는 여백을 두르지 않는다 — 편집기가 종이를 꽉 채운다.
+ * 안쪽 여백은 쓰는 자리가 스스로 두르므로(`nabi.pcss` 의 `.nabi .nabi-content`) 글이 서는 자리는
+ * 읽는 화면과 같다. 달라지는 것은 **붙는 단추 줄**뿐 — 제 바탕으로 종이 폭을 그대로 덮는다.
+ *
+ * `overflow: clip` 으로 모서리를 자른다. `hidden` 이 아닌 까닭: `hidden` 은 스크롤 상자를 만들어
+ * 안의 `position: sticky` 가 화면이 아니라 그 상자를 기준으로 잡히고, 그러면 스크롤이 없는 상자라
+ * 단추 줄이 아예 안 붙는다. `clip` 은 상자를 만들지 않아 붙는 동작이 그대로 산다.
+ */
+.as-post-editor {
+    border-radius: var(--radius-ctl);
+    overflow: clip;
+}
+
+.as-post-editor-actions {
+    padding: 0 var(--as-post-pad-x) var(--as-post-pad-y);
+}
+
+/*
+ * 머리줄에 앉는 입력칸 — 종이가 이미 테두리를 두르고 있으니 제 테두리는 벗는다.
+ * 대신 초점이 왔다는 말은 종이가 대신한다(`.as-post-head:has(input:focus)`).
+ */
+.as-input-bare {
+    @apply block w-full bg-transparent border-0 p-0;
+    color: var(--as-ink);
+    &::placeholder { color: var(--as-ink-3) }
+    &:focus, &:focus-visible { outline: none }
+}
+
+.as-post-head:has(.as-input-bare:focus) {
+    border-color: var(--as-brand);
+    box-shadow: var(--as-ring);
+}
+
+/* 라이트는 흰 종이. */
+html.light .as-post {
+    background: #ffffff88;
+}
+
+/* 어둠에서 흰 종이는 눈을 찌른다 — 바탕(`--as-canvas`)보다 한 단 밝은 면으로 같은 높이를 낸다. */
+html.dark .as-post {
+    background: var(--as-canvas-2);
+}
+
+.as-card {
+    background: var(--as-surface);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 1px solid var(--as-glass-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    transition: transform .22s var(--ease-out-quint), border-color .2s ease, box-shadow .22s ease, background-color .2s ease;
+    &:hover {
+        transform: translateY(-2px);
+        border-color: var(--as-glass-line-2);
+        background: var(--as-glass-strong);
+        box-shadow: var(--as-glass-inset), var(--as-shadow-2);
+    }
+}
+
+.as-glass {
+    background: var(--as-surface);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 1px solid var(--as-glass-line);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+}
+
+.as-table {
+    @apply w-full text-sm text-left;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--as-surface);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 1px solid var(--as-glass-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    overflow: hidden;
+
+    th {
+        @apply px-5 py-3.5 font-semibold align-top;
+        color: var(--as-ink);
+        border-bottom: 1px solid var(--as-line);
+    }
+
+    td {
+        @apply px-5 py-3.5 align-top;
+        color: var(--as-ink-2);
+        border-bottom: 1px solid var(--as-line);
+    }
+
+    thead th {
+        @apply text-xs uppercase font-semibold;
+        letter-spacing: .06em;
+        background: var(--as-muted);
+        color: var(--as-ink-3);
+    }
+
+    tbody tr:last-child > * { border-bottom: 0 }
+}
+
+.as-table-kv {
+    tbody th {
+        @apply w-[26%] min-w-[96px] text-xs font-semibold uppercase;
+        letter-spacing: .06em;
+        background: var(--as-muted);
+        color: var(--as-ink-3);
+    }
+}
+
+a.as-row {
+    transition: translate .22s var(--ease-out-quint);
+    &:hover { translate: 3px 0 }
+}
+
+.as-input-none {
+    @apply outline-hidden resize-none border-none bg-transparent
+}
+
+.as-input-text {
+    @apply block w-full text-sm resize-none;
+    border-radius: var(--radius-ctl);
+    background: var(--as-surface-2);
+    border: 1px solid var(--as-line);
+    color: var(--as-ink);
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    &::placeholder { color: var(--as-ink-3) }
+    &:hover { border-color: var(--as-line-2) }
+    &:focus, &:focus-visible {
+        outline: none;
+        background: var(--as-glass-strong);
+        border-color: var(--as-brand);
+        box-shadow: var(--as-ring);
+    }
+}
+
+.as-input-btn {
+    @apply inline-block text-center text-sm font-medium cursor-pointer select-none;
+    border-radius: var(--radius-ctl);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background: var(--as-surface);
+    border: 1px solid var(--as-glass-line);
+    color: var(--as-ink);
+    box-shadow: var(--as-glass-inset);
+    transition: transform .12s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease;
+    &:hover {
+        background: var(--as-glass-strong);
+        border-color: var(--as-glass-line-2);
+        color: var(--as-brand);
+    }
+    &:active { transform: translateY(1px) }
+}
+
+.as-btn-primary {
+    @apply inline-block text-center text-sm font-semibold cursor-pointer select-none;
+    border-radius: var(--radius-ctl);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background: var(--as-gradient);
+    border: 1px solid transparent;
+    color: var(--as-on-brand);
+    box-shadow: var(--as-shadow-brand);
+    transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
+    &:hover { filter: brightness(1.06) saturate(1.05) }
+    &:active { transform: translateY(1px); box-shadow: none }
+}
+
+.as-switch {
+    @apply relative inline-flex items-center cursor-pointer select-none;
+    > input { @apply sr-only }
+    > .as-switch-track {
+        @apply w-[40px] h-[22px] rounded-full transition-colors duration-200;
+        background: var(--as-line-2);
+        &::after {
+            content: "";
+            @apply absolute top-[3px] left-[3px] h-4 w-4 rounded-full bg-white transition-transform duration-200;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+        }
+    }
+    > input:checked + .as-switch-track {
+        background: var(--as-brand);
+        &::after { transform: translateX(18px) }
+    }
+    > input:focus-visible + .as-switch-track { box-shadow: var(--as-ring) }
+}
+
+.as-range {
+    @apply w-full appearance-none cursor-pointer bg-transparent;
+    height: 20px;
+    &::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--as-muted);
+        border: 1px solid var(--as-line);
+    }
+    &::-webkit-slider-thumb {
+        appearance: none;
+        margin-top: -6px;
+        height: 16px;
+        width: 16px;
+        border-radius: 999px;
+        background: var(--as-glass-strong);
+        border: 2px solid var(--as-brand);
+        box-shadow: var(--as-shadow-1);
+        transition: transform .12s ease;
+    }
+    &::-webkit-slider-thumb:hover { transform: scale(1.12) }
+    &::-moz-range-track {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--as-muted);
+        border: 1px solid var(--as-line);
+    }
+    &::-moz-range-thumb {
+        height: 14px;
+        width: 14px;
+        border-radius: 999px;
+        background: var(--as-glass-strong);
+        border: 2px solid var(--as-brand);
+    }
+}
+
+.as-segment {
+    @apply flex p-1 gap-1;
+    border-radius: var(--radius-ctl);
+    background: var(--as-muted);
+    > button, > a {
+        @apply flex-1 text-center text-sm font-medium py-2 px-3 transition-all duration-200;
+        border-radius: calc(var(--radius-ctl) - 4px);
+        color: var(--as-ink-2);
+        &:hover { color: var(--as-ink) }
+        &.is-on {
+            background: var(--as-glass-strong);
+            color: var(--as-ink);
+            box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+        }
+    }
+}
+
+.as-tag, .as-tag-xs {
+    @apply inline-block text-xs font-medium leading-none;
+    border-radius: 999px;
+    background: var(--as-muted);
+    border: 1px solid var(--as-line);
+    color: var(--as-ink-2);
+    transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+    &:hover {
+        background: var(--as-brand-soft);
+        border-color: color-mix(in oklab, var(--as-brand) 35%, transparent);
+        color: var(--as-brand);
+    }
+    a { color: inherit }
+}
+
+.as-tag-xs {
+    @apply px-2.5 py-[6px]
+}
+
+.as-tag {
+    @apply px-3 py-[7px]
+}

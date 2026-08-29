@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#79c8f5"/><stop offset="1" stop-color="#d6f0ff"/>
+    </linearGradient>
+    <linearGradient id="xg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7a7a"/><stop offset="1" stop-color="#e33d3d"/>
+    </linearGradient>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#16294a" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="pic"><rect x="94" y="126" width="324" height="260" rx="16"/></clipPath>
+    <g id="flw">
+      <circle cx="0" cy="-11" r="8"/><circle cx="11" cy="0" r="8"/>
+      <circle cx="0" cy="11" r="8"/><circle cx="-11" cy="0" r="8"/>
+      <circle cx="0" cy="0" r="6" fill="#ffd93d"/>
+    </g>
+  </defs>
+
+  <rect width="512" height="512" rx="56" fill="url(#bg)"/>
+
+  <g filter="url(#sh)">
+    <rect x="72" y="104" width="368" height="304" rx="28" fill="#ffffff"/>
+    <g clip-path="url(#pic)">
+      <rect x="94" y="126" width="324" height="260" fill="url(#sky)"/>
+      <circle cx="360" cy="172" r="26" fill="#fff3b0"/>
+      <g fill="#ffffff" opacity="0.85">
+        <ellipse cx="164" cy="176" rx="34" ry="16"/><ellipse cx="190" cy="168" rx="24" ry="18"/>
+        <ellipse cx="264" cy="200" rx="26" ry="12"/>
+      </g>
+      <path d="M94 268 q80 -30 160 -6 q86 26 164 -8 v132 H94 Z" fill="#7fce6e"/>
+      <path d="M94 306 q90 -26 172 2 q76 26 152 -6 v84 H94 Z" fill="#5bb455"/>
+      <g stroke="#3f9e4a" stroke-width="4" stroke-linecap="round">
+        <path d="M132 380 v-46"/><path d="M186 384 v-56"/><path d="M240 378 v-42"/>
+        <path d="M292 384 v-52"/><path d="M344 380 v-40"/><path d="M158 386 v-30"/>
+        <path d="M214 386 v-28"/><path d="M268 386 v-32"/><path d="M320 386 v-26"/>
+      </g>
+      <g>
+        <use href="#flw" transform="translate(132 328)" fill="#ff8fb1"/>
+        <use href="#flw" transform="translate(186 322)" fill="#ffffff"/>
+        <use href="#flw" transform="translate(240 330)" fill="#c08cff"/>
+        <use href="#flw" transform="translate(292 326)" fill="#ff8fb1"/>
+        <use href="#flw" transform="translate(344 334)" fill="#ffffff"/>
+        <use href="#flw" transform="translate(158 352) scale(0.8)" fill="#ffb45c"/>
+        <use href="#flw" transform="translate(214 354) scale(0.8)" fill="#ff8fb1"/>
+        <use href="#flw" transform="translate(268 350) scale(0.8)" fill="#c08cff"/>
+      </g>
+    </g>
+  </g>
+
+  <g filter="url(#sh)">
+    <circle cx="392" cy="384" r="76" fill="#ffffff"/>
+    <circle cx="392" cy="384" r="64" fill="url(#xg)"/>
+    <g stroke="#ffffff" stroke-width="16" stroke-linecap="round">
+      <path d="M368 360 L416 408"/><path d="M416 360 L368 408"/>
+    </g>
+  </g>
+</svg>

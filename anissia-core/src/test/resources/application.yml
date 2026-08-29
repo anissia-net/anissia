@@ -1,0 +1,39 @@
+env: local
+host: http://localhost:8080
+google.analytics.id: G-Z38PT7F09M
+
+server:
+  port: 8001
+  forward-headers-strategy: native
+
+elasticsearch:
+  url: http://localhost:9200
+  username:
+  password:
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/anissia
+    username: anissia
+    password: anissia
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    properties.hibernate:
+      jdbc.batch_size: 4
+      dialect: org.hibernate.dialect.MariaDBDialect
+      timezone.default_storage: NORMALIZE
+    hibernate:
+      ddl-auto: none
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
+    open-in-view: false
+  data.elasticsearch.repositories.enabled: false
+  jooq:
+    sql-dialect: mariadb
+
+dat:
+  uri: http://localhost:8088

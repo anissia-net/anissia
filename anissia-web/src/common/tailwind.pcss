@@ -1,0 +1,109 @@
+@import "tailwindcss" source(none);
+
+@source "../../index.html";
+@source "../**/*.{vue,js,ts,jsx,tsx}";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: var(--font-family-sans);
+    --font-serif: Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    --color-canvas: var(--as-canvas);
+    --color-canvas-2: var(--as-canvas-2);
+    --color-surface: var(--as-surface);
+    --color-surface-2: var(--as-surface-2);
+    --color-muted: var(--as-muted);
+    --color-line: var(--as-line);
+    --color-line-2: var(--as-line-2);
+    --color-ink: var(--as-ink);
+    --color-ink-2: var(--as-ink-2);
+    --color-ink-3: var(--as-ink-3);
+    --color-brand: var(--as-brand);
+    --color-brand-2: var(--as-brand-2);
+    --color-brand-soft: var(--as-brand-soft);
+    --color-danger: var(--as-danger);
+    --color-success: var(--as-success);
+
+    --text-2xs: 0.6875rem;
+    --text-2xs--line-height: 1.55;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: 1.6;
+    --text-sm: 0.8125rem;
+    --text-sm--line-height: 1.7;
+    --text-md: 0.9375rem;
+    --text-md--line-height: 1.7;
+    --text-base: 0.9375rem;
+    --text-base--line-height: 1.75;
+    --text-lg: 1.0625rem;
+    --text-lg--line-height: 1.6;
+    --text-lg--letter-spacing: -0.005em;
+    --text-xl: 1.25rem;
+    --text-xl--line-height: 1.5;
+    --text-xl--letter-spacing: -0.012em;
+    --text-2xl: 1.5rem;
+    --text-2xl--line-height: 1.4;
+    --text-2xl--letter-spacing: -0.018em;
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: 1.3;
+    --text-3xl--letter-spacing: -0.022em;
+    --text-4xl: 2.25rem;
+    --text-4xl--line-height: 1.25;
+    --text-4xl--letter-spacing: -0.026em;
+    --text-5xl: 2.875rem;
+    --text-5xl--line-height: 1.15;
+    --text-5xl--letter-spacing: -0.03em;
+    --text-6xl: 3.75rem;
+    --text-6xl--line-height: 1.05;
+    --text-6xl--letter-spacing: -0.034em;
+    --text-7xl: 4.5rem;
+    --text-7xl--line-height: 1;
+    --text-7xl--letter-spacing: -0.036em;
+    --text-8xl: 6rem;
+    --text-8xl--line-height: 1;
+    --text-8xl--letter-spacing: -0.04em;
+
+    --radius-card: 20px;
+    --radius-ctl: 12px;
+    --radius-pill: 999px;
+
+    --spacing-header: 3.5rem;
+    --spacing-gutter: 1.5rem;
+    --spacing-section: 2.5rem;
+
+    --shadow-card: var(--as-shadow-1);
+    --shadow-card-hover: var(--as-shadow-2);
+    --shadow-pop: var(--as-shadow-3);
+
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+    *, ::after, ::before, ::backdrop, ::file-selector-button {
+        border-color: var(--as-line);
+    }
+
+    body {
+        font-size: var(--text-base);
+        line-height: var(--text-base--line-height);
+    }
+
+    input, textarea, select, button {
+        font-size: inherit;
+        line-height: inherit;
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: var(--as-ink-3);
+    }
+
+    button:not(:disabled), [role="button"]:not(:disabled) {
+        cursor: pointer;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--as-brand);
+        outline-offset: 2px;
+    }
+}

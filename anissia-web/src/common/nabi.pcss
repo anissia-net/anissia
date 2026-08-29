@@ -1,0 +1,125 @@
+/*
+ * nabi-note 를 사이트 토큰에 맞춘다.
+ *
+ * 글꼴은 코어가 선언하지 않고 읽기만 하는 값이라 `:root` 한 줄이면 상속으로 닿는다.
+ * 색·모양은 코어가 `.nabi` 자리에 직접 선언하므로 상속으로는 이길 수 없다 — 클래스를 셋 겹쳐
+ * (0,3,0) 을 만들어야 코어의 밝음/어둠 규칙보다 확실히 위에 선다.
+ * 세 자리에 다 건다: 편집기 뿌리, 덮개(미리보기·라이트박스 — body 의 자식이라 상속이 안 닿는다),
+ * 홀로 선 보기 뿌리(글만 그리는 자리).
+ */
+:root {
+    --nabi-font: var(--font-sans);
+    --nabi-font-serif: var(--font-serif);
+    --nabi-font-mono: var(--font-mono);
+    /*
+     * 사이트 머리줄이 흐름 안으로 들어가 스크롤과 함께 올라가 사라지므로, 붙는 단추 줄을
+     * 내려 앉힐 이유가 없다 — 화면 맨 위에 그대로 붙는다.
+     * **단위를 뗀 `0` 은 안 된다** — 코어가 이 값을 `calc()` 안에서 길이로 쓰는데, 단위 없는 0 은
+     * 거기서 길이가 아니라 숫자라 식 전체가 무효가 되고 `top` 이 `auto` 로 떨어져 sticky 가 죽는다.
+     */
+    --nabi-sticky-top: 0px;
+}
+
+.nabi.nabi.nabi,
+.nabi-scrim.nabi-scrim.nabi-scrim,
+.nabi-content.nabi-content.nabi-content {
+    /*
+     * `--nabi-bg` 는 편집 자리의 바탕이 아니라 **떠 있는 것들**(단추 줄, 판, 알림, 미리보기 상자,
+     * 전체화면)의 바탕이다. 투명으로 두면 판과 알림이 글 위로 비쳐 읽을 수 없게 된다.
+     * 편집기가 앉은 종이(`.as-post`)와 같은 색을 준다 — 단추 줄이 제 색으로 따로 놀지 않고
+     * 한 장 위에 얹힌 것처럼 보인다. 판·알림·전체화면도 같은 종이색이라 어디서나 읽힌다.
+     */
+    --nabi-bg: #f7f9fc;
+    --nabi-soft: var(--as-muted);
+
+    --nabi-fg: var(--as-ink-2);
+    --nabi-muted: var(--as-ink-3);
+    --nabi-on-accent: var(--as-on-brand);
+
+    --nabi-line: var(--as-line);
+    --nabi-accent: var(--as-brand);
+    --nabi-danger: var(--as-danger);
+
+    --nabi-radius: var(--radius-ctl);
+    --nabi-radius-sm: 8px;
+    --nabi-radius-xs: 5px;
+    --nabi-layer-radius: var(--radius-ctl);
+
+    --nabi-shadow: var(--as-shadow-2);
+
+    /*
+     * 0.8 부터 자리 표시 글자의 색은 `--nabi-muted` 가 아니라 제 이름을 쓴다 — 코어는 그 이름을
+     * **선언하지 않고** 부르기만 하므로(대체값은 알파를 섞은 회색) 여기서 적은 값이 그냥 이긴다.
+     * 사이트의 다른 입력칸 자리 표시(`::placeholder`)와 같은 `--as-ink-3` 을 준다 — 편집기 안팎의
+     * "아직 안 쓴 자리" 가 같은 회색으로 서야 한 화면으로 읽힌다.
+     */
+    --nabi-placeholder-color: var(--as-ink-3);
+
+    /*
+     * 비어도 한 줄로 주저앉지 않게 하는 하한. 0.8 부터 코어가 `.nabi-editing` 에만 걸고 이 이름을
+     * 대체값으로 부르므로, 규칙을 덮지 않고 값 하나만 갈아 끼운다 (코어 기본은 12.5rem).
+     * `.nabi-editing` 에만 걸리는 것이 요점이다 — 미리보기·발행된 글은 글 길이가 곧 높이다.
+     */
+    --nabi-content-min-height: 280px;
+
+    /*
+     * 사이트 머리줄(30) 위에 선다 — 머리줄이 아직 안 지나갔을 때 단추 줄이 그 뒤로 묻히면 안 된다.
+     */
+    --nabi-z-sticky: 31;
+}
+
+/* 어둠에서 흰 종이는 눈을 찌른다 — 읽는 글(`.as-post`)과 같은 한 단 밝은 면을 쓴다. */
+html.dark .nabi.nabi.nabi,
+html.dark .nabi-content.nabi-content.nabi-content {
+    --nabi-bg: var(--as-canvas-2);
+}
+
+/* 덮개는 유리로 뜬다 — 뒤가 살짝 비친다. 종이색을 물려받으면 안 되므로 뒤에 적는다. */
+.nabi-scrim.nabi-scrim.nabi-scrim {
+    --nabi-bg: var(--as-glass-strong);
+}
+
+/*
+ * 단추 줄은 이제 종이와 같은 색이라 스스로는 끝을 말하지 못한다 — 선 한 줄로 몸과 가른다.
+ * 읽는 글의 작성자 줄(`.as-post-head`)과 같은 짜임이다.
+ */
+.nabi .nabi-toolbar {
+    /* border-bottom: 1px solid var(--as-line);*/
+}
+
+/* 글자 크기·줄 높이는 토큰이 없다 — 규칙을 직접 덮는다 (코어는 `.nabi-content` 한 겹이다). */
+.nabi-content.nabi-content {
+    font-size: 0.9375rem;
+    line-height: 1.9;
+}
+
+/*
+ * 안쪽 여백은 글이 앉은 **종이**가 두른다 — 코어의 `12px 14px` 를 걷어낸다.
+ *
+ * 읽는 자리(`NoteView`)와 고쳐 쓰는 자리(`PostEditor`)가 같은 값(`--as-post-pad-*`)을 두르고
+ * 글은 그 안에서 가장자리부터 시작한다. 여백을 한 곳에서만 주니 "수정" 을 눌러도 글이 옆으로
+ * 밀리지 않고, 좁은 화면에서 여백을 줄일 때도 만질 값이 하나다.
+ *
+ * `:where()` 로 눕히던 앞선 시도는 죽어 있었다 — 코어의 `.nabi-content` 는 layer 밖 (0,1,0) 이라
+ * 특이도 0 은 물론 Tailwind 유틸리티(`px-4`, layer 안이라 언제나 진다)도 이기지 못한다.
+ *
+ * **편집기 안에만** 건다. 밖(읽는 자리)까지 (0,2,0) 으로 덮으면 종이가 두른 여백(`.as-post-body`,
+ * 클래스 한 겹)마저 이겨 버려서 글이 종이 끝에 붙는다 — 밖은 코어와 같은 무게로 두고
+ * `style.pcss` 가 뒤에 실린다는 사실만으로 이기게 둔다.
+ *
+ * 편집기 쪽은 0 이 아니라 **종이와 같은 값**을 여기서 직접 두른다. 종이(`.as-post-editor`)는
+ * 편집기가 꽉 차도록 여백을 비워 두므로 — 붙는 단추 줄이 종이 폭을 그대로 덮게 하려면 그래야 한다 —
+ * 두를 사람이 쓰는 자리밖에 없다. 읽는 자리와 값이 같으니 "수정" 을 눌러도 글은 그 자리에 그대로 선다.
+ */
+.nabi .nabi-content {
+    padding: var(--as-post-pad-y) var(--as-post-pad-x);
+}
+
+/*
+ * 미리보기 본문은 덮개(`.nabi-scrim`) 안, 곧 편집기 **밖**에 선다 — 위 규칙이 안 닿고 호스트의
+ * 종이도 없다. 코어 값을 그대로 못박아 둔다.
+ * (전체화면은 `.nabi` 안이라 위 규칙이 그대로 닿는다 — 따로 적을 것이 없다.)
+ */
+.nabi-content.nabi-preview-body {
+    padding: 12px 14px;
+}
