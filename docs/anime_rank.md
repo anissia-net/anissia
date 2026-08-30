@@ -47,6 +47,3 @@
 - **일간** 집계가 있었으나 애니편성표의 **요일** 기준으로 매일 전체 순위가 바뀌는 현상 때문에 **일간**을 제외하고 **분기**를 추가하였다.
     - 마찬가지로 분기도 91.25일이 아닌 84일을 기준으로 한다.
     
-## 참고
-- [애니메이션 순위 구현 메인코드](https://github.com/anissia-net/core/blob/master/src/main/kotlin/anissia/domain/anime/service/AnimeRankServiceImpl.kt)
-- [애니메이션 순위 합산 스케줄링](https://github.com/anissia-net/core/blob/master/src/main/kotlin/anissia/infrastructure/configuration/ScheduleConfiguration.kt)

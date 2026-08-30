@@ -52,7 +52,7 @@ IDE 혹은 터미널(반드시 cd 등의 명령어를 통해 프로젝트 폴더
             ```
         * **로컬서버** API 사용 - http://localhost:8001
             - 우선 코어서버(백엔드)를 가동해야 합니다.
-            - 참고 : [anissia-core](https://github.com/anissia-net/core)
+            - 참고 : [anissia-core](https://github.com/anissia-net/anissia/tree/master/anissia-core)
             ``` shell
             yarn run dev
             ```
@@ -73,7 +73,7 @@ yarn run build
 ```
 
 ## 참고
-* [애니시아 문서](https://github.com/anissia-net/document)
-* [애니편성표 API](https://github.com/anissia-net/document/blob/main/api_anime_schdule.md)
-* [애니시아 CORE 프로젝트](https://github.com/anissia-net/core)
-* [애니시아 WEB 프로젝트](https://github.com/anissia-net/web)
+* [애니시아 문서](https://github.com/anissia-net/anissia/tree/master/docs)
+* [애니편성표 API](https://github.com/anissia-net/anissia/tree/master/docs/anime_schdule.md)
+* [애니시아 CORE 프로젝트](https://github.com/anissia-net/anissia/tree/master/anissia-core)
+* [애니시아 WEB 프로젝트](https://github.com/anissia-net/anissia/tree/master/anissia-web)

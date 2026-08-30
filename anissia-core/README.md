@@ -42,9 +42,9 @@
   GRANT ALL PRIVILEGES ON * . * TO 'anissia'@'%';
   FLUSH PRIVILEGES;
   ```
-- [DAT 인증서 관리 서비스](https://dat.saro.me/en/svc/docker-saro-lab-dat-cms)
-  - 메뉴얼: https://dat.saro.me/en/svc/docker-saro-lab-dat-cms
-  - 릴리즈 파일: https://github.com/saro-lab/dat-cms/releases
+- [DAT 인증서 관리 서비스](https://dat.saro.me/svc/docker-saro-lab-dat-cms)
+  - 메뉴얼: https://dat.saro.me/svc/docker-saro-lab-dat-cms
+  - 릴리즈 파일: https://github.com/saro-lab/dat/releases
 
 ## 실행
 각 IDE에서 실행하거나 직접 gradle wrapper를 이용하여 실행
@@ -63,7 +63,7 @@ java -jar anissia-core-1.0.jar --spring.profiles.active=prod
 - http://localhost:8080/install (예정)
 
 ## 참고 
-* [애니시아 문서](https://github.com/anissia-net/document)
-* [애니편성표 API](https://github.com/anissia-net/document/blob/main/api_anime_schdule.md)
-* [애니시아 CORE 프로젝트](https://github.com/anissia-net/core)
-* [애니시아 WEB 프로젝트](https://github.com/anissia-net/web)
+* [애니시아 문서](https://github.com/anissia-net/anissia/tree/master/docs)
+* [애니편성표 API](https://github.com/anissia-net/anissia/tree/master/docs/anime_schdule.md)
+* [애니시아 CORE 프로젝트](https://github.com/anissia-net/anissia/tree/master/anissia-core)
+* [애니시아 WEB 프로젝트](https://github.com/anissia-net/anissia/tree/master/anissia-web)
