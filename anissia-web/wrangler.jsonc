@@ -9,7 +9,6 @@
 
   "assets": {
     "directory": "dist",
-    "binding": "ASSETS",
     "not_found_handling": "none"
   },
   "compatibility_flags": [
