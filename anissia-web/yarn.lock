@@ -1324,7 +1324,7 @@ __metadata:
     "@vue/devtools-api": "npm:^8.2.1"
     autoprefixer: "npm:^10.5.4"
     colorjs.io: "npm:^0.7.1"
-    nabi-note: "npm:^0.9.3"
+    nabi-note: "npm:^1.0.0"
     pinia: "npm:^4.0.3"
     postcss: "npm:^8.5.26"
     postcss-nested: "npm:^8.0.1"
@@ -2411,10 +2411,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nabi-note@npm:^0.9.3":
-  version: 0.9.3
-  resolution: "nabi-note@npm:0.9.3"
-  checksum: 10/64829898bd9f28b239de6b0db9ed15805e289594ee6c3c2563766cf69ebbf6cac0e620df329e2dfcd0e617f4a9ec4759cb3909eb57f1685c8147603ee52880bc
+"nabi-note@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "nabi-note@npm:1.0.0"
+  checksum: 10/e8623dc08978925601cb064707a2efa7b82860bf9691deedf7d44082b22bbb858dc3091ce216f2d403a7e552f5abd3c9274f8e3c022b23390e9caae9064a957b
   languageName: node
   linkType: hard
 

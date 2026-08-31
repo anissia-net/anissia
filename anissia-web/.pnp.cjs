@@ -35,7 +35,7 @@ const RAW_RUNTIME_STATE =
           ["anissia-web", "workspace:."],\
           ["autoprefixer", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:10.5.4"],\
           ["colorjs.io", "npm:0.7.1"],\
-          ["nabi-note", "npm:0.9.3"],\
+          ["nabi-note", "npm:1.0.0"],\
           ["pinia", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:4.0.3"],\
           ["postcss", "npm:8.5.26"],\
           ["postcss-nested", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:8.0.1"],\
@@ -1603,7 +1603,7 @@ const RAW_RUNTIME_STATE =
           ["anissia-web", "workspace:."],\
           ["autoprefixer", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:10.5.4"],\
           ["colorjs.io", "npm:0.7.1"],\
-          ["nabi-note", "npm:0.9.3"],\
+          ["nabi-note", "npm:1.0.0"],\
           ["pinia", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:4.0.3"],\
           ["postcss", "npm:8.5.26"],\
           ["postcss-nested", "virtual:0aa41f1493fbf4be1edee3112bc5accb4a8d3cbf2ab01d0b8ed90b685f49348387f91d724ffbf4a5b88be15998f2ed6543b5c9ac36fcc7081329310f90c6f2c5#npm:8.0.1"],\
@@ -2726,10 +2726,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["nabi-note", [\
-      ["npm:0.9.3", {\
-        "packageLocation": "./.yarn/cache/nabi-note-npm-0.9.3-1198884269-64829898bd.zip/node_modules/nabi-note/",\
+      ["npm:1.0.0", {\
+        "packageLocation": "./.yarn/cache/nabi-note-npm-1.0.0-c37d7a4e51-e8623dc089.zip/node_modules/nabi-note/",\
         "packageDependencies": [\
-          ["nabi-note", "npm:0.9.3"]\
+          ["nabi-note", "npm:1.0.0"]\
         ],\
         "linkType": "HARD"\
       }]\
