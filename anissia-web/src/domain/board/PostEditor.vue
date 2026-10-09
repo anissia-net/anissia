@@ -63,7 +63,7 @@ import {
 import type {Nabi} from "nabi-note";
 import {mountDiffWing, type DiffWingMount} from "nabi-note/diff";
 import {attachViewer} from "nabi-note/viewer";
-import {noteWings} from "../../common/note";
+import {isBlankNote, noteWings} from "../../common/note";
 import boardRemote from "./remote/boardRemote";
 import toast from "../../common/toast";
 
@@ -110,8 +110,26 @@ let nabi: Nabi | null = null;
 /** 세운 역순으로 걷는다. */
 let unmounts: (() => void)[] = [];
 
+function validate(root: boolean): boolean {
+  const errors: string[] = [];
+  if (root && !topic.value.trim()) {
+    errors.push('제목을 입력해 주세요.');
+  }
+  if (isBlankNote(content.value)) {
+    errors.push('내용을 입력해 주세요.');
+  }
+  if (errors.length) {
+    toast.error(errors.join('\n'));
+    return false;
+  }
+  return true;
+}
+
 function doSave() {
   const p = post.value;
+  if (!validate(p.root)) {
+    return;
+  }
   if (p.root) {
     doSaveTopic(p);
   } else {

@@ -27,3 +27,10 @@ const WINGS: readonly Wing[] = wings()
 export function noteWings(): readonly Wing[] {
   return WINGS;
 }
+
+const EMBED_SELECTOR = 'img,video,audio,iframe,embed,object,svg,canvas,hr';
+
+export function isBlankNote(html: string): boolean {
+  const body = new DOMParser().parseFromString(html ?? '', 'text/html').body;
+  return !body.querySelector(EMBED_SELECTOR) && !(body.textContent ?? '').replace(/​/g, '').trim();
+}

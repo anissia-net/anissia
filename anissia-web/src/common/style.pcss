@@ -15,40 +15,40 @@
     html.light {
         color-scheme: light;
 
-        --as-canvas: #eef1f8;
-        --as-canvas-2: #e4e8f3;
-        --as-surface: rgba(255, 255, 255, .66);
-        --as-surface-2: rgba(255, 255, 255, .48);
-        --as-muted: #f2f4f7;
-        --as-line: rgba(15, 23, 42, .08);
-        --as-line-2: rgba(15, 23, 42, .16);
-        --as-ink: #0f1222;
-        --as-ink-2: #3d4557;
-        --as-ink-3: #666e83;
-        --as-brand: #4f6df5;
-        --as-brand-2: #3552e0;
-        --as-brand-soft: rgba(79, 109, 245, .11);
-        --as-danger: #d64545;
-        --as-success: #17916b;
+        --as-canvas: #f3f5f9;
+        --as-canvas-2: #e9edf4;
+        --as-surface: rgba(255, 255, 255, .84);
+        --as-surface-2: rgba(255, 255, 255, .72);
+        --as-muted: rgba(30, 50, 90, .05);
+        --as-line: rgba(20, 35, 65, .09);
+        --as-line-2: rgba(20, 35, 65, .17);
+        --as-ink: #121a2b;
+        --as-ink-2: #3c475b;
+        --as-ink-3: #687387;
+        --as-brand: #2c4c8c;
+        --as-brand-2: #1f3a70;
+        --as-brand-soft: rgba(44, 76, 140, .08);
+        --as-danger: #c23b3b;
+        --as-success: #217a5c;
 
-        --as-glass-line: rgba(255, 255, 255, .70);
-        --as-glass-line-2: rgba(255, 255, 255, .95);
-        --as-glass-strong: rgba(255, 255, 255, .88);
-        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .85);
-        --as-blur: 16px;
+        --as-glass-line: rgba(20, 35, 65, .08);
+        --as-glass-line-2: rgba(20, 35, 65, .16);
+        --as-glass-strong: #ffffff;
+        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .95);
+        --as-blur: 14px;
 
-        --as-bg-1: rgba(99, 102, 241, .16);
-        --as-bg-2: rgba(34, 211, 238, .13);
-        --as-bg-3: rgba(232, 121, 249, .10);
+        --as-bg-1: rgba(120, 150, 205, .16);
+        --as-bg-2: rgba(170, 190, 220, .14);
+        --as-bg-3: rgba(140, 160, 205, .10);
 
-        --as-gradient: linear-gradient(120deg, #7c5cf0 0%, #4f6df5 52%, #21b1e8 100%);
+        --as-gradient: linear-gradient(120deg, #5f7fbd 0%, #2c4c8c 55%, #1a2f5a 100%);
         --as-on-brand: #ffffff;
 
-        --as-shadow-1: 0 1px 2px rgba(19, 26, 60, .04);
-        --as-shadow-2: 0 10px 30px -14px rgba(19, 26, 60, .18);
-        --as-shadow-3: 0 24px 60px -20px rgba(19, 26, 60, .28);
-        --as-shadow-brand: 0 8px 22px -8px rgba(79, 109, 245, .50);
-        --as-ring: 0 0 0 3px rgba(79, 109, 245, .16);
+        --as-shadow-1: 0 1px 2px rgba(20, 35, 65, .05);
+        --as-shadow-2: 0 10px 30px -16px rgba(20, 35, 65, .20);
+        --as-shadow-3: 0 24px 60px -22px rgba(20, 35, 65, .30);
+        --as-shadow-brand: 0 8px 22px -10px rgba(44, 76, 140, .55);
+        --as-ring: 0 0 0 3px rgba(44, 76, 140, .15);
     }
 
     html.dark {
@@ -116,9 +116,9 @@
 
 html.light {
     ::-webkit-scrollbar-track { background-color: transparent }
-    ::-webkit-scrollbar-thumb { background-color: rgba(20, 23, 29, .18); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
-    ::-webkit-scrollbar-thumb:hover { background-color: rgba(20, 23, 29, .34) }
-    ::selection { background: rgba(47, 111, 237, .16); color: #14171d }
+    ::-webkit-scrollbar-thumb { background-color: rgba(20, 35, 65, .18); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(20, 35, 65, .34) }
+    ::selection { background: rgba(44, 76, 140, .16); color: #121a2b }
 }
 
 html.dark {
@@ -212,6 +212,10 @@ html:has(#sc2009, #sc2015, #sc2024) {
     background-clip: text;
     color: transparent;
     letter-spacing: .08em;
+}
+
+html.light .as-wordmark {
+    --as-wordmark-gradient: linear-gradient(120deg, #131d33 0%, #2c4c8c 55%, #6a8cc9 100%);
 }
 
 html.dark .as-wordmark {
@@ -375,7 +379,7 @@ html.dark .as-wordmark {
 
 /* 라이트는 흰 종이. */
 html.light .as-post {
-    background: #ffffff88;
+    background: #ffffff;
 }
 
 /* 어둠에서 흰 종이는 눈을 찌른다 — 바탕(`--as-canvas`)보다 한 단 밝은 면으로 같은 높이를 낸다. */
@@ -601,4 +605,57 @@ a.as-row {
 
 .as-tag {
     @apply px-3 py-[7px]
+}
+
+.as-toast-host {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.as-toast {
+    @apply flex items-start gap-2.5 text-sm font-medium cursor-pointer select-none;
+    pointer-events: auto;
+    max-width: 26rem;
+    padding: .6875rem 1rem;
+    border-radius: var(--radius-ctl);
+    background: var(--as-glass-strong);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 1px solid var(--as-line-2);
+    color: var(--as-ink);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-3);
+    animation: as-toast-in .28s var(--ease-out-quint) both;
+
+    &.is-leave { animation: as-toast-out .18s ease both }
+}
+
+.as-toast-icon {
+    @apply shrink-0 text-[15px];
+    line-height: var(--text-sm--line-height);
+}
+
+.as-toast-success .as-toast-icon { color: var(--as-success) }
+.as-toast-error .as-toast-icon { color: var(--as-danger) }
+
+.as-toast-text {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@keyframes as-toast-in {
+    from { opacity: 0; transform: translateY(-8px) scale(.98) }
+}
+
+@keyframes as-toast-out {
+    to { opacity: 0; transform: translateY(-6px) scale(.98) }
 }
