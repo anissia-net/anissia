@@ -22,7 +22,6 @@ const login = () => import('../page/site/login.vue')
 const register = () => import('../page/site/register.vue')
 const recover = () => import('../page/site/recover.vue')
 const account = () => import('../page/site/account.vue')
-const testUi = () => import('../page/site/testUi.vue')
 
 const adminLayout = () => import('../page/admin/layout.vue')
 const adminHome = () => import('../page/admin/home.vue')
@@ -65,7 +64,6 @@ const router = createRouter({
         { path: '/recover', component: recover, meta: { title: '계정복구 - 애니시아' } },
         { path: '/recover/:token', component: recover, meta: { title: '계정복구 - 애니시아' } },
         { path: '/account', component: account, meta: { title: '계정관리 - 애니시아' } },
-        { path: '/test-ui', component: testUi, meta: { title: 'UI 테마 미리보기 - 애니시아' } },
         {
           path: '/admin', component: adminLayout,
           children: [
