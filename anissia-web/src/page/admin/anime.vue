@@ -46,24 +46,28 @@
             <tr>
               <th>상태</th>
               <td>
-                <label class="chip" :class="{'is-on': anime.status == 'ON'}">
+                <div v-choice class="as-segment as-segment-inline">
+                <label :class="{'is-on': anime.status == 'ON'}">
                   <input type="radio" name="status" v-model="anime.status" value="ON" class="hidden" />편성표
                 </label>
-                <label class="chip" :class="{'is-on': anime.status == 'OFF'}">
+                <label :class="{'is-on': anime.status == 'OFF'}">
                   <input type="radio" name="status" v-model="anime.status" value="OFF" class="hidden" />편성표-결방
                 </label>
-                <label class="chip" :class="{'is-on': anime.status == 'END'}">
+                <label :class="{'is-on': anime.status == 'END'}">
                   <input type="radio" name="status" v-model="anime.status" value="END" class="hidden" />완결
                 </label>
+                </div>
               </td>
             </tr>
             <tr>
               <th>요일</th>
               <td>
-                <label v-for="(week, i) in weekList" :key="week" class="chip" :class="{'is-on': (i+'') == anime.week}">
+                <div v-choice class="as-segment as-segment-inline">
+                <label v-for="(week, i) in weekList" :key="week" :class="{'is-on': (i+'') == anime.week}">
                   <input type="radio" name="week" v-model="anime.week" :value="i+''" class="hidden" />
                   {{week}}
                 </label>
+                </div>
               </td>
             </tr>
             <tr v-if="anime.week != '7'">
@@ -76,8 +80,8 @@
               <th>시작일</th>
               <td>
                 <div class="date-edit">
-                  <div class="date-chips">
-                    <label v-for="dateType in dateTypeList" :key="dateType" class="chip" :class="{'is-on': dateType == anime.editStartDateType}">
+                  <div v-choice class="as-segment as-segment-inline">
+                    <label v-for="dateType in dateTypeList" :key="dateType" :class="{'is-on': dateType == anime.editStartDateType}">
                       <input type="radio" name="startDate" v-model="anime.editStartDateType" :value="dateType" class="hidden" />
                       {{dateType}}
                     </label>
@@ -98,8 +102,8 @@
               <th>종료일</th>
               <td>
                 <div class="date-edit">
-                  <div class="date-chips">
-                    <label v-for="dateType in dateTypeList" :key="dateType" class="chip" :class="{'is-on': dateType == anime.editEndDateType}">
+                  <div v-choice class="as-segment as-segment-inline">
+                    <label v-for="dateType in dateTypeList" :key="dateType" :class="{'is-on': dateType == anime.editEndDateType}">
                       <input type="radio" name="endDate" v-model="anime.editEndDateType" :value="dateType" class="hidden" />
                       {{dateType}}
                     </label>
@@ -143,13 +147,9 @@
             </tr>
           </tbody>
         </table>
-        <div class="mt-4 overflow-auto">
-          <div class="float-left">
-            <input type="button" value="삭제" @click="doDelete()" class="as-input-btn p-1.5" />
-          </div>
-          <div class="float-right">
-            <input type="button" value="저장" @click="doSave()" class="as-input-btn p-1.5" />
-          </div>
+        <div class="mt-4 flex justify-between gap-2">
+          <input type="button" value="삭제" @click="doDelete()" class="as-input-btn py-2 hover:text-danger!" />
+          <input type="button" value="저장" @click="doSave()" class="as-btn-primary py-2" />
         </div>
 
 
@@ -162,7 +162,7 @@
 
     </div>
 
-    <div class="as-segment mt-2">
+    <div v-choice class="as-segment mt-2">
       <router-link to="/admin/anime" :class="{'is-on': state === 'list'}">
         전체
       </router-link>
@@ -197,7 +197,7 @@
           총 <b class="text-ink-2">{{list.totalElements}}</b> 작품
         </div>
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <div v-for="(node, i) in list.content" class="p-5 as-card">
+          <div v-for="(node, i) in list.content" class="p-5 as-card flex flex-col">
             <div>
               <router-link v-if="!node.agendaNo" :to="toAnimeViewUrl(node.animeNo)">
                 <div class="text-md font-semibold text-ink">{{node.subject}}</div>
@@ -209,7 +209,7 @@
                 <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
               </div>
             </div>
-            <div class="mt-4 flex flex-wrap gap-1.5">
+            <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
               <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
               <span class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag"><router-link :to="`/admin/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link></span>
               <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><i class="fa-solid fa-globe"></i></a></span>
@@ -487,11 +487,6 @@ onUnmounted(() => {
   @apply flex flex-wrap items-center gap-x-4 gap-y-2;
 }
 
-.date-chips {
-  @apply flex flex-wrap items-center;
-  margin-bottom: -.5rem;
-}
-
 .date-fields {
   @apply flex items-center gap-1.5 text-sm;
   color: var(--as-ink-2);
@@ -499,7 +494,7 @@ onUnmounted(() => {
 
 .chip {
   @apply inline-block mr-2 mb-2 px-3 py-1.5 text-xs font-medium cursor-pointer select-none transition-all duration-150;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--as-muted);
   border: 1px solid var(--as-line);
   color: var(--as-ink-3);

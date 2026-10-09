@@ -175,9 +175,9 @@ onUnmounted(() => {
   background: var(--as-surface);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
   backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid var(--as-glass-line);
-  border-radius: 16px;
-  box-shadow: var(--as-glass-inset), var(--as-shadow-2);
+  position: relative;
+  border-radius: var(--radius-card);
+  box-shadow: var(--as-shadow-2);
 }
 
 .nav-link {
@@ -205,9 +205,9 @@ onUnmounted(() => {
   background: var(--as-glass-strong);
   -webkit-backdrop-filter: blur(24px) saturate(170%);
   backdrop-filter: blur(24px) saturate(170%);
-  border: 1px solid var(--as-glass-line);
+  position: relative;
   border-radius: var(--radius-card);
-  box-shadow: var(--as-glass-inset), var(--as-shadow-3);
+  box-shadow: var(--as-shadow-3);
 }
 
 .as-menu-item {

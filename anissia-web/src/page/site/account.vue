@@ -227,6 +227,6 @@ load();
 }
 
 .acc-card-danger {
-  border-color: color-mix(in oklab, var(--as-danger) 22%, var(--as-glass-line));
+  --as-edge: linear-gradient(155deg, color-mix(in oklab, var(--as-danger) 55%, transparent), color-mix(in oklab, var(--as-danger) 22%, transparent));
 }
 </style>

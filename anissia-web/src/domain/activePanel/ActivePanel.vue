@@ -3,8 +3,14 @@
   <div>
 
     <div v-if="isAdminMode">
-      <div class="pb-5">
-        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" placeholder="운영기록작성  /도움말" class="px-4 py-3 as-input-text">
+      <div class="as-section-head">
+        <h2 class="as-section-title">운영기록</h2>
+        <span class="as-meta pb-2">명령어 <b class="text-ink-2">/도움말</b></span>
+      </div>
+
+      <div class="relative mb-5">
+        <i class="fa-solid fa-terminal absolute left-4 top-1/2 -translate-y-1/2 text-xs text-ink-3 pointer-events-none"></i>
+        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" placeholder="운영기록작성  /도움말" class="pl-10 pr-4 py-3 as-input-text">
       </div>
 
       <div v-if="openHelp" class="p-5 mb-5 text-sm leading-[2] as-box">
@@ -23,9 +29,11 @@
       </router-link>
     </div>
 
-    <div>
-      <div v-for="(node, idx) in list.content" :key="node.apNo" class="py-3.5 text-sm break-all leading-[1.8] as-row anissia-home-reduce-10">
-        <div class="float-right pl-4 inline-block as-meta">{{node.regDtText}}</div>
+    <div :class="isAdminMode ? 'as-box px-4 md:px-5 py-3' : ''">
+      <div v-if="isAdminMode && list.loaded && list.content.length == 0" class="as-empty py-16!">운영기록이 없습니다.</div>
+      <div v-for="(node, idx) in list.content" :key="node.apNo" class="flex items-baseline gap-4 py-3 text-sm break-all leading-[1.8] as-row anissia-home-reduce-10">
+        <div class="order-last shrink-0 as-meta whitespace-nowrap">{{node.regDtText}}</div>
+        <div class="flex-1 min-w-0">
         <div v-if="node.code == 'TEXT'" v-html="node.html" :class="({'opacity-50': !node.published})"></div>
         <div v-else-if="node.code == 'ANIME'">
           <div>
@@ -66,6 +74,7 @@
           <div v-html="node.html"></div>
           <div class="ap-note">지원하지 않는 활동 패널 코드 : {{node.code}}</div>
         </div>
+        </div>
 
       </div>
     </div>
@@ -90,7 +99,7 @@ const props = defineProps({
 
 const page = ref(0);
 const sl = new ScrollLoader();
-const list = ref(PageData.empty()) as Ref<PageData<ActivePanelListItem>>;
+const list = ref(PageData.empty().notLoaded()) as Ref<PageData<ActivePanelListItem>>;
 const query = ref('');
 const openHelp = ref(false);
 const translatorApplyCount = ref(0);

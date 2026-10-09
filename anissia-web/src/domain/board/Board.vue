@@ -52,11 +52,11 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <router-link v-for="(node, i) in list.content" :key="node.topicNo" :to="`?topicNo=${node.topicNo}`" class="as-card group p-5 block">
+      <router-link v-for="(node, i) in list.content" :key="node.topicNo" :to="`?topicNo=${node.topicNo}`" class="as-card group p-5 flex flex-col">
         <div class="text-md font-semibold text-ink group-hover:text-brand transition-colors line-clamp-2">
           {{node.topic}}
         </div>
-        <div class="mt-4 flex items-center gap-4 as-meta">
+        <div class="mt-auto pt-4 flex items-center gap-4 as-meta">
           <span class="inline-flex items-center gap-1.5 truncate"><i class="fa-regular fa-user opacity-60"></i>{{node.name}}</span>
           <span class="inline-flex items-center gap-1.5"><i class="fa-regular fa-comment opacity-60"></i>{{node.postCount}}</span>
           <span class="inline-flex items-center gap-1.5 ml-auto shrink-0"><i class="fa-regular fa-clock opacity-60"></i>{{node.regDtText}}</span>

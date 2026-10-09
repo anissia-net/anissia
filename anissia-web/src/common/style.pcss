@@ -44,11 +44,19 @@
         --as-gradient: linear-gradient(120deg, #5f7fbd 0%, #2c4c8c 55%, #1a2f5a 100%);
         --as-on-brand: #ffffff;
 
-        --as-shadow-1: 0 1px 2px rgba(20, 35, 65, .05);
+        --as-shadow-1: 0 1px 0 rgba(20, 35, 65, .03), 0 4px 14px -10px rgba(20, 35, 65, .16);
         --as-shadow-2: 0 10px 30px -16px rgba(20, 35, 65, .20);
         --as-shadow-3: 0 24px 60px -22px rgba(20, 35, 65, .30);
         --as-shadow-brand: 0 8px 22px -10px rgba(44, 76, 140, .55);
         --as-ring: 0 0 0 3px rgba(44, 76, 140, .15);
+        --as-wordmark-gradient: linear-gradient(120deg, #131d33 0%, #2c4c8c 55%, #6a8cc9 100%);
+
+        --as-edge: linear-gradient(var(--edge-angle, 155deg), rgba(70, 105, 180, .26) 0%, rgba(20, 35, 65, .12) 30%, rgba(20, 35, 65, .13) 68%, rgba(20, 35, 65, .19) 100%);
+        --as-edge-glow: rgba(44, 76, 140, .85);
+
+        --as-choice-bg: #ffffff;
+        --as-choice-shadow: 0 0 0 1px rgba(20, 35, 65, .10), 0 2px 6px -2px rgba(20, 35, 65, .18);
+        --as-choice-ink: var(--as-brand);
     }
 
     html.dark {
@@ -88,6 +96,14 @@
         --as-shadow-3: 0 28px 70px -24px rgba(0, 0, 0, .80);
         --as-shadow-brand: 0 8px 24px -10px rgba(220, 150, 130, .35);
         --as-ring: 0 0 0 3px rgba(227, 170, 154, .18);
+        --as-title-rule: #c9b3ab;
+
+        --as-edge: linear-gradient(var(--edge-angle, 155deg), rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .07) 28%, rgba(255, 255, 255, .05) 66%, rgba(227, 170, 154, .22) 100%);
+        --as-edge-glow: rgba(247, 208, 194, .95);
+
+        --as-choice-bg: rgba(227, 170, 154, .17);
+        --as-choice-shadow: inset 0 0 0 1px rgba(227, 170, 154, .42), 0 2px 8px -3px rgba(0, 0, 0, .5);
+        --as-choice-ink: #f6d3c7;
     }
 
     html {
@@ -214,34 +230,38 @@ html:has(#sc2009, #sc2015, #sc2024) {
     letter-spacing: .08em;
 }
 
-html.light .as-wordmark {
-    --as-wordmark-gradient: linear-gradient(120deg, #131d33 0%, #2c4c8c 55%, #6a8cc9 100%);
-}
-
 html.dark .as-wordmark {
     --as-wordmark-gradient: linear-gradient(120deg, #fcf0eb 0%, #ebc6b8 45%, #b28d80 100%);
 }
 
 .as-section-title {
-    @apply relative inline-flex items-center gap-2.5 text-lg font-semibold;
+    @apply relative inline-flex items-center gap-2.5 font-bold;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    letter-spacing: -.015em;
+    padding-bottom: .4rem;
     color: var(--as-ink);
-    &::before {
-        content: "";
-        width: 2px;
-        height: 14px;
-        border-radius: 999px;
-        background: var(--as-gradient);
-    }
+    box-shadow: inset 0 -2px 0 var(--as-title-rule, var(--as-ink));
+}
+
+/* 섹션 머리 — 제목 밑줄이 줄 전체의 가는 선 위에 선다. */
+.as-section-head {
+    @apply flex items-end justify-between gap-4 mb-3;
+    box-shadow: inset 0 -1px 0 var(--as-line-2);
 }
 
 .as-page-title {
-    @apply text-2xl font-bold;
+    @apply font-extrabold;
+    font-size: 2rem;
+    line-height: 1.25;
+    letter-spacing: -.035em;
     color: var(--as-ink);
 }
 
 .as-sub-title {
-    @apply block text-xs font-semibold uppercase;
-    letter-spacing: .08em;
+    @apply block font-semibold uppercase;
+    font-size: .6875rem;
+    letter-spacing: .2em;
     color: var(--as-ink-3);
 }
 
@@ -288,10 +308,9 @@ html.dark .as-wordmark {
     background: var(--as-surface);
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
     border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
-    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    box-shadow: var(--as-shadow-1);
+    transition: box-shadow .2s ease, background-color .2s ease;
 }
 
 /*
@@ -304,9 +323,8 @@ html.dark .as-wordmark {
  */
 .as-post {
     background: var(--as-surface);
-    border: 1px solid var(--as-line);
     border-radius: var(--radius-card);
-    box-shadow: var(--as-shadow-2);
+    box-shadow: var(--as-shadow-1);
 }
 
 /*
@@ -316,14 +334,16 @@ html.dark .as-wordmark {
  * 글이 앉은 종이가 혼자 두른다.
  */
 :root {
-    --as-post-pad-x: 0.625rem;
-    --as-post-pad-y: 0.5rem;
+    --as-post-pad-x: 1rem;
+    --as-post-pad-y: 0.875rem;
+    --as-post-head-pad: 0.625rem;
 }
 
 @media (min-width: 640px) {
     :root {
-        --as-post-pad-x: 0.875rem;
-        --as-post-pad-y: 0.75rem;
+        --as-post-pad-x: 1.5rem;
+        --as-post-pad-y: 1.25rem;
+        --as-post-head-pad: 0.75rem;
     }
 }
 
@@ -333,7 +353,7 @@ html.dark .as-wordmark {
  * 조작부의 라운드를 쓴다.
  */
 .as-post-head {
-    padding: 0.4375rem var(--as-post-pad-x);
+    padding: var(--as-post-head-pad);
     border-radius: var(--radius-ctl);
 }
 
@@ -373,7 +393,7 @@ html.dark .as-wordmark {
 }
 
 .as-post-head:has(.as-input-bare:focus) {
-    border-color: var(--as-brand);
+    --as-edge: linear-gradient(var(--as-brand), var(--as-brand));
     box-shadow: var(--as-ring);
 }
 
@@ -391,15 +411,13 @@ html.dark .as-post {
     background: var(--as-surface);
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
     border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
-    transition: transform .22s var(--ease-out-quint), border-color .2s ease, box-shadow .22s ease, background-color .2s ease;
+    box-shadow: var(--as-shadow-1);
+    transition: transform .22s var(--ease-out-quint), box-shadow .22s ease, background-color .2s ease;
     &:hover {
-        transform: translateY(-2px);
-        border-color: var(--as-glass-line-2);
+        transform: translateY(-1px);
         background: var(--as-glass-strong);
-        box-shadow: var(--as-glass-inset), var(--as-shadow-2);
+        box-shadow: var(--as-shadow-2);
     }
 }
 
@@ -407,8 +425,7 @@ html.dark .as-post {
     background: var(--as-surface);
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    box-shadow: var(--as-shadow-1);
 }
 
 .as-table {
@@ -418,9 +435,8 @@ html.dark .as-post {
     background: var(--as-surface);
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
     border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    box-shadow: var(--as-shadow-1);
     overflow: hidden;
 
     th {
@@ -481,7 +497,7 @@ a.as-row {
 }
 
 .as-input-btn {
-    @apply inline-block text-center text-sm font-medium cursor-pointer select-none;
+    @apply inline-block shrink-0 whitespace-nowrap text-center text-sm font-medium cursor-pointer select-none;
     border-radius: var(--radius-ctl);
     padding-left: 1rem;
     padding-right: 1rem;
@@ -499,7 +515,7 @@ a.as-row {
 }
 
 .as-btn-primary {
-    @apply inline-block text-center text-sm font-semibold cursor-pointer select-none;
+    @apply inline-block shrink-0 whitespace-nowrap text-center text-sm font-semibold cursor-pointer select-none;
     border-radius: var(--radius-ctl);
     padding-left: 1rem;
     padding-right: 1rem;
@@ -571,9 +587,9 @@ a.as-row {
     @apply flex p-1 gap-1;
     border-radius: var(--radius-ctl);
     background: var(--as-muted);
-    > button, > a {
-        @apply flex-1 text-center text-sm font-medium py-2 px-3 transition-all duration-200;
-        border-radius: calc(var(--radius-ctl) - 4px);
+    > button, > a, > label {
+        @apply flex-1 text-center text-sm font-medium py-2 px-3 cursor-pointer select-none whitespace-nowrap transition-all duration-200;
+        border-radius: calc(var(--radius-ctl) - 2px);
         color: var(--as-ink-2);
         &:hover { color: var(--as-ink) }
         &.is-on {
@@ -584,11 +600,64 @@ a.as-row {
     }
 }
 
+/* 칸 폭이 글자만큼인 인라인 묶음 — 넘치면 줄을 바꾼다. */
+.as-segment-inline {
+    @apply inline-flex flex-wrap p-[3px] gap-0.5;
+    max-width: 100%;
+    > button, > a, > label {
+        @apply flex-none text-xs py-1.5 px-3;
+    }
+}
+
+/*
+ * `v-choice` — 고른 칸 뒤의 판 하나가 미끄러져 옮겨 간다.
+ * 칸 자체의 바탕은 걷고, 판(::before)이 고른 칸의 자리·크기(--choice-*)를 따라간다.
+ */
+.as-choice {
+    position: relative;
+    isolation: isolate;
+    --choice-ease: cubic-bezier(.22, .8, .25, 1);
+    --choice-duration: 380ms;
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+        width: var(--choice-w, 0);
+        height: var(--choice-h, 0);
+        translate: var(--choice-x, 0) var(--choice-y, 0);
+        border-radius: calc(var(--radius-ctl) - 2px);
+        background: var(--as-choice-bg);
+        box-shadow: var(--as-choice-shadow);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            translate var(--choice-duration) var(--choice-ease),
+            width var(--choice-duration) var(--choice-ease),
+            height var(--choice-duration) var(--choice-ease),
+            opacity .2s ease;
+    }
+
+    &.has-choice::before { opacity: 1 }
+    &:not([data-choice-ready])::before { transition: none }
+
+    > * { position: relative; z-index: 1 }
+
+    &.as-segment > .is-on {
+        background: transparent;
+        box-shadow: none;
+        color: var(--as-choice-ink);
+        font-weight: 600;
+    }
+}
+
 .as-tag, .as-tag-xs {
     @apply inline-block text-xs font-medium leading-none;
-    border-radius: 999px;
-    background: var(--as-muted);
-    border: 1px solid var(--as-line);
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--as-line-2);
     color: var(--as-ink-2);
     transition: background-color .18s ease, border-color .18s ease, color .18s ease;
     &:hover {
@@ -658,4 +727,43 @@ a.as-row {
 
 @keyframes as-toast-out {
     to { opacity: 0; transform: translateY(-6px) scale(.98) }
+}
+
+/*
+ * 상자 테두리 — 단색 실선 대신 1px 마스크 고리 두 겹.
+ * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--mx/--my, edgeLight.ts)에서 번지는 빛.
+ */
+:is(.as-box, .as-card, .as-table, .as-post, .as-glass) {
+    position: relative;
+}
+
+:is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass) {
+    &::before, &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        padding: 1px;
+        border-radius: inherit;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+    &::before { background: var(--as-edge) }
+    &::after {
+        background: radial-gradient(var(--edge-light-size, 160px) circle at var(--mx, 50%) var(--my, 0), var(--as-edge-glow), transparent 70%);
+        opacity: 0;
+        transition: opacity .35s ease;
+    }
+    &:hover::after { opacity: 1 }
+}
+
+/* 고쳐 쓰는 종이 — 붙는 단추 줄(--nabi-z-sticky: 31)이 테두리를 덮지 않게 고리를 그 위로. */
+.as-post-editor::before, .as-post-editor::after { z-index: 32 }
+
+/* 마우스가 없는 기기 — 빛은 늘 켜 두고 스크롤로 움직인다(edgeLight.ts). */
+html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass)::after {
+    --edge-light-size: 190px;
+    opacity: 1;
 }

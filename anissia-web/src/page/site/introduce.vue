@@ -14,12 +14,12 @@
       애니시아의 관리를 총괄하고 있는 운영진입니다.
     </p>
     <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in adminMembers" :key="node.name" class="p-5 as-card">
+      <div v-for="node in adminMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
             <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
             <span v-else>{{sn.text}}</span>
@@ -33,12 +33,12 @@
       테라시아(현 <a href="https://gs.saro.me">가리사니</a>)의 멤버로 애니시아 독립 이전에는 운영을 이후에는 지원을 하고 있습니다.
     </p>
     <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in supportMembers" :key="node.name" class="p-5 as-card">
+      <div v-for="node in supportMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
             <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
             <span v-else>{{sn.text}}</span>
@@ -49,12 +49,12 @@
 
     <h2 class="as-section-title mt-14 mb-3">그래픽 지원</h2>
     <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in supportGraphicMembers" :key="node.name" class="p-5 as-card">
+      <div v-for="node in supportGraphicMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
             <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
             <span v-else>{{sn.text}}</span>
@@ -65,12 +65,12 @@
 
     <h2 class="as-section-title mt-14 mb-3">과거 맴버</h2>
     <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in prevMembers" :key="node.name" class="p-5 as-card">
+      <div v-for="node in prevMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
             <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
             <span v-else>{{sn.text}}</span>
@@ -94,8 +94,8 @@
     <h2 class="as-section-title mt-14 mb-3">갤러리</h2>
     <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-      <div v-for="node in gallery" :key="node.src"  class="as-card overflow-hidden">
-        <div class="p-4 pb-0 text-center bg-muted/40">
+      <div v-for="node in gallery" :key="node.src"  class="as-card overflow-hidden flex flex-col">
+        <div class="flex-1 flex items-end justify-center p-4 pb-0 text-center bg-muted/40">
           <a v-if="node.popup" :href="node.src" target="_blank">
             <img class="m-auto max-w-full" :src="node.src" alt="" />
           </a>

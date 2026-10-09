@@ -18,15 +18,19 @@
     -->
     <div class="as-post as-post-editor">
       <!--
-        나비는 껍데기를 짓지 않는다 — 세 자리만 호스트가 세우고 나머지(줄·판·떠 있는 상자)는 mount 가 채운다.
-        `.nabi` 는 색·모양 토큰이 걸리고 전체화면이 물리는 상자, `.nabi-toolbar` 는 단추 줄과 상황 줄을
-        한 덩이로 붙여 두는 자리 (따로 붙으면 상황 줄이 뜨고 질 때마다 화면이 밀린다), `.nabi-content` 는
-        실제로 쓰는 자리다.
+        나비는 껍데기를 짓지 않는다 — 자리만 호스트가 세우고 나머지(줄·판·떠 있는 상자)는 mount 가 채운다.
+        `.nabi` 는 색·모양 토큰이 걸리고 전체화면이 물리는 상자, `.nabi-toolbar` 는 단추 줄(`.nabi-toolbar-row`)과
+        속성 줄(`.nabi-context`)을 한 덩이로 붙여 두는 자리, `.nabi-content` 는 실제로 쓰는 자리다.
+        속성 줄은 고른 대상에 속성이 있을 때만 단추 줄 밑에 펼쳐진다 (1.3).
+        보기 도구(미리보기·전체화면) 자리는 툴바 자리와 따로 두고 **앞**에 세운다 — 시트가 오른쪽으로 띄운다(float).
       -->
       <div ref="rootElement" class="nabi">
         <div ref="chromeElement" class="nabi-toolbar">
-          <div ref="toolbarElement"></div>
-          <div ref="contextElement"></div>
+          <div class="nabi-toolbar-row">
+            <span ref="toolsElement"></span>
+            <div ref="toolbarElement"></div>
+          </div>
+          <div ref="contextElement" class="nabi-context" hidden></div>
         </div>
         <div ref="surfaceElement" class="nabi-content" contenteditable="true"></div>
       </div>
@@ -81,6 +85,7 @@ const router = useRouter();
 
 const rootElement = ref<HTMLElement>();
 const chromeElement = ref<HTMLElement>();
+const toolsElement = ref<HTMLElement>();
 const toolbarElement = ref<HTMLElement>();
 const contextElement = ref<HTMLElement>();
 const surfaceElement = ref<HTMLElement>();
@@ -234,13 +239,15 @@ onMounted(() => {
       }
     },
   });
+  // 같은 `nabi` 의 compact 툴바에 저절로 붙는다 — 따로 배치 옵션을 주지 않는다.
   const context = mountContextToolbar({...shared, root: contextElement.value!!});
+  // Shift 두 번: 모바일은 전체 도구판을 열고, PC·전체화면은 단추 줄로 포커스를 옮긴다.
   const hints = mountHints({toolbar, context, root: chromeElement.value!!, surface});
   const viewTools = mountViewTools({
     nabi,
     surface,
     root: rootElement.value!!,
-    container: toolbarElement.value!!,
+    container: toolsElement.value!!,
     locale: 'ko',
     // 미리보기는 굳은 HTML 이라 읽는 쪽 동작(표 정렬·코드 색)이 저절로 붙지 않는다 — 읽는 화면과 같게 맞춘다.
     onBody: body => {

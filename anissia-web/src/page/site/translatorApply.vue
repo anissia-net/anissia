@@ -33,9 +33,9 @@
           </tbody>
         </table>
 
-        <h2 class="as-section-title mt-10 mb-4">심사이력</h2>
-        <div v-if="view.result == 'ACT' && user.isLogin && (user.isAdmin || user.name == view.name)" class="mt-3">
-          <div v-if="user.isAdmin" class="vote-bar">
+        <h2 class="as-section-title mt-10 mb-3">심사이력</h2>
+        <div v-if="view.result == 'ACT' && user.isLogin && (user.isAdmin || user.name == view.name)" class="mb-3">
+          <div v-if="user.isAdmin" v-choice class="vote-bar">
             <div title="수리" @click="point = '1'" class="vote-btn text-green-600" :class="point == '1' ? 'is-on' : ''"><i class="fa-solid fa-circle-check"></i></div>
             <div title="반려" @click="point = '-1'" class="vote-btn text-red-600" :class="point == '-1' ? 'is-on' : ''"><i class="fa-solid fa-circle-xmark"></i></div>
             <div title="의견" @click="point = '0'" class="vote-btn text-purple-500" :class="point == '0' ? 'is-on' : ''"><i class="fa-solid fa-comments"></i></div>
@@ -47,13 +47,14 @@
             <input type="text" v-model="comment" @keyup.enter="doComment" name="comment" placeholder="의견" class="as-input-text px-4 py-2.5">
           </div>
         </div>
-        <div class="py-3.5 text-sm leading-[1.8] as-row">
-          <div class="float-right pl-4 inline-block as-meta">{{view.regDtText}}</div>
-          <div><span class="font-medium text-brand">자막 제작자 신청을 제출하였습니다.</span></div>
+        <div class="as-box px-4 md:px-5 py-3">
+        <div class="flex items-baseline gap-4 py-3 text-sm leading-[1.8] as-row">
+          <div class="order-last shrink-0 as-meta whitespace-nowrap">{{view.regDtText}}</div>
+          <div class="flex-1 min-w-0"><span class="font-medium text-brand">자막 제작자 신청을 제출하였습니다.</span></div>
         </div>
-        <div v-for="node in view.polls" :key="node.no" class="py-3.5 text-sm leading-[1.8] as-row">
-          <div class="float-right pl-4 inline-block as-meta">{{node.regDtText}}</div>
-          <div v-if="node.name">
+        <div v-for="node in view.polls" :key="node.no" class="flex items-baseline gap-4 py-3 text-sm leading-[1.8] as-row">
+          <div class="order-last shrink-0 as-meta whitespace-nowrap">{{node.regDtText}}</div>
+          <div v-if="node.name" class="flex-1 min-w-0">
             <span class="mr-2">
               <i v-if="node.vote > 0" class="fa-solid fa-circle-check text-emerald-500"></i>
               <i v-if="node.vote == 0" class="fa-solid fa-comment-dots text-violet-400"></i>
@@ -62,9 +63,10 @@
             <span class="mr-3 font-semibold text-ink">{{node.name}}</span>
             <span class="text-ink-2">{{node.comment}}</span>
           </div>
-          <div v-else>
+          <div v-else class="flex-1 min-w-0">
             <span class="font-medium text-brand">{{node.comment}}</span>
           </div>
+        </div>
         </div>
 
       </div>

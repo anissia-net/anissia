@@ -2,7 +2,7 @@
 
   <div class="as-page">
 
-    <div class="as-segment">
+    <div v-choice class="as-segment">
       <button type="button" v-for="(week, idx) in weekList" :key="week" @click="getAnimeList(idx)" class="font-semibold text-md! px-0.5! py-2.5!" :class="({'is-on': idx == weekNow})">{{week}}</button>
     </div>
 

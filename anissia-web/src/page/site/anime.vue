@@ -27,7 +27,7 @@
           </div>
         </div>
 
-        <div v-if="anime.captions.length" class="px-6 md:px-8 pt-4 pb-3 border-t border-line">
+        <div v-if="anime.captions.length" class="px-6 md:px-8 pt-5 pb-4 md:pt-6 md:pb-5 border-t border-line">
           <div class="as-sub-title py-2">자막정보</div>
           <ul>
             <li v-for="caption in anime.captions" :key="caption.name" class="as-row flex items-center gap-4 py-2.5 text-sm">
@@ -141,7 +141,7 @@
               <div class="text-md font-semibold text-ink group-hover:text-brand transition-colors">{{node.subject}}</div>
               <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
             </router-link>
-            <div class="mt-4 pt-0 flex flex-wrap gap-1.5">
+            <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
               <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
               <router-link class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
               <a class="as-tag-xs" v-if="node.website" :href="node.website" target="_blank"><i class="fa-solid fa-globe"></i></a>
@@ -307,7 +307,7 @@ onUnmounted(() => {
 
 .status-pill {
   @apply inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--as-muted);
   color: var(--as-ink-2);
   .dot {

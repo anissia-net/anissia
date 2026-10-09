@@ -2,7 +2,7 @@
 
   <div class="as-page">
 
-    <div class="as-segment mt-2">
+    <div v-choice class="as-segment mt-2">
       <router-link to="/admin/caption" :class="{'is-on': state === 1}">
         방영중
       </router-link>

@@ -1,9 +1,9 @@
 <template>
 
- <div class="min-h-[225px]">
+ <div class="min-h-[210px]">
    <router-link v-for="node in list" :key="node.topicNo"
                 :to="`/${props.ticker}?topicNo=${node.topicNo}`"
-                class="group flex items-center gap-3 py-3 -mx-2 px-2 text-sm as-row">
+                class="group flex items-center gap-3 py-2.5 -mx-2 px-2 text-sm as-row">
      <span class="flex-1 min-w-0 flex items-baseline font-medium text-ink transition-colors group-hover:text-brand">
        <span class="min-w-0 truncate">{{node.topic}}</span>
        <sup v-if="node.postCount" class="post-count shrink-0">{{node.postCount}}</sup>

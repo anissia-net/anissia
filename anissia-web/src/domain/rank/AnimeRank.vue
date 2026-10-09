@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="as-segment mb-2">
+    <div v-choice class="as-segment mb-2">
       <button type="button" :class="{'is-on': period === 'week'}" @click="load('week')">주간</button>
       <button type="button" :class="{'is-on': period === 'quarter'}" @click="load('quarter')">분기</button>
       <button type="button" :class="{'is-on': period === 'year'}" @click="load('year')">연간</button>
@@ -45,12 +45,12 @@ load("week");
 @reference "../../common/tailwind.pcss";
 
 .rank-no {
-  @apply shrink-0 w-6 h-6 inline-flex items-center justify-center rounded-md text-[11px] font-bold tabular-nums;
+  @apply shrink-0 w-6 h-6 inline-flex items-center justify-center rounded text-[11px] font-bold tabular-nums;
   background: var(--as-muted);
   color: var(--as-ink-3);
   &.is-top {
     background: var(--as-gradient);
-    color: #fff;
+    color: var(--as-on-brand);
   }
 }
 </style>

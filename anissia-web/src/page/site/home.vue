@@ -12,7 +12,7 @@
               <router-link to="/notice" class="as-section-title">공지사항</router-link>
               <router-link to="/notice" class="more-link">더보기 <i class="fa-solid fa-chevron-right"></i></router-link>
             </div>
-            <div class="as-box px-4">
+            <div class="as-box px-4 py-2.5">
               <RecentBoard ticker="notice" v-model="recentBoardData"/>
             </div>
           </section>
@@ -21,7 +21,7 @@
               <router-link to="/inquiry" class="as-section-title">문의 게시판</router-link>
               <router-link to="/inquiry" class="more-link">더보기 <i class="fa-solid fa-chevron-right"></i></router-link>
             </div>
-            <div class="as-box px-4">
+            <div class="as-box px-4 py-2.5">
               <RecentBoard ticker="inquiry" v-model="recentBoardData"/>
             </div>
           </section>
@@ -39,7 +39,7 @@
           <div class="section-head">
             <div class="as-section-title">운영기록</div>
           </div>
-          <div class="as-box px-4">
+          <div class="as-box px-4 py-3">
             <active-panel mode="public" />
           </div>
         </section>
@@ -81,7 +81,7 @@
           <router-link to="/notice" class="as-section-title">공지사항</router-link>
           <router-link to="/notice" class="more-link">더보기 <i class="fa-solid fa-chevron-right"></i></router-link>
         </div>
-        <div class="as-box px-4">
+        <div class="as-box px-4 py-2.5">
           <RecentBoard ticker="notice" v-model="recentBoardData"/>
         </div>
       </section>
@@ -91,7 +91,7 @@
           <router-link to="/inquiry" class="as-section-title">문의 게시판</router-link>
           <router-link to="/inquiry" class="more-link">더보기 <i class="fa-solid fa-chevron-right"></i></router-link>
         </div>
-        <div class="as-box px-4">
+        <div class="as-box px-4 py-2.5">
           <RecentBoard ticker="inquiry" v-model="recentBoardData"/>
         </div>
       </section>
@@ -100,7 +100,7 @@
         <div class="section-head">
           <div class="as-section-title">운영기록</div>
         </div>
-        <div class="as-box px-4">
+        <div class="as-box px-4 py-3">
           <active-panel mode="public" />
         </div>
       </section>
@@ -150,11 +150,12 @@ onUnmounted(() => {
 @reference "../../common/tailwind.pcss";
 
 .section-head {
-  @apply flex items-center justify-between mb-3 gap-4;
+  @apply flex items-end justify-between mb-3 gap-4;
+  box-shadow: inset 0 -1px 0 var(--as-line-2);
 }
 
 .more-link {
-  @apply inline-flex items-center gap-1.5 text-xs font-medium transition-colors duration-200;
+  @apply inline-flex items-center gap-1.5 pb-2 text-xs font-medium transition-colors duration-200;
   color: var(--as-ink-3);
   i { @apply text-[9px] }
   &:hover { color: var(--as-brand) }
