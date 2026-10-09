@@ -26,8 +26,8 @@ function followPointer() {
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 /**
- * 마우스가 없는 기기 — 빛은 상자마다 오른쪽 위 모서리에서 번진다.
- * 상자가 화면 아래쪽에 있을수록 오른쪽 변을 따라 조금 내려오고, 기기를 기울이면(자이로) 빛과 반사각이 함께 기운다.
+ * 마우스가 없는 기기 — 빛은 상자마다 왼쪽 위 모서리에서 번진다.
+ * 상자가 화면 아래쪽에 있을수록 왼쪽 변을 따라 조금 내려오고, 기기를 기울이면(자이로) 빛과 반사각이 함께 기운다.
  */
 function followMotion() {
   const root = document.documentElement;
@@ -51,13 +51,13 @@ function followMotion() {
 
     const max = root.scrollHeight - innerHeight;
     const depth = max > 0 ? clamp(scrollY / max, 0, 1) : 0;
-    root.style.setProperty('--edge-angle', `${205 + curX * 40 + (depth - .5) * 20}deg`);
+    root.style.setProperty('--edge-angle', `${155 + curX * 40 + (depth - .5) * 20}deg`);
 
     for (const el of document.querySelectorAll<HTMLElement>(SELECTOR)) {
       const rect = el.getBoundingClientRect();
       if (rect.bottom < 0 || rect.top > innerHeight) continue;
       const onScreen = clamp(rect.top / innerHeight, 0, 1);
-      const x = rect.width * clamp(.94 + .3 * curX, .05, 1);
+      const x = rect.width * clamp(.06 + .3 * curX, 0, .95);
       const y = Math.min(rect.height * clamp(.25 * curY, 0, .9) + 40 * onScreen, rect.height);
       el.style.setProperty('--mx', `${x}px`);
       el.style.setProperty('--my', `${y}px`);
