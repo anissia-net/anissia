@@ -731,7 +731,7 @@ a.as-row {
 
 /*
  * 상자 테두리 — 단색 실선 대신 1px 마스크 고리 두 겹.
- * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--mx/--my, edgeLight.ts)에서 번지는 빛.
+ * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--mx/--my, edgeLight.ts)에서 번지는 빛 — 반경은 상자 크기 기준(%)이라 큰 상자·작은 상자에서 같은 비율로 번진다.
  */
 :is(.as-box, .as-card, .as-table, .as-post, .as-glass) {
     position: relative;
@@ -752,7 +752,11 @@ a.as-row {
     }
     &::before { background: var(--as-edge) }
     &::after {
-        background: radial-gradient(var(--edge-light-size, 160px) circle at var(--mx, 50%) var(--my, 0), var(--as-edge-glow), transparent 70%);
+        background: radial-gradient(var(--edge-light-size, 50%) var(--edge-light-size, 50%) at var(--mx, 50%) var(--my, 0),
+            color-mix(in srgb, var(--as-edge-glow) 55%, transparent) 0%,
+            color-mix(in srgb, var(--as-edge-glow) 34%, transparent) 35%,
+            color-mix(in srgb, var(--as-edge-glow) 15%, transparent) 70%,
+            transparent 100%);
         opacity: 0;
         transition: opacity .35s ease;
     }
@@ -762,8 +766,8 @@ a.as-row {
 /* 고쳐 쓰는 종이 — 붙는 단추 줄(--nabi-z-sticky: 31)이 테두리를 덮지 않게 고리를 그 위로. */
 .as-post-editor::before, .as-post-editor::after { z-index: 32 }
 
-/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자마다 왼쪽 위에서 번진다(edgeLight.ts). */
+/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts). */
 html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass)::after {
-    --edge-light-size: 190px;
+    --edge-light-size: 90%;
     opacity: 1;
 }

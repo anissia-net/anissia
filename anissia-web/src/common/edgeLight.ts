@@ -23,11 +23,13 @@ function followPointer() {
   }, {passive: true});
 }
 
+/** 폰을 손에 들고 볼 때 화면이 바닥과 이루는 평균 각도 (45°~90° 사이). */
+const HOLD_ANGLE = 60;
+
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 /**
- * 마우스가 없는 기기 — 빛은 상자마다 왼쪽 위 모서리에서 번진다.
- * 상자가 화면 아래쪽에 있을수록 왼쪽 변을 따라 조금 내려오고, 기기를 기울이면(자이로) 빛과 반사각이 함께 기운다.
+ * 마우스가 없는 기기 — 빛은 상자마다 가운데에서 번지고, 기기를 조금만 기울여도(자이로) 빛과 반사각이 크게 움직인다.
  */
 function followMotion() {
   const root = document.documentElement;
@@ -37,7 +39,6 @@ function followMotion() {
   let tiltY = 0;
   let curX = 0;
   let curY = 0;
-  let base: {x: number, y: number} | null = null;
   let frame = 0;
 
   const request = () => {
@@ -46,19 +47,18 @@ function followMotion() {
 
   function paint() {
     frame = 0;
-    curX += (tiltX - curX) * .18;
-    curY += (tiltY - curY) * .18;
+    curX += (tiltX - curX) * .25;
+    curY += (tiltY - curY) * .25;
 
     const max = root.scrollHeight - innerHeight;
     const depth = max > 0 ? clamp(scrollY / max, 0, 1) : 0;
-    root.style.setProperty('--edge-angle', `${155 + curX * 40 + (depth - .5) * 20}deg`);
+    root.style.setProperty('--edge-angle', `${155 + curX * 60 + (depth - .5) * 20}deg`);
 
     for (const el of document.querySelectorAll<HTMLElement>(SELECTOR)) {
       const rect = el.getBoundingClientRect();
       if (rect.bottom < 0 || rect.top > innerHeight) continue;
-      const onScreen = clamp(rect.top / innerHeight, 0, 1);
-      const x = rect.width * clamp(.06 + .3 * curX, 0, .95);
-      const y = Math.min(rect.height * clamp(.25 * curY, 0, .9) + 40 * onScreen, rect.height);
+      const x = rect.width * (.5 + .75 * curX);
+      const y = rect.height * (.5 + .9 * curY);
       el.style.setProperty('--mx', `${x}px`);
       el.style.setProperty('--my', `${y}px`);
     }
@@ -71,12 +71,9 @@ function followMotion() {
     const angle = screen.orientation?.angle ?? 0;
     const x = angle == 90 ? e.beta : angle == 270 ? -e.beta : e.gamma;
     const y = angle == 90 ? -e.gamma : angle == 270 ? e.gamma : e.beta;
-    base ??= {x, y};
-    // 기울인 채 들고 있으면 그 자세가 천천히 새 기준이 된다.
-    base.x += (x - base.x) * .004;
-    base.y += (y - base.y) * .004;
-    tiltX = clamp((x - base.x) / 25, -1, 1);
-    tiltY = clamp((y - base.y) / 25, -1, 1);
+    // 기준 자세: 좌우는 수평, 앞뒤는 손에 들고 볼 때의 평균 각도.
+    tiltX = clamp(x / 12, -1, 1);
+    tiltY = clamp((y - HOLD_ANGLE) / 12, -1, 1);
     request();
   };
 
