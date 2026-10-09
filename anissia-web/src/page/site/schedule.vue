@@ -5,8 +5,8 @@
     <div class="md:flex md:gap-6 justify-between items-start">
       <div class="md:flex-1 p-5 flex as-box overflow-hidden">
         <div class="flex m-auto">
-          <iframe v-if="asd.type === 'card'" :ref="e => cardFrameRef = e" class="preview-border" src="/schedule/2024" :width="cardMaxWidth" :height="asd.cardHeight" @load="drawHtml"></iframe>
           <iframe v-if="asd.type === 'list'" :ref="e => listFrameRef = e" class="preview-border" src="/schedule/2015" :width="listMaxWidth" :height="asd.listHeight" @load="drawHtml"></iframe>
+          <iframe v-if="asd.type === 'timeline'" :ref="e => timelineFrameRef = e" class="preview-border" src="/schedule/2026" :width="timelineMaxWidth" :height="asd.timelineHeight" @load="drawHtml"></iframe>
           <div v-else-if="asd.type === 'img'" class="preview-img preview-border" :style="({width: `${imgMaxWidth}px`,height: `${imgHeight}px`, background: `#${asd.imgListBg}`, 'overflow-y': asd.imgScroll ? 'auto' : 'hidden'})">
             <div class="img-preview" ondragstart="return false" onselectstart="return false">
               <div class="img-title" :style="{background: `#${asd.imgTitleBg}`, color: `#${asd.imgTitle}`}">애니편성표</div>
@@ -19,9 +19,9 @@
 
       <div class="md:w-[268px] shrink-0 max-md:mt-6">
         <label class="sub-title">편성표 타입</label>
-        <div class="as-segment md:flex-col">
-          <button type="button" @click="setType('card')" :class="{'is-on': asd.type == 'card'}">
-            카드 타입
+        <div v-choice class="as-segment md:flex-col">
+          <button type="button" @click="setType('timeline')" :class="{'is-on': asd.type == 'timeline'}">
+            타임라인 타입
           </button>
           <button type="button" @click="setType('list')" :class="{'is-on': asd.type == 'list'}">
             리스트 타입
@@ -29,190 +29,6 @@
           <button type="button" @click="setType('img')" :class="{'is-on': asd.type == 'img'}">
             이미지 (블로그)
           </button>
-        </div>
-        <div v-if="asd.type == 'card'">
-          <label class="sub-title">커스텀 모드</label>
-          <div class="as-segment">
-            <button type="button" @click="asd.cardSimpleMode = true" :class="{'is-on': asd.cardSimpleMode}">
-              간편
-            </button>
-            <button type="button" @click="asd.cardSimpleMode = false" :class="{'is-on': !asd.cardSimpleMode}">
-              자세히
-            </button>
-          </div>
-
-          <div class="select-none">
-            <label class="sub-title">배경</label>
-            <div class="flex space-x-2">
-              <div class="color-unit-box" @click="e => openCp(e, 'cardBgLight')" :style="`background:#${asd.cardBgLight}`"></div>
-              <div class="color-unit-box" @click="e => openCp(e, 'cardBgDark')" :style="`background:#${asd.cardBgDark}`"></div>
-            </div>
-
-            <label class="sub-title">타이틀 글자 (기본 / 활성)</label>
-            <div class="flex space-x-2">
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardTitleLight')" :style="`background:#${asd.cardTitleLight}`"></div>
-                <div @click="e => openCp(e, 'cardTitleHoverLight')" :style="`background:#${asd.cardTitleHoverLight}`"></div>
-              </div>
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardTitleDark')" :style="`background:#${asd.cardTitleDark}`"></div>
-                <div @click="e => openCp(e, 'cardTitleHoverDark')" :style="`background:#${asd.cardTitleHoverDark}`"></div>
-              </div>
-            </div>
-
-            <div v-if="asd.cardSimpleMode">
-              <label class="sub-title">타일 - 기본 (배경 / 글자)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgLight')" :style="`background:#${asd.cardNavBgLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextLight')" :style="`background:#${asd.cardNavTextLight}`"></div>
-                </div>
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgDark')" :style="`background:#${asd.cardNavBgDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextDark')" :style="`background:#${asd.cardNavTextDark}`"></div>
-                </div>
-              </div>
-
-              <label class="sub-title">타일 - 활성 (배경 / 글자)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgPickLight')" :style="`background:#${asd.cardNavBgPickLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextPickLight')" :style="`background:#${asd.cardNavTextPickLight}`"></div>
-                </div>
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgPickDark')" :style="`background:#${asd.cardNavBgPickDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextPickDark')" :style="`background:#${asd.cardNavTextPickDark}`"></div>
-                </div>
-              </div>
-            </div>
-            <div v-else>
-              <label class="sub-title">요일 - 기본 (배경 / 글자 / 테두리)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgLight')" :style="`background:#${asd.cardNavBgLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextLight')" :style="`background:#${asd.cardNavTextLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavBorderLight')" :style="`background:#${asd.cardNavBorderLight}`"></div>
-                </div>
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgDark')" :style="`background:#${asd.cardNavBgDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextDark')" :style="`background:#${asd.cardNavTextDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavBorderDark')" :style="`background:#${asd.cardNavBorderDark}`"></div>
-                </div>
-              </div>
-
-              <label class="sub-title">요일 - 활성 (배경 / 글자 / 테두리)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgPickLight')" :style="`background:#${asd.cardNavBgPickLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextPickLight')" :style="`background:#${asd.cardNavTextPickLight}`"></div>
-                  <div @click="e => openCp(e, 'cardNavBorderPickLight')" :style="`background:#${asd.cardNavBorderPickLight}`"></div>
-                </div>
-                <div class="flex color-unit-box-3">
-                  <div @click="e => openCp(e, 'cardNavBgPickDark')" :style="`background:#${asd.cardNavBgPickDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavTextPickDark')" :style="`background:#${asd.cardNavTextPickDark}`"></div>
-                  <div @click="e => openCp(e, 'cardNavBorderPickDark')" :style="`background:#${asd.cardNavBorderPickDark}`"></div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="!asd.cardSimpleMode">
-              <label class="sub-title">목록 - 카드 기본 (배경 / 테두리)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box">
-                  <div @click="e => openCp(e, 'cardListBgLight')" :style="`background:#${asd.cardListBgLight}`"></div>
-                  <div @click="e => openCp(e, 'cardListBorderLight')" :style="`background:#${asd.cardListBorderLight}`"></div>
-                </div>
-                <div class="flex color-unit-box">
-                  <div @click="e => openCp(e, 'cardListBgDark')" :style="`background:#${asd.cardListBgDark}`"></div>
-                  <div @click="e => openCp(e, 'cardListBorderDark')" :style="`background:#${asd.cardListBorderDark}`"></div>
-                </div>
-              </div>
-
-              <label class="sub-title">목록 - 카드 활성 (배경 / 테두리)</label>
-              <div class="flex space-x-2">
-                <div class="flex color-unit-box">
-                  <div @click="e => openCp(e, 'cardListBgPickLight')" :style="`background:#${asd.cardListBgPickLight}`"></div>
-                  <div @click="e => openCp(e, 'cardListBorderPickLight')" :style="`background:#${asd.cardListBorderPickLight}`"></div>
-                </div>
-                <div class="flex color-unit-box">
-                  <div @click="e => openCp(e, 'cardListBgPickDark')" :style="`background:#${asd.cardListBgPickDark}`"></div>
-                  <div @click="e => openCp(e, 'cardListBorderPickDark')" :style="`background:#${asd.cardListBorderPickDark}`"></div>
-                </div>
-              </div>
-            </div>
-
-            <label class="sub-title">목록 - 글자 (접두어 / 한글제목 / 원어제목)</label>
-            <div class="flex space-x-2">
-              <div class="flex color-unit-box-3">
-                <div @click="e => openCp(e, 'cardListTextHighlightLight')" :style="`background:#${asd.cardListTextHighlightLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTextSubjectLight')" :style="`background:#${asd.cardListTextSubjectLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTextOriginalSubjectLight')" :style="`background:#${asd.cardListTextOriginalSubjectLight}`"></div>
-              </div>
-              <div class="flex color-unit-box-3">
-                <div @click="e => openCp(e, 'cardListTextHighlightDark')" :style="`background:#${asd.cardListTextHighlightDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTextSubjectDark')" :style="`background:#${asd.cardListTextSubjectDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTextOriginalSubjectDark')" :style="`background:#${asd.cardListTextOriginalSubjectDark}`"></div>
-              </div>
-            </div>
-
-            <label class="sub-title">목록 - 글자 활성 (접두어 / 한글제목 / 원어제목)</label>
-            <div class="flex space-x-2">
-              <div class="flex color-unit-box-3">
-                <div @click="e => openCp(e, 'cardListTextHighlightPickLight')" :style="`background:#${asd.cardListTextHighlightPickLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTextSubjectPickLight')" :style="`background:#${asd.cardListTextSubjectPickLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTextOriginalSubjectPickLight')" :style="`background:#${asd.cardListTextOriginalSubjectPickLight}`"></div>
-              </div>
-              <div class="flex color-unit-box-3">
-                <div @click="e => openCp(e, 'cardListTextHighlightPickDark')" :style="`background:#${asd.cardListTextHighlightPickDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTextSubjectPickDark')" :style="`background:#${asd.cardListTextSubjectPickDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTextOriginalSubjectPickDark')" :style="`background:#${asd.cardListTextOriginalSubjectPickDark}`"></div>
-              </div>
-            </div>
-
-            <label class="sub-title">목록 - 태그 (배경 / 글자)</label>
-            <div class="flex space-x-2">
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardListTagBgLight')" :style="`background:#${asd.cardListTagBgLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTagTextLight')" :style="`background:#${asd.cardListTagTextLight}`"></div>
-              </div>
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardListTagBgDark')" :style="`background:#${asd.cardListTagBgDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTagTextDark')" :style="`background:#${asd.cardListTagTextDark}`"></div>
-              </div>
-            </div>
-
-            <label class="sub-title">목록 - 태그 활성 (배경 / 글자)</label>
-            <div class="flex space-x-2">
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardListTagBgPickLight')" :style="`background:#${asd.cardListTagBgPickLight}`"></div>
-                <div @click="e => openCp(e, 'cardListTagTextPickLight')" :style="`background:#${asd.cardListTagTextPickLight}`"></div>
-              </div>
-              <div class="flex color-unit-box">
-                <div @click="e => openCp(e, 'cardListTagBgPickDark')" :style="`background:#${asd.cardListTagBgPickDark}`"></div>
-                <div @click="e => openCp(e, 'cardListTagTextPickDark')" :style="`background:#${asd.cardListTagTextPickDark}`"></div>
-              </div>
-            </div>
-
-          </div>
-          
-          <label class="sub-title">모양</label>
-          <div class="flex items-center space-x-2 mb-2">
-            <span class="w-5 shrink-0 text-center text-xs text-ink-3"><i class="fa-solid fa-left-right"></i></span>
-            <input type="range" v-model="asd.cardWidth" min="240" max="900" step="10" class="as-range flex-1">
-            <input type="number" v-model="asd.cardWidth" class="as-input-text w-[52px]! py-1.5 text-center text-xs!" maxlength="3" />
-          </div>
-          <div class="flex items-center space-x-2 mb-2">
-            <span class="w-5 shrink-0 text-center text-xs text-ink-3"><i class="fa-solid fa-up-down"></i></span>
-            <input type="range" v-model="asd.cardHeight" min="300" max="880" step="10" class="as-range flex-1">
-            <input type="number" v-model="asd.cardHeight" class="as-input-text w-[52px]! py-1.5 text-center text-xs!" maxlength="3" />
-          </div>
-          <label class="sub-title">HTML 코드</label>
-          <textarea readonly :value="cardCode" class="p-3.5 h-[120px] md:h-[162px] as-input-text text-xs! font-mono leading-[1.7]!"></textarea>
-          <div class="mt-3">
-            <button @click="doCopyClipboard(cardCode)" class="w-full py-2.5 as-btn-primary">
-              <i class="fa-regular fa-copy mr-1.5"></i>복사하기
-            </button>
-          </div>
         </div>
         <div v-if="asd.type == 'list'">
           <div class="select-none">
@@ -301,6 +117,62 @@
             </button>
           </div>
         </div>
+        <div v-if="asd.type == 'timeline'">
+          <div class="select-none">
+            <label class="sub-title">프리셋</label>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button v-for="preset in PRESETS" :key="preset.name" type="button" class="preset" :class="{'is-on': timelineSrc == encodeTheme(preset.theme)}" @click="applyPreset(preset.theme)">
+                <span class="preset-chip">
+                  <span :style="presetStyle(preset.theme.light)"></span>
+                  <span :style="presetStyle(preset.theme.dark)"></span>
+                </span>
+                <span class="preset-name">{{preset.name}}</span>
+              </button>
+            </div>
+
+            <label class="sub-title">포인트</label>
+            <div class="flex space-x-2">
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineAccentLight')" :style="`background:#${asd.timelineAccentLight}`"></div>
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineAccentDark')" :style="`background:#${asd.timelineAccentDark}`"></div>
+            </div>
+            <label class="sub-title">바탕</label>
+            <div class="flex space-x-2">
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineBaseLight')" :style="`background:#${asd.timelineBaseLight}`"></div>
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineBaseDark')" :style="`background:#${asd.timelineBaseDark}`"></div>
+            </div>
+            <label class="sub-title">분위기</label>
+            <div class="flex space-x-2">
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineAuraLight')" :style="`background:#${asd.timelineAuraLight}`"></div>
+              <div class="color-unit-box" @click="e => openCp(e, 'timelineAuraDark')" :style="`background:#${asd.timelineAuraDark}`"></div>
+            </div>
+            <label class="sub-title">번짐 세기</label>
+            <div class="flex items-center space-x-2">
+              <span class="w-5 shrink-0 text-center text-xs text-ink-3"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+              <input type="range" v-model.number="asd.timelineGlow" min="0" max="100" step="1" class="as-range flex-1">
+              <input type="number" v-model.number="asd.timelineGlow" class="as-input-text w-[52px]! py-1.5 text-center text-xs!" maxlength="3" />
+            </div>
+            <p class="mt-3 text-xs text-ink-3 leading-relaxed">고른 색은 기준점입니다. 글자·테두리·유리면·그라데이션은 읽기 좋게 자동으로 맞춰집니다. (왼쪽 라이트 / 오른쪽 다크)</p>
+          </div>
+
+          <label class="sub-title">모양</label>
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="w-5 shrink-0 text-center text-xs text-ink-3"><i class="fa-solid fa-left-right"></i></span>
+            <input type="range" v-model="asd.timelineWidth" min="240" max="900" step="10" class="as-range flex-1">
+            <input type="number" v-model="asd.timelineWidth" class="as-input-text w-[52px]! py-1.5 text-center text-xs!" maxlength="3" />
+          </div>
+          <div class="flex items-center space-x-2 mb-2">
+            <span class="w-5 shrink-0 text-center text-xs text-ink-3"><i class="fa-solid fa-up-down"></i></span>
+            <input type="range" v-model="asd.timelineHeight" min="300" max="880" step="10" class="as-range flex-1">
+            <input type="number" v-model="asd.timelineHeight" class="as-input-text w-[52px]! py-1.5 text-center text-xs!" maxlength="3" />
+          </div>
+          <label class="sub-title">HTML 코드</label>
+          <textarea readonly :value="timelineCode" class="p-3.5 h-[120px] md:h-[162px] as-input-text text-xs! font-mono leading-[1.7]!"></textarea>
+          <div class="mt-3">
+            <button @click="doCopyClipboard(timelineCode)" class="w-full py-2.5 as-btn-primary">
+              <i class="fa-regular fa-copy mr-1.5"></i>복사하기
+            </button>
+          </div>
+        </div>
         <div v-if="asd.type == 'img'">
           <div class="select-none">
             <label class="sub-title">제목 (배경색 / 글자색)</label>
@@ -354,8 +226,8 @@
       <div class="info-box as-card">
         <div class="w-[50px]"><img class="w-full" src="./schedule/icon-schedule.svg"/></div>
         <div class="flex-1 pl-4">
-          <a href="/schedule/2024" target="_blank"><h5>애니편성표 (2024)</h5></a>
-          <p>애니편성표 카드 버전</p>
+          <a href="/schedule/2026" target="_blank"><h5>애니편성표 (2026)</h5></a>
+          <p>애니편성표 타임라인 버전</p>
         </div>
       </div>
 
@@ -482,40 +354,16 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref} from "vue";
+import {computed, onMounted, onUnmounted, ref, watch} from "vue";
 import ColorPicker from "../../domain/colorPicker/ColorPicker.vue";
+import {DEFAULT_THEME, encodeTheme, PRESETS, Seed, Theme} from "../schedule/2026/palette";
 import {DateFormat} from "raon";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import toast from "../../common/toast";
 
 
 const asd = ref({
-  type: 'list',
-
-  cardSimpleMode: true,
-  cardBgLight: 'ffffff',
-  cardTitleLight: '27272a',
-  cardTitleHoverLight: '0369a1',
-  cardNavBgLight: 'ffffff', cardNavTextLight: '9ca3af', cardNavBorderLight: 'e4e4e7',
-  cardNavBgPickLight: 'ffffff', cardNavTextPickLight: '27272a', cardNavBorderPickLight: 'd4d4d8',
-  cardListBgLight: 'ffffff', cardListBorderLight: 'e4e4e7',
-  cardListBgPickLight: 'ffffff', cardListBorderPickLight: 'd4d4d8',
-  cardListTextHighlightLight: '2563eb', cardListTextSubjectLight: '1f2937', cardListTextOriginalSubjectLight: '27272a',
-  cardListTextHighlightPickLight: '2563eb', cardListTextSubjectPickLight: '1f2937', cardListTextOriginalSubjectPickLight: '27272a',
-  cardListTagBgLight: 'e6edf3', cardListTagTextLight: '595f6e',
-  cardListTagBgPickLight: 'c6cdd3', cardListTagTextPickLight: '595f6e',
-  cardBgDark: '000000',
-  cardTitleDark: 'a1a1aa',
-  cardTitleHoverDark: 'e5e7eb',
-  cardNavBgDark: '000000', cardNavTextDark: '4b5563', cardNavBorderDark: '1f1f22',
-  cardNavBgPickDark: '000000', cardNavTextPickDark: 'a1a1aa', cardNavBorderPickDark: '27272a',
-  cardListBgDark: '000000', cardListBorderDark: '1f1f22',
-  cardListBgPickDark: '000000', cardListBorderPickDark: '27272a',
-  cardListTextHighlightDark: '3b82f6', cardListTextSubjectDark: 'd4d4d8', cardListTextOriginalSubjectDark: 'a1a1aa',
-  cardListTextHighlightPickDark: '3b82f6', cardListTextSubjectPickDark: 'd4d4d8', cardListTextOriginalSubjectPickDark: 'a1a1aa',
-  cardListTagBgDark: '171a24', cardListTagTextDark: 'eeeeee',
-  cardListTagBgPickDark: '35363a', cardListTagTextPickDark: 'eeeeee',
-  cardWidth: 800, cardHeight: 640,
+  type: 'timeline',
 
   listBgLight: 'ffffff', listTitleBgLight: '5987b6', listTitleLight: 'ffffff',
   listNavBgLight: 'f2f2f2', listNavLight: '497ba7', listNavActBgLight: '9cb3c7', listNavActLight: 'ffffff',
@@ -527,6 +375,11 @@ const asd = ref({
   listPrefixDark: '3a7da3',
   listWidth: 650, listHeight: 400,
 
+  timelineAccentLight: DEFAULT_THEME.light.accent, timelineBaseLight: DEFAULT_THEME.light.base, timelineAuraLight: DEFAULT_THEME.light.aura,
+  timelineAccentDark: DEFAULT_THEME.dark.accent, timelineBaseDark: DEFAULT_THEME.dark.base, timelineAuraDark: DEFAULT_THEME.dark.aura,
+  timelineGlow: DEFAULT_THEME.glow,
+  timelineWidth: 720, timelineHeight: 640,
+
   imgTitleBg: '63a883', imgTitle: 'ffffff',
   imgYmdBg: 'd8d8d8', imgYmd: '000000',
   imgListBg: 'ffffff', imgList: '000000',
@@ -535,21 +388,6 @@ const asd = ref({
   imgDataList: [] as string[],
   imgDataYmd: new DateFormat().format("yyyy년 MM월 dd일"),
 });
-
-const cardFrameRef = ref(null) as any;
-const cardMaxWidth = computed(() => Math.min(maxWidth.value, asd.value.cardWidth));
-const cardCode = computed(() => `<iframe src="${location.origin + '/schedule/2024#' + cardSrc.value}" width="${asd.value.cardWidth}" height="${asd.value.cardHeight}" frameborder="0"></iframe>`);
-const cardSrc = computed(() =>
-    asd.value.cardBgLight + asd.value.cardBgDark +
-    asd.value.cardTitleLight + asd.value.cardTitleDark + asd.value.cardTitleHoverLight + asd.value.cardTitleHoverDark +
-    asd.value.cardNavBgLight + asd.value.cardNavBgDark + asd.value.cardNavTextLight + asd.value.cardNavTextDark + asd.value.cardNavBorderLight + asd.value.cardNavBorderDark +
-    asd.value.cardNavBgPickLight + asd.value.cardNavBgPickDark + asd.value.cardNavTextPickLight + asd.value.cardNavTextPickDark + asd.value.cardNavBorderPickLight + asd.value.cardNavBorderPickDark +
-    asd.value.cardListBgLight + asd.value.cardListBgDark + asd.value.cardListBorderLight + asd.value.cardListBorderDark +
-    asd.value.cardListBgPickLight + asd.value.cardListBgPickDark + asd.value.cardListBorderPickLight + asd.value.cardListBorderPickDark +
-    asd.value.cardListTextHighlightLight + asd.value.cardListTextHighlightDark + asd.value.cardListTextSubjectLight + asd.value.cardListTextSubjectDark + asd.value.cardListTextOriginalSubjectLight + asd.value.cardListTextOriginalSubjectDark +
-    asd.value.cardListTextHighlightPickLight + asd.value.cardListTextHighlightPickDark + asd.value.cardListTextSubjectPickLight + asd.value.cardListTextSubjectPickDark + asd.value.cardListTextOriginalSubjectPickLight + asd.value.cardListTextOriginalSubjectPickDark +
-    asd.value.cardListTagBgLight + asd.value.cardListTagBgDark + asd.value.cardListTagTextLight + asd.value.cardListTagTextDark +
-    asd.value.cardListTagBgPickLight + asd.value.cardListTagBgPickDark + asd.value.cardListTagTextPickLight + asd.value.cardListTagTextPickDark);
 
 const maxWidth = ref(0);
 const containerRef = ref(null) as any;
@@ -560,6 +398,27 @@ const listSrc = computed(() => asd.value.listBgLight + asd.value.listTitleBgLigh
     asd.value.listNavActLight + asd.value.listListBgLight + asd.value.listListLight + asd.value.listListActBgLight + asd.value.listListActLight + asd.value.listPrefixLight +
     asd.value.listBgDark + asd.value.listTitleBgDark + asd.value.listTitleDark + asd.value.listNavBgDark + asd.value.listNavDark + asd.value.listNavActBgDark +
     asd.value.listNavActDark + asd.value.listListBgDark + asd.value.listListDark + asd.value.listListActBgDark + asd.value.listListActDark + asd.value.listPrefixDark);
+
+const timelineFrameRef = ref(null) as any;
+const timelineMaxWidth = computed(() => Math.min(maxWidth.value, asd.value.timelineWidth));
+const timelineSrc = computed(() => encodeTheme({
+  light: {accent: asd.value.timelineAccentLight, base: asd.value.timelineBaseLight, aura: asd.value.timelineAuraLight},
+  dark: {accent: asd.value.timelineAccentDark, base: asd.value.timelineBaseDark, aura: asd.value.timelineAuraDark},
+  glow: asd.value.timelineGlow,
+}));
+const timelineCode = computed(() => `<iframe src="${location.origin + '/schedule/2026#' + timelineSrc.value}" width="${asd.value.timelineWidth}" height="${asd.value.timelineHeight}" frameborder="0"></iframe>`);
+watch(timelineSrc, () => asd.value.type == 'timeline' && drawHtml());
+
+function applyPreset(theme: Theme) {
+  Object.assign(asd.value, {
+    timelineAccentLight: theme.light.accent, timelineBaseLight: theme.light.base, timelineAuraLight: theme.light.aura,
+    timelineAccentDark: theme.dark.accent, timelineBaseDark: theme.dark.base, timelineAuraDark: theme.dark.aura,
+    timelineGlow: theme.glow,
+  });
+}
+function presetStyle(seed: Seed) {
+  return {background: `radial-gradient(circle at 30% 30%, #${seed.accent} 0 22%, transparent 23%), linear-gradient(135deg, #${seed.aura}, #${seed.base} 70%)`};
+}
 
 const imgMaxWidth = computed(() => Math.min(maxWidth.value, asd.value.imgWidth));
 const imgHeight = computed(() => 50 + (asd.value.imgSize * 20));
@@ -579,20 +438,20 @@ function callFrame(frame: any, fnName: string, arg: string, retry: number = 40) 
   }
 }
 function drawHtml() {
-  if (asd.value.type == 'card') {
-    callFrame(cardFrameRef.value, 'repaint', cardSrc.value);
-  } else if (asd.value.type == 'list') {
+  if (asd.value.type == 'list') {
     callFrame(listFrameRef.value, 'repaint', listSrc.value);
+  } else if (asd.value.type == 'timeline') {
+    callFrame(timelineFrameRef.value, 'repaint', timelineSrc.value);
   }
 }
 function bindMaxWidth() {
   maxWidth.value = (containerRef.value.offsetWidth as number) - (matchMedia('(min-width: 768px)').matches ? 400 : 100);
 }
 function colorModeHtml(mode: string) {
-  if (asd.value.type == 'card') {
-    callFrame(cardFrameRef.value, 'colorMode', mode);
-  } else if (asd.value.type == 'list') {
+  if (asd.value.type == 'list') {
     callFrame(listFrameRef.value, 'colorMode', mode);
+  } else if (asd.value.type == 'timeline') {
+    callFrame(timelineFrameRef.value, 'colorMode', mode);
   }
 }
 function setType(type: string) {
@@ -625,7 +484,7 @@ function openCp(event: MouseEvent, target: string) {
   cpShow.value = true;
   cpTarget.value = target;
   cpColor.value = `#${(asd.value as any)[cpTarget.value]}`;
-  if (['card', 'list'].indexOf(asd.value.type) != -1) {
+  if (['list', 'timeline'].indexOf(asd.value.type) != -1) {
     colorModeHtml(cpTarget.value.endsWith('Dark') ? 'dark' : 'light');
   }
 }
@@ -633,34 +492,8 @@ function openCp(event: MouseEvent, target: string) {
 function onCpPick(color: any) {
   const asv = asd.value as any;
   const target = cpTarget.value;
-  const colorMode = target.endsWith('Dark') ? 'Dark' : 'Light';
-
-  if (asv.type == 'card' && asv.cardSimpleMode) {
-    const borderColor = calcColor(color, colorMode == 'Light' ? -40 : 40);
-    console.log(color, borderColor);
-
-    switch (target.substring(0, target.length - colorMode.length)) {
-      case 'cardNavBg':
-        asv['cardListBg'+colorMode] = color;
-        asv['cardNavBorder'+colorMode] = asv['cardListBorder'+colorMode] = borderColor;
-        break;
-      case 'cardNavBgPick':
-        asv['cardListBgPick'+colorMode] = color;
-        asv['cardNavBorderPick'+colorMode] = asv['cardListBorderPick'+colorMode] = borderColor;
-        break;
-    }
-  }
-
   asv[target] = color;
   drawHtml();
-}
-
-function calcColor(color: string, offset: number) {
-  const r = Math.min(Math.max(parseInt(color.substring(0, 2), 16) + offset, 0), 255);
-  const g = Math.min(Math.max(parseInt(color.substring(2, 4), 16) + offset, 0), 255);
-  const b = Math.min(Math.max(parseInt(color.substring(4, 6), 16) + offset, 0), 255);
-  console.log(color, r, g, b);
-  return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }
 
 function onCpClose(event: Event) {
@@ -724,5 +557,24 @@ onUnmounted(() => {
   .img-node { font-size:13px; line-height:20px; height:20px; padding-left:2px; text-align: left; overflow: hidden; }
 }
 input[type=number]::-webkit-inner-spin-button { appearance: none }
+
+.preset {
+  @apply flex flex-col items-center gap-1 py-1.5 cursor-pointer;
+  border-radius: var(--radius-ctl);
+  transition: background-color .18s ease;
+  &:hover { background: var(--as-muted) }
+  &.is-on { background: var(--as-brand-soft) }
+  &.is-on .preset-name { color: var(--as-brand); font-weight: 600 }
+}
+.preset-chip {
+  @apply flex w-[42px] h-[26px] overflow-hidden;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--as-line-2);
+  > span { @apply flex-1 }
+}
+.preset-name {
+  @apply text-2xs;
+  color: var(--as-ink-2);
+}
 
 </style>

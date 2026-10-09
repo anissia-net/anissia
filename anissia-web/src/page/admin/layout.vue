@@ -36,7 +36,7 @@ const url = anissia.url
   grid-template-columns: repeat(4, minmax(0, 1fr));
 
   > a {
-    @apply flex flex-col items-center justify-center gap-2 h-12 sm:h-[5.75rem] p-0 text-xs font-semibold;
+    @apply flex flex-col items-center justify-center gap-2 w-full aspect-square max-h-[5.75rem] p-0 text-xs font-semibold;
     img {
       @apply w-6 sm:w-8 transition-all duration-300;
       filter: grayscale(100%);

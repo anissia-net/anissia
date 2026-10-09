@@ -36,7 +36,7 @@
         <div v-if="captionList.length == 0" class="non-caption">
           자막이 없습니다.
         </div>
-      </div>A
+      </div>
     </section>
 
   </div>
@@ -93,12 +93,22 @@ onBeforeUnmount(() => {
 });
 </script>
 
+<style>
+html:has(#sc2009) {
+  background: #444;
+  color-scheme: light;
+  body { background: none }
+}
+</style>
+
 <style scoped>
 
 #sc2009 {
   position: absolute; top:0; right:0; bottom:0; left:0; background-color: #444;
   background-image: url('/src/page/schedule/2009/bg.jpg'); background-repeat: no-repeat;
   font-family: "Malgun Gothic", "Dotum", sans-serif; min-width:530px; box-sizing: border-box;
+  color: #000; font-size: 12px; font-weight: normal; line-height: normal; letter-spacing: normal; text-align: left;
+  -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; font-feature-settings: normal;
   ::-webkit-scrollbar{ width:0; height:0 }
   a { text-decoration: none }
   > * { position: absolute; }

@@ -6,6 +6,7 @@ const p301 = () => import('../page/301.vue')
 const p404 = () => import('../page/404.vue')
 const p500 = () => import('../page/500.vue')
 
+const sc2026 = () => import('../page/schedule/2026.vue')
 const sc2024 = () => import('../page/schedule/2024.vue')
 const sc2015 = () => import('../page/schedule/2015.vue')
 const sc2009 = () => import('../page/schedule/2009.vue')
@@ -44,6 +45,7 @@ const router = createRouter({
     });
   },
   routes: [
+    { path: '/schedule/2026', component: sc2026, meta: { title: '애니편성표 2026' } },
     { path: '/schedule/2024', component: sc2024, meta: { title: '애니편성표 2024' } },
     { path: '/schedule/2015', component: sc2015, meta: { title: '애니편성표 2015' } },
     { path: '/schedule/2009', component: sc2009, meta: { title: '애니편성표 2009' } },

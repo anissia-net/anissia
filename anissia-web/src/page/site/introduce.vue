@@ -269,9 +269,10 @@ const prevMembers = ref<SiteMember[]>([
 ]);
 
 const siteHistory = ref<SiteHistory[]>([
+  { date: `2026-10-10`, desc: `애니편성표 2026 출시` },
   { date: `2026-07-31`, desc: `2026 디자인 리뉴얼 (개발:사로[가리사니 개발자공간 병합])`, link: `/notice?topicNo=368` },
   { date: `2025-11-11`, desc: `애니시아 서버이전` },
-  { date: `2024-08-13`, desc: `애니편성표 2024 출시`, link: `/notice?topicNo=248` },
+  { date: `2024-08-13`, desc: `애니편성표 2024 출시 (2026 출시 후 종료)` },
   { date: `2024-02-23`, desc: `테라시아 도메인 종료`, link: `/notice?topicNo=198` },
   { date: `2024-01-24`, desc: `애니시아 안드로이드 앱 출시`, link: `https://play.google.com/store/apps/dev?id=6556202027842431619` },
   { date: `2023-04-16`, desc: `백엔드 리팩토링`, link: `/notice?topicNo=134` },
