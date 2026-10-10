@@ -97,9 +97,9 @@
       <div v-for="node in gallery" :key="node.src"  class="as-card overflow-hidden flex flex-col">
         <div class="flex-1 flex items-end justify-center p-4 pb-0 text-center bg-muted/40">
           <a v-if="node.popup" :href="node.src" target="_blank">
-            <img class="m-auto max-w-full" :src="node.src" alt="" />
+            <img class="m-auto max-w-full" :src="node.src" alt="" loading="lazy" decoding="async" />
           </a>
-          <img v-else class="m-auto max-w-full" :src="node.src" alt="" />
+          <img v-else class="m-auto max-w-full" :src="node.src" alt="" loading="lazy" decoding="async" />
         </div>
         <div class="p-5">
           <h5 class="text-md font-semibold text-ink">{{node.title}}</h5>
