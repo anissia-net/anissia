@@ -354,13 +354,16 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, watch} from "vue";
-import ColorPicker from "../../domain/colorPicker/ColorPicker.vue";
+import {computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch} from "vue";
+import {whenIdle} from "../../common/idle";
 import {DEFAULT_THEME, encodeTheme, PRESETS, Seed, Theme} from "../schedule/2026/palette";
 import {DateFormat} from "raon";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import toast from "../../common/toast";
 
+// 색 고르기(colorjs 포함)는 무거워 따로 받는다 — 한가할 때 미리 받아 두어 처음 열 때 기다리지 않게 한다.
+const loadColorPicker = () => import("../../domain/colorPicker/ColorPicker.vue");
+const ColorPicker = defineAsyncComponent(loadColorPicker);
 
 const asd = ref({
   type: 'timeline',
@@ -504,6 +507,7 @@ function onCpClose(event: Event) {
 
 onMounted(() => {
   addEventListener('click', onCpClose, true);
+  whenIdle(loadColorPicker);
 });
 
 onUnmounted(() => {

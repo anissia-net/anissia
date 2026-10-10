@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, onUnmounted, Ref, ref} from "vue";
+import {computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, Ref, ref, watch} from "vue";
 import PageData from "../../common/PageData";
 import {onBeforeRouteUpdate, useRouter} from "vue-router";
 import { ScrollLoader } from "raon";
@@ -79,9 +79,13 @@ import boardRemote from "./remote/boardRemote";
 import {BoardInfo} from "./BoardInfo";
 import {Topic} from "./Topic";
 import {Post} from "./Post";
-import PostEditor from "./PostEditor.vue";
 import NoteView from "./NoteView.vue";
 import toast from "../../common/toast";
+import {whenIdle} from "../../common/idle";
+
+// 편집기는 글을 쓸 때만 받는다. 로그인했으면 한가할 때 미리 받아 둔다.
+const loadEditor = () => import("./PostEditor.vue");
+const PostEditor = defineAsyncComponent(loadEditor);
 
 const props = defineProps({
   ticker: String,
@@ -106,6 +110,8 @@ const newTopic = ref(Post.getNewTopic());
 const newPost = ref(Post.getNewPost(new Topic())) as Ref<Post>;
 
 const loaded = ref(false);
+
+watch(() => user.value.isLogin, isLogin => isLogin && whenIdle(loadEditor), {immediate: true});
 
 let lastTopicNo = -1;
 

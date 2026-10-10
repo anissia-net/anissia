@@ -2,7 +2,7 @@ import type {Router} from 'vue-router';
 
 const SELECTOR = '.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass';
 
-/** 마우스가 올라간 상자의 테두리 빛이 커서를 따라가도록 `--mx`·`--my` 를 넣는다. */
+/** 마우스가 올라간 상자의 테두리 빛이 커서를 따라가도록 `--edge-mx`·`--edge-my` 를 넣는다. */
 function followPointer() {
   let target: HTMLElement | null = null;
   let x = 0;
@@ -13,8 +13,8 @@ function followPointer() {
     frame = 0;
     if (!target) return;
     const rect = target.getBoundingClientRect();
-    target.style.setProperty('--mx', `${x - rect.left}px`);
-    target.style.setProperty('--my', `${y - rect.top}px`);
+    target.style.setProperty('--edge-mx', `${x - rect.left}px`);
+    target.style.setProperty('--edge-my', `${y - rect.top}px`);
   };
 
   document.addEventListener('pointermove', e => {
@@ -115,7 +115,7 @@ let enterPage = () => {};
 
 /**
  * 마우스가 없는 기기 — 빛은 상자마다 가운데에서 번지고, 기기를 조금만 기울여도(자이로) 빛과 반사각이 크게 움직인다.
- * 위치는 html 의 `--edge-x/--edge-y`(%) 하나로 모든 상자에 같이 적용한다.
+ * 위치·각도(`--edge-mx/--edge-my`(%)·`--edge-deg`)는 화면 근처 상자에만 넣는다 — html 에 쓰면 바뀔 때마다 문서 전체 스타일을 다시 계산한다.
  * 발열 대책: 30fps 상한, 값이 같으면 쓰지 않음, 센서 15Hz(안드로이드), 오래 가만히 있으면 센서 쉼(들어온 뒤 10초는 제외),
  * 탭이 숨거나 화면에 상자가 없으면 정지, 동작 줄이기·배터리 부족이면 자이로 끔.
  */
@@ -128,8 +128,8 @@ function followMotion() {
   const source = gravitySource(orientationSource());
   let lowBattery = false;
 
-  const visible = new Set<Element>();
-  const observed = new Set<Element>();
+  const visible = new Set<HTMLElement>();
+  const observed = new Set<HTMLElement>();
   const active = () => !document.hidden && visible.size > 0;
 
   let tiltX = 0;
@@ -138,7 +138,16 @@ function followMotion() {
   let curY = 0;
   let frame = 0;
   let last = 0;
-  let written = '';
+  let deg = '';
+  let mx = '';
+  let my = '';
+
+  const put = (el: HTMLElement) => {
+    if (!deg) return;
+    el.style.setProperty('--edge-deg', deg);
+    el.style.setProperty('--edge-mx', mx);
+    el.style.setProperty('--edge-my', my);
+  };
 
   const request = () => {
     if (!frame && active()) frame = requestAnimationFrame(paint);
@@ -156,15 +165,14 @@ function followMotion() {
 
     const max = root.scrollHeight - innerHeight;
     const depth = max > 0 ? clamp(scrollY / max, 0, 1) : 0;
-    const angle = step(155 + curX * 60 + (depth - .5) * 20);
-    const x = step(50 + 75 * curX);
-    const y = step(50 + 90 * curY);
-    const key = `${angle} ${x} ${y}`;
-    if (key != written) {
-      written = key;
-      root.style.setProperty('--edge-angle', `${angle}deg`);
-      root.style.setProperty('--edge-x', `${x}%`);
-      root.style.setProperty('--edge-y', `${y}%`);
+    const angle = `${step(155 + curX * 60 + (depth - .5) * 20)}deg`;
+    const x = `${step(50 + 75 * curX)}%`;
+    const y = `${step(50 + 90 * curY)}%`;
+    if (angle != deg || x != mx || y != my) {
+      deg = angle;
+      mx = x;
+      my = y;
+      visible.forEach(put);
     }
 
     if (curX != tiltX || curY != tiltY) request();
@@ -282,27 +290,42 @@ function followMotion() {
     }).catch(() => {});
   }
 
+  // 위아래 반 화면 앞서 잡아, 스크롤로 들어오는 상자가 옛 값으로 그려지지 않게 한다.
   const io = new IntersectionObserver(entries => {
     for (const entry of entries) {
-      if (entry.isIntersecting) visible.add(entry.target); else visible.delete(entry.target);
+      const el = entry.target as HTMLElement;
+      if (entry.isIntersecting) {
+        visible.add(el);
+        put(el);
+      } else {
+        visible.delete(el);
+      }
     }
     sync();
     request();
-  });
+  }, {rootMargin: '50% 0px'});
 
-  let scanTimer: ReturnType<typeof setTimeout> | undefined;
-  const scan = () => {
-    scanTimer = undefined;
+  // 새 상자는 처음 그려질 때부터 지금 값을 갖는다.
+  const adopt = (el: HTMLElement) => {
+    if (observed.has(el)) return;
+    observed.add(el);
+    io.observe(el);
+    put(el);
+  };
+  const adoptIn = (node: Node) => {
+    if (!(node instanceof HTMLElement)) return;
+    if (node.matches(SELECTOR)) adopt(node);
+    node.querySelectorAll<HTMLElement>(SELECTOR).forEach(adopt);
+  };
+
+  let sweepTimer: ReturnType<typeof setTimeout> | undefined;
+  const sweep = () => {
+    sweepTimer = undefined;
     for (const el of observed) {
       if (el.isConnected) continue;
       io.unobserve(el);
       observed.delete(el);
       visible.delete(el);
-    }
-    for (const el of document.querySelectorAll(SELECTOR)) {
-      if (observed.has(el)) continue;
-      observed.add(el);
-      io.observe(el);
     }
     sync();
   };
@@ -317,10 +340,11 @@ function followMotion() {
     sync();
     request();
   });
-  new MutationObserver(() => {
-    scanTimer ??= setTimeout(scan, 300);
+  new MutationObserver(records => {
+    for (const record of records) record.addedNodes.forEach(adoptIn);
+    sweepTimer ??= setTimeout(sweep, 300);
   }).observe(document.body, {childList: true, subtree: true});
-  scan();
+  adoptIn(document.body);
 }
 
 export function installEdgeLight(router: Router) {

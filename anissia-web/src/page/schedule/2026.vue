@@ -334,12 +334,11 @@ html:has(#sc2026) {
 }
 .mode-btn:hover { color: var(--hi); background: var(--hi-soft); transform: rotate(18deg) }
 
-/* 유리면 + 테두리 빛 */
+/* 유리면 + 테두리 빛 — 뒤를 흐리는 건 내용 위에 뜨는 요일 줄·시트뿐. 카드 뒤는 번짐 바탕뿐이라 blur 가 보이지 않고 GPU 만 쓴다. */
 .glass {
   position: relative;
+  isolation: isolate;
   background: var(--surface);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
   border-radius: 12px;
   box-shadow: var(--shadow-1);
   transition: background-color .3s ease, box-shadow .3s ease;
@@ -366,6 +365,10 @@ html:has(#sc2026) {
   transition: opacity .35s ease;
 }
 .glass:hover::after { opacity: 1 }
+.week, .sheet {
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
 
 /* 요일 */
 .week {

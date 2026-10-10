@@ -82,7 +82,7 @@
         </div>
       </div>
       <div v-else-if="ajaxState.state == 'error'" class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-[3px] bg-canvas/50 px-6">
-        <div class="as-box max-w-[440px] w-full p-8 text-center">
+        <div class="as-box as-frost max-w-[440px] w-full p-8 text-center">
           <div class="mx-auto w-14 h-14 rounded-full grid place-items-center bg-brand-soft text-brand text-2xl">
             <i class="fa-solid fa-screwdriver-wrench"></i>
           </div>
@@ -173,8 +173,7 @@ onUnmounted(() => {
 
 .as-header-bar {
   background: var(--as-surface);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  backdrop-filter: blur(20px) saturate(170%);
+  isolation: isolate;
   position: relative;
   border-radius: var(--radius-card);
   box-shadow: var(--as-shadow-2);

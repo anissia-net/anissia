@@ -1,5 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Hachi+Maru+Pop&family=Noto+Sans+JP:wght@100..900&family=Noto+Sans+KR:wght@100..900&display=swap');
 @import "./tailwind.pcss";
+
+/* 테두리 빛 위치·각도 — 상속하지 않아야 값이 바뀔 때 상자 안쪽 전체가 다시 계산되지 않는다(edgeLight.ts). */
+@property --edge-mx { syntax: "<length-percentage>"; inherits: false; initial-value: 50%; }
+@property --edge-my { syntax: "<length-percentage>"; inherits: false; initial-value: 0%; }
+@property --edge-deg { syntax: "<angle>"; inherits: false; initial-value: 155deg; }
 
 @layer base {
     :root {
@@ -51,7 +55,7 @@
         --as-ring: 0 0 0 3px rgba(44, 76, 140, .15);
         --as-wordmark-gradient: linear-gradient(120deg, #131d33 0%, #2c4c8c 55%, #6a8cc9 100%);
 
-        --as-edge: linear-gradient(var(--edge-angle, 155deg), rgba(70, 105, 180, .26) 0%, rgba(20, 35, 65, .12) 30%, rgba(20, 35, 65, .13) 68%, rgba(20, 35, 65, .19) 100%);
+        --as-edge-stops: rgba(70, 105, 180, .26) 0%, rgba(20, 35, 65, .12) 30%, rgba(20, 35, 65, .13) 68%, rgba(20, 35, 65, .19) 100%;
         --as-edge-glow: rgba(44, 76, 140, .85);
 
         --as-choice-bg: #ffffff;
@@ -98,7 +102,7 @@
         --as-ring: 0 0 0 3px rgba(227, 170, 154, .18);
         --as-title-rule: #c9b3ab;
 
-        --as-edge: linear-gradient(var(--edge-angle, 155deg), rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .07) 28%, rgba(255, 255, 255, .05) 66%, rgba(227, 170, 154, .22) 100%);
+        --as-edge-stops: rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .07) 28%, rgba(255, 255, 255, .05) 66%, rgba(227, 170, 154, .22) 100%;
         --as-edge-glow: rgba(247, 208, 194, .95);
 
         --as-choice-bg: rgba(227, 170, 154, .17);
@@ -311,13 +315,22 @@ html.dark .as-wordmark {
     &:hover { color: var(--as-brand-2) }
 }
 
+/*
+ * 흐름 속 상자(.as-box·.as-card·.as-table·머리 줄) 뒤에는 부드러운 바탕 그러데이션뿐이라 blur 가 눈에 보이는 차이를
+ * 내지 못하고 GPU 만 크게 쓴다 — 걷어냈다. 쌓임 맥락은 그대로 두려고 isolation 을 건다.
+ * 다른 내용 위에 뜨는 면(메뉴·토스트·오류 상자)만 .as-frost 로 뒤를 흐린다.
+ */
 .as-box {
     background: var(--as-surface);
-    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    isolation: isolate;
     border-radius: var(--radius-card);
     box-shadow: var(--as-shadow-1);
     transition: box-shadow .2s ease, background-color .2s ease;
+}
+
+.as-frost {
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
 }
 
 /*
@@ -416,8 +429,7 @@ html.dark .as-post {
 
 .as-card {
     background: var(--as-surface);
-    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    isolation: isolate;
     border-radius: var(--radius-card);
     box-shadow: var(--as-shadow-1);
     transition: transform .22s var(--ease-out-quint), box-shadow .22s ease, background-color .2s ease;
@@ -440,8 +452,7 @@ html.dark .as-post {
     border-collapse: separate;
     border-spacing: 0;
     background: var(--as-surface);
-    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    isolation: isolate;
     border-radius: var(--radius-card);
     box-shadow: var(--as-shadow-1);
     overflow: hidden;
@@ -738,7 +749,8 @@ a.as-row {
 
 /*
  * 상자 테두리 — 단색 실선 대신 1px 마스크 고리 두 겹.
- * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--mx/--my, edgeLight.ts)에서 번지는 빛 — 반경은 상자 크기 기준(%)이라 큰 상자·작은 상자에서 같은 비율로 번진다.
+ * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--edge-mx/--edge-my, edgeLight.ts)에서 번지는 빛 — 반경은 상자 크기 기준(%)이라 큰 상자·작은 상자에서 같은 비율로 번진다.
+ * 위치·각도는 상자에만 쓰이고 고리가 명시적으로 이어받는다. --as-edge 를 주면 선 전체를 그것으로 바꾼다.
  */
 :is(.as-box, .as-card, .as-table, .as-post, .as-glass) {
     position: relative;
@@ -757,9 +769,14 @@ a.as-row {
         mask-composite: exclude;
         pointer-events: none;
     }
-    &::before { background: var(--as-edge) }
+    &::before {
+        --edge-deg: inherit;
+        background: var(--as-edge, linear-gradient(var(--edge-deg), var(--as-edge-stops)));
+    }
     &::after {
-        background: radial-gradient(var(--edge-light-size, 50%) var(--edge-light-size, 50%) at var(--mx, 50%) var(--my, 0),
+        --edge-mx: inherit;
+        --edge-my: inherit;
+        background: radial-gradient(var(--edge-light-size, 50%) var(--edge-light-size, 50%) at var(--edge-mx) var(--edge-my),
             color-mix(in srgb, var(--as-edge-glow) 55%, transparent) 0%,
             color-mix(in srgb, var(--as-edge-glow) 34%, transparent) 35%,
             color-mix(in srgb, var(--as-edge-glow) 15%, transparent) 70%,
@@ -773,10 +790,11 @@ a.as-row {
 /* 고쳐 쓰는 종이 — 붙는 단추 줄(--nabi-z-sticky: 31)이 테두리를 덮지 않게 고리를 그 위로. */
 .as-post-editor::before, .as-post-editor::after { z-index: 32 }
 
-/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts 가 html 에 --edge-x/y). */
-html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass)::after {
-    --edge-light-size: 90%;
-    --mx: var(--edge-x, 50%);
-    --my: var(--edge-y, 50%);
-    opacity: 1;
+/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts 가 보이는 상자에 --edge-*). */
+html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass) {
+    --edge-my: 50%;
+    &::after {
+        --edge-light-size: 90%;
+        opacity: 1;
+    }
 }
