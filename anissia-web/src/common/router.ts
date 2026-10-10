@@ -83,6 +83,29 @@ const router = createRouter({
   ],
 });
 
+const warmed = new Set<string>();
+
+/** 그 주소의 페이지 코드를 미리 받아 둔다 — 누른 뒤 코드를 받느라 멈춰 있지 않게. */
+export function prefetchRoute(path: string) {
+  if (warmed.has(path)) return;
+  warmed.add(path);
+  for (const record of router.resolve(path).matched) {
+    const component = record.components?.default;
+    if (typeof component == 'function') (component as () => Promise<unknown>)().catch(() => warmed.delete(path));
+  }
+}
+
+/** 링크에 손이 가면(마우스 올림·터치 시작·초점) 그 페이지 코드를 미리 받는다. */
+export function installPrefetch() {
+  const warm = (e: Event) => {
+    const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (a && a.origin == location.origin && a.target != '_blank') prefetchRoute(a.pathname);
+  };
+  for (const type of ['pointerover', 'touchstart', 'focusin']) {
+    addEventListener(type, warm, {passive: true, capture: true});
+  }
+}
+
 router.afterEach((to, from) => {
   // @ts-ignore
   document.title = to.meta.title || defaultTitle;

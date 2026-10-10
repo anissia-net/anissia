@@ -270,20 +270,26 @@ function init() {
   animeRemote.getGenres().then(_genres => genres.value = _genres)
 }
 
+// 목록은 조건(상태·검색어)이 바뀌었거나 고친 뒤에만 다시 받는다 — 작품을 열 때마다 목록을 처음부터 다시 받지 않게.
+let listKey = '';
+let listDirty = false;
+
 function clear(locate: Locate) {
   state.value = locate.getParameter('state', 'list') == 'list' ? 'list' : 'delist';
-  page.value = 0;
 }
 
 function load(locate: Locate = new Locate()) {
   autocorrectOn.value = false;
   const q = locate.getParameter('q', '')!!;
-  if (query.value != q) {
-    page.value = 0;
-  }
   query.value = q;
   loadAnime(locate);
-  loadList();
+  const key = `${state.value}|${q}`;
+  if (key != listKey || listDirty) {
+    listKey = key;
+    listDirty = false;
+    page.value = 0;
+    loadList();
+  }
 }
 
 function loadAnime(locate: Locate, forced: boolean = false) {
@@ -399,6 +405,7 @@ function getNowSearchedQuery() {
 function addCaption() {
   animeRemote.addAdminCaption(anime.value?.animeNo!!).then(result => {
     if (result.code == 'ok') {
+      listDirty = true;
       loadAnime(new Locate(), true);
     }
     toast.result(result);
@@ -409,6 +416,7 @@ function doDelete() {
   if (confirm(`${anime.value?.subject}을(를) 삭제하시겠습니까?\n임의삭제시 권한박탈의 사유가됩니다.`)) {
     animeRemote.deleteAdminAnime(anime.value?.animeNo!!).then(result => {
       if (result.code == 'ok') {
+        listDirty = true;
         router.push(`/admin/anime`);
       } else if (result.message) {
         toast.error(result.message);
@@ -421,6 +429,7 @@ function doRecover(anime: Anime) {
   if (confirm(`${anime.subject}을(를) 복원하시겠습니까?\n임의조작시 권한박탈의 사유가됩니다.`)) {
     animeRemote.recoverAdminAnime(anime.agendaNo).then(result => {
       if (result.code == 'ok') {
+        listDirty = true;
         router.push(`/admin/anime?animeNo=${result.data}`);
       } else if (result.message) {
         toast.error(result.message);
@@ -446,6 +455,7 @@ function doSave() {
     if (isNew) {
       animeRemote.addAdminAnime(ani).then(result => {
         if (result.code == 'ok') {
+          listDirty = true;
           router.push(`/admin/anime?animeNo=${result.data}`)
           toast.success('애니메이션이 추가되었습니다.');
         } else if (result.message) {
@@ -455,6 +465,7 @@ function doSave() {
     } else {
       animeRemote.updateAdminAnime(ani).then(result => {
         if (result.code == 'ok') {
+          listDirty = true;
           loadAnime(new Locate(), true);
           toast.success('애니메이션이 수정되었습니다.');
         } else if (result.message) {

@@ -23,9 +23,15 @@
 </template>
 
 <script setup lang="ts">
+import {onMounted} from "vue";
 import anissia from "../../common/anissia";
+import {prefetchRoute} from "../../common/router";
+import {whenIdle} from "../../common/idle";
 
 const url = anissia.url
+
+// 관리 화면은 탭을 오가며 쓰므로 탭 페이지 코드를 한가할 때 미리 받아 둔다.
+onMounted(() => whenIdle(() => ['/admin', '/admin/anime', '/admin/schedule', '/admin/caption'].forEach(prefetchRoute)));
 </script>
 
 <style>

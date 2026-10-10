@@ -25,30 +25,36 @@ function followPointer() {
   }, {passive: true});
 }
 
-/** 폰을 손에 들고 볼 때 화면이 바닥과 이루는 평균 각도 (45°~90° 사이). */
-const HOLD_ANGLE = 60;
 /** 이 각도(°)만큼 기울이면 빛이 끝까지 간다. */
 const TILT_RANGE = 12;
+/** 앞뒤 기준 각도는 고정하지 않고 들고 있는 자세를 이 시간 상수(ms)로 천천히 따라간다 — 눕혀 들어도 빛이 끝에 붙지 않는다. */
+const HOLD_MS = 4000;
 /** 이보다 작은 변화(°)는 잡음·손떨림으로 보고 버린다. */
 const DEAD_ZONE = .25 / TILT_RANGE;
-/** 이만큼(°) 움직이지 않고 IDLE_MS 가 지나면 센서를 쉬게 하고, 쉬는 동안 PROBE_MS 마다 한 번씩만 읽어 본다. */
-const MOVE = 1.5 / TILT_RANGE;
+/** 이만큼(°) 움직이지 않고 IDLE_MS 가 지나면 쉰다 — 빛은 멈추고 센서는 느리게 보다가 MOVE 이상 움직이면 바로 깨어난다. */
+const MOVE = 1.5;
 const IDLE_MS = 3000;
-const PROBE_MS = 2000;
+/** 쉼이 이만큼 이어지면(책상 위 등) 센서를 끄고 PROBE_MS 마다 한 번만 읽는다. */
+const DEEP_MS = 20000;
+const PROBE_MS = 600;
 /** 페이지에 들어오면(첫 로드·이동·탭 복귀) 이 동안은 쉬지 않는다. */
 const GRACE_MS = 10000;
 /** 충전 중이 아니고 이 이하면 자이로를 끈다(배터리 API 가 있는 브라우저만). */
 const LOW_BATTERY = .2;
-const SENSOR_HZ = 15;
-const FRAME_MS = 1000 / 30;
+/** GravitySensor 주기 — 움직일 때 / 쉴 때. */
+const FAST_HZ = 30;
+const SLOW_HZ = 10;
+const FRAME_MS = 1000 / 60;
+/** 빛이 기울기를 따라가는 시간 상수(ms). */
+const FOLLOW_MS = 40;
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const step = (v: number) => Math.round(v * 2) / 2;
 const deg = (rad: number) => rad * 180 / Math.PI;
 
-/** 기울기(beta·gamma, deviceorientation 과 같은 기준)를 읽어 주는 센서. */
+/** 기울기(beta·gamma, deviceorientation 과 같은 기준)를 읽어 주는 센서. slow 면 낮은 주기로. */
 interface TiltSource {
-  start(fn: (beta: number, gamma: number) => void): void;
+  start(fn: (beta: number, gamma: number) => void, slow?: boolean): void;
   stop(): void;
 }
 
@@ -71,40 +77,63 @@ function orientationSource(): TiltSource {
 }
 
 /**
- * 안드로이드 크롬 — deviceorientation 은 60Hz 고정이라 GravitySensor 로 주기를 낮춘다.
+ * 안드로이드 크롬 — deviceorientation 은 60Hz 고정이라 GravitySensor 로 주기를 고른다(움직일 때 FAST_HZ, 쉴 때 SLOW_HZ).
  * 중력 벡터(기기 좌표)에서 beta·gamma 를 구한다. 실패하면 deviceorientation 으로.
  */
 function gravitySource(fallback: TiltSource): TiltSource {
   const Gravity = (window as any).GravitySensor;
   if (!Gravity) return fallback;
-  let sensor: any;
+  const sensors = new Map<number, any>();
+  let fn: ((beta: number, gamma: number) => void) | undefined;
+  let current: any;
+  let failed = false;
+
+  const create = (hz: number) => {
+    let sensor = sensors.get(hz);
+    if (sensor) return sensor;
+    sensor = new Gravity({frequency: hz});
+    sensor.addEventListener('reading', () => {
+      const {x, y, z} = sensor;
+      if (x == null || !fn || current != sensor) return;
+      // 중력 = (−cosβ·sinγ, sinβ, cosβ·cosγ), γ ∈ [−90°, 90°]
+      const s = z < 0 ? -1 : 1;
+      fn(deg(Math.atan2(y, s * Math.hypot(x, z))), deg(Math.atan2(-x * s, z * s)));
+    });
+    sensor.addEventListener('error', () => {
+      failed = true;
+      sensor.stop();
+      current = undefined;
+      if (fn) fallback.start(fn);
+    });
+    sensors.set(hz, sensor);
+    return sensor;
+  };
+
   try {
-    sensor = new Gravity({frequency: SENSOR_HZ});
+    create(FAST_HZ);
   } catch {
     return fallback;
   }
-  let fn: ((beta: number, gamma: number) => void) | undefined;
-  let failed = false;
-  sensor.addEventListener('reading', () => {
-    const {x, y, z} = sensor;
-    if (x == null || !fn) return;
-    // 중력 = (−cosβ·sinγ, sinβ, cosβ·cosγ), γ ∈ [−90°, 90°]
-    const s = z < 0 ? -1 : 1;
-    fn(deg(Math.atan2(y, s * Math.hypot(x, z))), deg(Math.atan2(-x * s, z * s)));
-  });
-  sensor.addEventListener('error', () => {
-    failed = true;
-    sensor.stop();
-    if (fn) fallback.start(fn);
-  });
   return {
-    start(f) {
+    start(f, slow) {
       fn = f;
-      if (failed) fallback.start(f); else sensor.start();
+      if (!failed) {
+        try {
+          const next = create(slow ? SLOW_HZ : FAST_HZ);
+          if (current != next) current?.stop();
+          current = next;
+          current.start();
+          return;
+        } catch {
+          failed = true;
+        }
+      }
+      fallback.start(f);
     },
     stop() {
       fn = undefined;
-      if (!failed) sensor.stop();
+      current?.stop();
+      current = undefined;
       fallback.stop();
     },
   };
@@ -116,8 +145,8 @@ let enterPage = () => {};
 /**
  * 마우스가 없는 기기 — 빛은 상자마다 가운데에서 번지고, 기기를 조금만 기울여도(자이로) 빛과 반사각이 크게 움직인다.
  * 위치·각도(`--edge-mx/--edge-my`(%)·`--edge-deg`)는 화면 근처 상자에만 넣는다 — html 에 쓰면 바뀔 때마다 문서 전체 스타일을 다시 계산한다.
- * 발열 대책: 30fps 상한, 값이 같으면 쓰지 않음, 센서 15Hz(안드로이드), 오래 가만히 있으면 센서 쉼(들어온 뒤 10초는 제외),
- * 탭이 숨거나 화면에 상자가 없으면 정지, 동작 줄이기·배터리 부족이면 자이로 끔.
+ * 상태: run(센서 빠르게) → 가만히 IDLE_MS → still(빛 멈춤, 센서 느리게, 움직이면 즉시 run) → DEEP_MS → deep(센서 끔, PROBE_MS 마다 확인).
+ * 탭이 숨거나 화면에 상자가 없으면 off, 동작 줄이기·배터리 부족이면 자이로 끔.
  */
 function followMotion() {
   const root = document.documentElement;
@@ -159,7 +188,7 @@ function followMotion() {
     if (dt < FRAME_MS - 2) return request();
     last = now;
 
-    const k = 1 - Math.exp(-Math.min(dt, 100) / 60);
+    const k = 1 - Math.exp(-Math.min(dt, 100) / FOLLOW_MS);
     curX = Math.abs(tiltX - curX) < .002 ? tiltX : curX + (tiltX - curX) * k;
     curY = Math.abs(tiltY - curY) < .002 ? tiltY : curY + (tiltY - curY) * k;
 
@@ -178,16 +207,18 @@ function followMotion() {
     if (curX != tiltX || curY != tiltY) request();
   }
 
-  const toTilt = (beta: number, gamma: number): [number, number] => {
+  /** 화면 기준 기울기(°) — [좌우, 앞뒤]. */
+  const toScreen = (beta: number, gamma: number): [number, number] => {
     const angle = screen.orientation?.angle ?? 0;
-    const x = angle == 90 ? beta : angle == 270 ? -beta : gamma;
-    const y = angle == 90 ? -gamma : angle == 270 ? gamma : beta;
-    // 기준 자세: 좌우는 수평, 앞뒤는 손에 들고 볼 때의 평균 각도.
-    return [clamp(x / TILT_RANGE, -1, 1), clamp((y - HOLD_ANGLE) / TILT_RANGE, -1, 1)];
+    return [
+      angle == 90 ? beta : angle == 270 ? -beta : gamma,
+      angle == 90 ? -gamma : angle == 270 ? gamma : beta,
+    ];
   };
 
-  // off: 정지, run: 센서 켜짐, sleep: 센서 쉼(가끔 probe)
-  let mode: 'off' | 'run' | 'sleep' = 'off';
+  let mode: 'off' | 'run' | 'still' | 'deep' = 'off';
+  let hold = NaN;
+  let lastReading = 0;
   let anchorX = 0;
   let anchorY = 0;
   let stillSince = 0;
@@ -197,31 +228,39 @@ function followMotion() {
   const moved = (x: number, y: number) => Math.abs(x - anchorX) > MOVE || Math.abs(y - anchorY) > MOVE;
 
   const onReading = (beta: number, gamma: number) => {
-    const [x, y] = toTilt(beta, gamma);
-    if (Math.abs(x - tiltX) > DEAD_ZONE || Math.abs(y - tiltY) > DEAD_ZONE) {
-      tiltX = x;
-      tiltY = y;
-      request();
-    }
     const now = performance.now();
+    const [x, y] = toScreen(beta, gamma);
     if (moved(x, y)) {
       anchorX = x;
       anchorY = y;
       stillSince = now;
-    } else if (now - stillSince > IDLE_MS && now > graceUntil) {
-      sleep();
+      if (mode != 'run') run();
+    } else if (mode == 'still') {
+      if (now - stillSince > DEEP_MS) deep();
+      return;
     }
+
+    hold = isNaN(hold) ? y : hold + (y - hold) * (1 - Math.exp(-Math.min(now - lastReading, 200) / HOLD_MS));
+    lastReading = now;
+    const tx = clamp(x / TILT_RANGE, -1, 1);
+    const ty = clamp((y - hold) / TILT_RANGE, -1, 1);
+    if (Math.abs(tx - tiltX) > DEAD_ZONE || Math.abs(ty - tiltY) > DEAD_ZONE) {
+      tiltX = tx;
+      tiltY = ty;
+      request();
+    }
+    if (now - stillSince > IDLE_MS && now > graceUntil) still();
   };
 
   const onProbe = (beta: number, gamma: number) => {
     source.stop();
     clearTimeout(probeTimer);
-    if (moved(...toTilt(beta, gamma))) run(); else probe();
+    if (moved(...toScreen(beta, gamma))) run(); else probe();
   };
 
   function probe() {
     probeTimer = setTimeout(() => {
-      source.start(onProbe);
+      source.start(onProbe, true);
       // 값이 안 오면(권한 전 등) 끄고 다음 차례로.
       probeTimer = setTimeout(() => {
         source.stop();
@@ -238,13 +277,18 @@ function followMotion() {
   function run() {
     halt();
     mode = 'run';
-    stillSince = performance.now();
+    stillSince = lastReading = performance.now();
     source.start(onReading);
   }
 
-  function sleep() {
+  function still() {
+    mode = 'still';
+    source.start(onReading, true);
+  }
+
+  function deep() {
     halt();
-    mode = 'sleep';
+    mode = 'deep';
     probe();
   }
 
@@ -260,7 +304,7 @@ function followMotion() {
   };
 
   const wake = () => {
-    if (mode == 'sleep') run();
+    if (mode == 'still' || mode == 'deep') run();
   };
 
   const grace = () => {
@@ -270,12 +314,30 @@ function followMotion() {
   enterPage = grace;
 
   if (useGyro) {
-    // iOS 는 권한 전에는 이벤트가 오지 않는다 — 권한은 사용자 동작 안에서만 물을 수 있다.
+    // iOS 는 권한 전에는 이벤트가 오지 않는다. 권한은 사용자 동작(탭) 안에서만 물을 수 있어서, 스크롤 끝의 touchend 처럼
+    // 동작으로 인정되지 않으면 거절된다 — 답을 받을 때까지 다음 탭에 다시 묻는다. 허용되면 리스너를 새로 붙인다.
     if (typeof Orientation?.requestPermission === 'function') {
-      addEventListener('touchend', () => Orientation.requestPermission().catch(() => {}), {once: true});
+      let asking = false;
+      const ask = () => {
+        if (asking) return;
+        asking = true;
+        Orientation.requestPermission().then((state: string) => {
+          removeEventListener('touchend', ask);
+          removeEventListener('click', ask);
+          if (state == 'granted') {
+            grace();
+            if (mode != 'off') run();
+          }
+        }).catch(() => {}).finally(() => asking = false);
+      };
+      addEventListener('touchend', ask);
+      addEventListener('click', ask);
     }
     addEventListener('touchstart', wake, {passive: true});
-    screen.orientation?.addEventListener('change', wake);
+    screen.orientation?.addEventListener('change', () => {
+      hold = NaN;
+      wake();
+    });
     if (document.readyState == 'complete') grace(); else addEventListener('load', grace, {once: true});
 
     (navigator as any).getBattery?.().then((battery: any) => {
@@ -290,7 +352,7 @@ function followMotion() {
     }).catch(() => {});
   }
 
-  // 위아래 반 화면 앞서 잡아, 스크롤로 들어오는 상자가 옛 값으로 그려지지 않게 한다.
+  // 위아래 1/4 화면 앞서 잡아, 스크롤로 들어오는 상자가 옛 값으로 그려지지 않게 한다.
   const io = new IntersectionObserver(entries => {
     for (const entry of entries) {
       const el = entry.target as HTMLElement;
@@ -303,7 +365,7 @@ function followMotion() {
     }
     sync();
     request();
-  }, {rootMargin: '50% 0px'});
+  }, {rootMargin: '25% 0px'});
 
   // 새 상자는 처음 그려질 때부터 지금 값을 갖는다.
   const adopt = (el: HTMLElement) => {

@@ -4,7 +4,7 @@ import 'nabi-note/nabi.css'
 import './common/style.pcss'
 import './common/nabi.pcss'
 import App from './App.vue'
-import router from "./common/router";
+import router, {installPrefetch} from "./common/router";
 import {createPinia} from "pinia";
 import {vChoice} from "./common/choice";
 import {installEdgeLight} from "./common/edgeLight";
@@ -23,3 +23,4 @@ createApp(App)
     .mount('#app');
 
 installEdgeLight(router);
+installPrefetch();
