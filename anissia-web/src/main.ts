@@ -22,4 +22,4 @@ createApp(App)
     .directive('choice', vChoice)
     .mount('#app');
 
-installEdgeLight();
+installEdgeLight(router);

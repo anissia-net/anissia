@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
 <style>
 html:has(#sc2026) {
   overflow: hidden;
-  body { background: none }
+  body, body::before { background: none }
 }
 :where(#sc2026) :where(a) { color: inherit; text-decoration: none }
 :where(#sc2026) :where(button) { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer }

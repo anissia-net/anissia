@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
 html:has(#sc2009) {
   background: #444;
   color-scheme: light;
-  body { background: none }
+  body, body::before { background: none }
 }
 </style>
 

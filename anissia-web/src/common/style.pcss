@@ -117,13 +117,20 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
 
+        background: var(--as-canvas);
+        color: var(--as-ink);
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
         background:
             radial-gradient(52rem 34rem at 12% -10%, var(--as-bg-1), transparent 62%),
             radial-gradient(44rem 30rem at 92% 6%, var(--as-bg-2), transparent 64%),
-            radial-gradient(60rem 40rem at 50% 115%, var(--as-bg-3), transparent 62%),
-            var(--as-canvas);
-        background-attachment: fixed;
-        color: var(--as-ink);
+            radial-gradient(60rem 40rem at 50% 115%, var(--as-bg-3), transparent 62%);
     }
 }
 
@@ -145,7 +152,7 @@ html.dark {
 }
 
 html:has(#sc2015, #sc2024) {
-    body { background: none }
+    body, body::before { background: none }
 
     &.light {
         background: #fff;
@@ -766,8 +773,10 @@ a.as-row {
 /* 고쳐 쓰는 종이 — 붙는 단추 줄(--nabi-z-sticky: 31)이 테두리를 덮지 않게 고리를 그 위로. */
 .as-post-editor::before, .as-post-editor::after { z-index: 32 }
 
-/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts). */
+/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts 가 html 에 --edge-x/y). */
 html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass)::after {
     --edge-light-size: 90%;
+    --mx: var(--edge-x, 50%);
+    --my: var(--edge-y, 50%);
     opacity: 1;
 }
