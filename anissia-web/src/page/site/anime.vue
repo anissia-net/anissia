@@ -5,7 +5,7 @@
     <div v-if="anime" class="mb-12">
       <div v-if="anime.animeNo != 0" class="as-box overflow-hidden">
 
-        <div class="p-6 md:p-8">
+        <div class="p-6 cq-md:p-8">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span class="status-pill" :class="{'is-on': anime.status == 'ON'}">
               <span class="dot"></span>
@@ -21,13 +21,13 @@
 
           <div class="mt-5 flex flex-wrap items-center gap-1.5">
             <router-link class="as-tag-xs" v-for="tag in anime.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
-            <span v-if="anime.website || anime.x" class="w-px h-4 mx-1 bg-line-2"></span>
-            <a v-if="anime.website" :href="anime.website" target="_blank" class="as-tag-xs" :title="anime.website"><i class="fa-solid fa-globe mr-1.5 opacity-70"></i>공식 사이트</a>
-            <a v-if="anime.x" :href="anime.x" target="_blank" class="as-tag-xs" :title="anime.x"><i class="fa-brands fa-x-twitter opacity-70"></i></a>
+            <span v-if="anime.website || anime.x" class="w-[0.0625rem] h-4 mx-1 bg-line-2"></span>
+            <a v-if="anime.website" :href="anime.website" target="_blank" class="as-tag-xs" :title="anime.website"><as-icon name="globe" class="mr-1.5 opacity-70"/>공식 사이트</a>
+            <a v-if="anime.x" :href="anime.x" target="_blank" class="as-tag-xs" :title="anime.x"><as-icon name="x-logo" class="opacity-70"/></a>
           </div>
         </div>
 
-        <div v-if="anime.captions.length" class="px-6 md:px-8 pt-4 pb-3 border-t border-line">
+        <div v-if="anime.captions.length" class="px-6 cq-md:px-8 pt-5 pb-4 cq-md:pt-6 cq-md:pb-5 border-t-[0.0625rem] border-line">
           <div class="as-sub-title py-2">자막정보</div>
           <ul>
             <li v-for="caption in anime.captions" :key="caption.name" class="as-row flex items-center gap-4 py-2.5 text-sm">
@@ -53,9 +53,9 @@
       <label for="default-search" class="sr-only">애니검색</label>
       <div class="relative">
         <div class="flex absolute inset-y-0 left-0 items-center pl-4 pointer-events-none text-ink-3">
-          <i class="fa-solid fa-magnifying-glass"></i>
+          <as-icon name="search"/>
         </div>
-        <input type="text" id="default-search" autocomplete="off" class="py-3.5 pl-11 pr-24 as-input-text text-base!" placeholder="애니검색  #장르  @제작자  /완결  /도움말"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @keyup="loadAutocorrect">
+        <input type="text" id="default-search" autocomplete="off" class="py-3.5 pl-11 pr-24 as-input-text" placeholder="애니검색  #장르  @제작자  /완결  /도움말"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @compositionstart="clearAutocorrect" @input="loadAutocorrect">
         <button type="button" @click="searchAnime()" class="as-btn-primary absolute py-1.5 right-2 top-1/2 -translate-y-1/2">검색</button>
       </div>
 
@@ -65,7 +65,7 @@
               class="mx-1.5 rounded-ctl transition-colors" :class="autocorrectIndex == i ? 'bg-brand-soft' : ''">
             <router-link :to="`/anime?animeNo=${node.key}`" class="flex items-center gap-2.5 px-3 py-2 text-sm"
                          :class="autocorrectIndex == i ? 'text-brand' : 'text-ink-2'">
-              <i class="fa-solid fa-arrow-right-long text-[11px] transition-opacity" :class="autocorrectIndex != i ? 'opacity-0' : 'opacity-100'"></i>
+              <as-icon name="arrow-right-long" class="text-[0.6875rem] transition-opacity" :class="autocorrectIndex != i ? 'opacity-0' : 'opacity-100'"/>
               <span v-html="node.hl"></span>
             </router-link>
           </li>
@@ -75,13 +75,13 @@
       <div v-if="searchHelpOn" class="as-box p-6 mt-4">
         <div class="flex items-center justify-between mb-2">
           <router-link to="/notice?topicNo=141" class="as-section-title">애니메이션 검색 도움말</router-link>
-          <button @click="searchHelpOn = false" class="nav-icon-sm" aria-label="닫기"><i class="fa-solid fa-xmark"></i></button>
+          <button @click="searchHelpOn = false" class="nav-icon-sm" aria-label="닫기"><as-icon name="x"/></button>
         </div>
-        <div class="grid gap-x-8 gap-y-6 md:grid-cols-2 xl:grid-cols-3 mt-5">
+        <div class="grid gap-x-8 gap-y-6 cq-md:grid-cols-2 cq-xl:grid-cols-3 mt-5">
 
           <div class="help-item">
             <div class="help-label">키워드 검색 (AND 조건)</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> 비밥 카우</div>
+            <div class="help-query"><as-icon name="search"/> 비밥 카우</div>
             <div class="help-desc">
               단어중 "비밥" "카우" 포함시 검색됩니다.<br/>
               검색결과) 카우보이비밥
@@ -90,7 +90,7 @@
 
           <div class="help-item">
             <div class="help-label">띄어쓰기</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> 체인소 맨</div>
+            <div class="help-query"><as-icon name="search"/> 체인소 맨</div>
             <div class="help-desc">
               단어중 "체인소" "맨" 포함시 검색됩니다.<br/>
               검색결과) 체인소 맨
@@ -99,7 +99,7 @@
 
           <div class="help-item">
             <div class="help-label">형태소</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> 체인소맨</div>
+            <div class="help-query"><as-icon name="search"/> 체인소맨</div>
             <div class="help-desc">
               단어중 "체인소맨"이 포함시 검색됩니다.<br/>
               형태소 분석기가 "체인소맨"을 "체인소 맨"으로 분해하지 못할 경우 "체인소 맨"이 검색되지 않습니다.<br/>
@@ -109,19 +109,19 @@
 
           <div class="help-item">
             <div class="help-label">장르검색 (AND 조건)</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> #판타지 #모험</div>
+            <div class="help-query"><as-icon name="search"/> #판타지 #모험</div>
             <div class="help-desc">판타지이면서 동시에 모험인 장르를 검색합니다.</div>
           </div>
 
           <div class="help-item">
             <div class="help-label">자막제작자 검색 (OR 조건)</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> @철수 @영희</div>
+            <div class="help-query"><as-icon name="search"/> @철수 @영희</div>
             <div class="help-desc">자막제작자가 철수이거나 영희인 경우 모두를 검색합니다.</div>
           </div>
 
           <div class="help-item">
             <div class="help-label">완결 작품만 검색 (최신순)</div>
-            <div class="help-query"><i class="fa-solid fa-magnifying-glass"></i> /완결</div>
+            <div class="help-query"><as-icon name="search"/> /완결</div>
             <div class="help-desc">
               완결된 작품만 검색됩니다.<br/>
               자동으로 최신순으로 정렬됩니다.
@@ -135,18 +135,18 @@
         <div class="as-meta text-right mb-3">
           총 <b class="text-ink-2">{{list.totalElements}}</b> 작품
         </div>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
           <div v-for="(node, i) in list.content" :key="node.animeNo" class="as-card p-5 flex flex-col">
             <router-link :to="toAnimeViewUrl(node.animeNo)" class="group block">
               <div class="text-md font-semibold text-ink group-hover:text-brand transition-colors">{{node.subject}}</div>
               <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
             </router-link>
-            <div class="mt-4 pt-0 flex flex-wrap gap-1.5">
+            <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
               <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
               <router-link class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
-              <a class="as-tag-xs" v-if="node.website" :href="node.website" target="_blank"><i class="fa-solid fa-globe"></i></a>
-              <a class="as-tag-xs" v-if="node.x" :href="node.x" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
-              <span class="as-tag-xs" v-if="node.captionCount"><i class="fa-regular fa-closed-captioning mr-1 opacity-70"></i>{{node.captionCount}}</span>
+              <a class="as-tag-xs" v-if="node.website" :href="node.website" target="_blank"><as-icon name="globe"/></a>
+              <a class="as-tag-xs" v-if="node.x" :href="node.x" target="_blank"><as-icon name="x-logo"/></a>
+              <span class="as-tag-xs" v-if="node.captionCount"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.captionCount}}</span>
             </div>
           </div>
         </div>
@@ -182,6 +182,11 @@ const autocorrectOn = ref(false);
 const searchHelpOn = ref(false);
 const autocorrectIndex = ref(-1);
 let autocorrectQuery = '';
+let autocorrectTimer: ReturnType<typeof setTimeout> | undefined;
+let autocorrectRequest = 0;
+let animeRequest = 0;
+let listRequest = 0;
+let listQuery: string | undefined;
 const router = useRouter();
 
 const sl = new ScrollLoader().onNeedNextPage(() => {
@@ -190,14 +195,15 @@ const sl = new ScrollLoader().onNeedNextPage(() => {
 });
 
 function load(locate: Locate = new Locate()) {
-  autocorrectOn.value = false;
+  clearAutocorrect();
   const q = locate.getParameter('q', '')!!;
-  if (query.value != q) {
-    page.value = 0;
-  }
   query.value = q;
   loadAnime(locate);
-  loadList();
+  if (listQuery !== q) {
+    listQuery = q;
+    page.value = 0;
+    loadList();
+  }
 }
 
 function loadAnime(locate: Locate) {
@@ -205,9 +211,13 @@ function loadAnime(locate: Locate) {
   if (animeNo > 0) {
     if (lastAnimeNo != animeNo) {
       lastAnimeNo = animeNo;
-      animeRemote.getAnime(animeNo).then(node => anime.value = node);
+      const request = ++animeRequest;
+      animeRemote.getAnime(animeNo).then(node => {
+        if (request === animeRequest) anime.value = node;
+      });
     }
   } else {
+    animeRequest++;
     lastAnimeNo = -1;
     anime.value = null;
   }
@@ -215,20 +225,24 @@ function loadAnime(locate: Locate) {
 
 function loadList() {
   const isFirstPage = page.value == 0;
+  const request = ++listRequest;
+  sl.watch(false);
 
-  animeRemote.getAnimeList(page.value, query.value).then(pageData => {
+  animeRemote.getAnimeList(page.value, listQuery ?? '').then(pageData => {
+    if (request !== listRequest) return;
     if (isFirstPage) {
       list.value = pageData;
     } else {
       list.value = list.value.merge(pageData);
     }
-    nextTick(() => sl.watch(pageData.next))
+    nextTick(() => {
+      if (request === listRequest) sl.watch(pageData.next);
+    });
   });
 }
 
 function searchAnime() {
-  page.value = 0;
-  autocorrectOn.value = false;
+  clearAutocorrect();
   const q = query.value;
   if (q.indexOf('/도움말') != -1) {
     searchHelpOn.value = true;
@@ -239,19 +253,36 @@ function searchAnime() {
   router.push(`/anime?q=${encodeURIComponent(q)}`);
 }
 
-function loadAutocorrect(event: KeyboardEvent) {
-  const word = (event.target as any).value;
-  if (autocorrectQuery != word) {
-    autocorrectOn.value = true;
-    autocorrectIndex.value = -1;
-    autocorrectQuery = word;
-    animeRemote.getAnimeListAutocorrect(word).then(list => autocorrect.value = list);
-  }
+function clearAutocorrect() {
+  clearTimeout(autocorrectTimer);
+  autocorrectRequest++;
+  autocorrectQuery = '';
+  autocorrectOn.value = false;
+  autocorrectIndex.value = -1;
+  autocorrect.value = [];
+}
+
+function loadAutocorrect(event: Event) {
+  const input = event.target as HTMLInputElement & {composing?: boolean};
+  if ((event as InputEvent).isComposing || input.composing) return;
+  const word = input.value;
+  if (autocorrectQuery === word) return;
+  clearAutocorrect();
+  autocorrectQuery = word;
+  if (!word.trim()) return;
+  autocorrectOn.value = true;
+  const request = autocorrectRequest;
+  autocorrectTimer = setTimeout(() => {
+    animeRemote.getAnimeListAutocorrect(word).then(list => {
+      if (request === autocorrectRequest) autocorrect.value = list;
+    }).catch(() => {});
+  }, 180);
 }
 
 function keyAutocorrect(event: KeyboardEvent) {
+  if (event.isComposing || event.keyCode === 229) return;
   const key = event.key;
-  const len = autocorrect.value.length;
+  const len = autocorrectOn.value ? autocorrect.value.length : 0;
 
   switch (key) {
     case 'ArrowUp':
@@ -267,7 +298,7 @@ function keyAutocorrect(event: KeyboardEvent) {
       }
       return;
     case 'Enter':
-      if (!autocorrect.value.length || autocorrectIndex.value == -1) {
+      if (!len || autocorrectIndex.value == -1) {
         searchAnime();
       } else {
         router.push(`/anime?animeNo=${autocorrect.value[autocorrectIndex.value].key}`)
@@ -292,6 +323,9 @@ onBeforeRouteUpdate((to, from, next) => {
 });
 
 onUnmounted(() => {
+  clearAutocorrect();
+  animeRequest++;
+  listRequest++;
   sl.destroy();
 });
 </script>
@@ -307,13 +341,13 @@ onUnmounted(() => {
 
 .status-pill {
   @apply inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold;
-  border-radius: 999px;
+  border-radius: 0.25rem;
   background: var(--as-muted);
   color: var(--as-ink-2);
   .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 62.4375rem;
     background: var(--as-ink-3);
   }
   &.is-on {

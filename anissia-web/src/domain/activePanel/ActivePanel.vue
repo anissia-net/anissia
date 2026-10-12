@@ -3,8 +3,14 @@
   <div>
 
     <div v-if="isAdminMode">
-      <div class="pb-5">
-        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" placeholder="운영기록작성  /도움말" class="px-4 py-3 as-input-text">
+      <div class="as-section-head">
+        <h2 class="as-section-title">운영기록</h2>
+        <span class="as-meta pb-2">명령어 <b class="text-ink-2">/도움말</b></span>
+      </div>
+
+      <div class="relative mb-5">
+        <as-icon name="terminal" class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-ink-3 pointer-events-none"/>
+        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" placeholder="운영기록작성  /도움말" class="pl-10 pr-4 py-3 as-input-text">
       </div>
 
       <div v-if="openHelp" class="p-5 mb-5 text-sm leading-[2] as-box">
@@ -16,16 +22,18 @@
       </div>
 
       <router-link v-if="translatorApplyCount" to="/translator/apply"
-                   class="flex items-center gap-2.5 px-4 py-3 mb-4 text-sm rounded-ctl border border-brand/25 bg-brand-soft text-brand hover:brightness-105 transition">
-        <i class="fa-solid fa-signature"></i>
+                   class="flex items-center gap-2.5 px-4 py-3 mb-4 text-sm rounded-ctl border-[0.0625rem] border-brand/25 bg-brand-soft text-brand hover:brightness-105 transition">
+        <as-icon name="signature"/>
         <span>현재 <b>{{translatorApplyCount}}</b> 건의 자막제작자 권한요청이 있습니다.</span>
-        <i class="fa-solid fa-chevron-right ml-auto text-[10px]"></i>
+        <as-icon name="chevron-right" class="ml-auto text-[0.625rem]"/>
       </router-link>
     </div>
 
-    <div>
-      <div v-for="(node, idx) in list.content" :key="node.apNo" class="py-3.5 text-sm break-all leading-[1.8] as-row anissia-home-reduce-10">
-        <div class="float-right pl-4 inline-block as-meta">{{node.regDtText}}</div>
+    <div :class="isAdminMode ? 'as-box px-4 cq-md:px-5 py-3' : ''">
+      <div v-if="isAdminMode && list.loaded && list.content.length == 0" class="as-empty py-16!">운영기록이 없습니다.</div>
+      <div v-for="(node, idx) in list.content" :key="node.apNo" class="flex items-baseline gap-4 py-3 text-sm break-all leading-[1.8] as-row anissia-home-reduce-10">
+        <div class="order-last shrink-0 as-meta whitespace-nowrap">{{node.regDtText}}</div>
+        <div class="flex-1 min-w-0">
         <div v-if="node.code == 'TEXT'" v-html="node.html" :class="({'opacity-50': !node.published})"></div>
         <div v-else-if="node.code == 'ANIME'">
           <div>
@@ -38,7 +46,7 @@
               <div class="ap-diff-value">
                 <template v-if="item.pv">
                   <span class="ap-diff-old" :class="({'is-none': (item.pv == '-')})">{{item.pv}}</span>
-                  <i class="fa-solid fa-arrow-right-long ap-diff-arrow"></i>
+                  <as-icon name="arrow-right-long" class="ap-diff-arrow"/>
                 </template>
                 <span class="ap-diff-new">{{item.nv}}</span>
               </div>
@@ -66,6 +74,7 @@
           <div v-html="node.html"></div>
           <div class="ap-note">지원하지 않는 활동 패널 코드 : {{node.code}}</div>
         </div>
+        </div>
 
       </div>
     </div>
@@ -90,7 +99,7 @@ const props = defineProps({
 
 const page = ref(0);
 const sl = new ScrollLoader();
-const list = ref(PageData.empty()) as Ref<PageData<ActivePanelListItem>>;
+const list = ref(PageData.empty().notLoaded()) as Ref<PageData<ActivePanelListItem>>;
 const query = ref('');
 const openHelp = ref(false);
 const translatorApplyCount = ref(0);
@@ -169,7 +178,7 @@ onUnmounted(() => {
   margin: .75rem 0 .375rem;
   padding: .25rem 1rem;
   border-radius: var(--radius-ctl);
-  border: 1px solid var(--as-line);
+  border: 0.0625rem solid var(--as-line);
   background: color-mix(in oklab, var(--as-muted) 60%, transparent);
 }
 
@@ -182,7 +191,7 @@ onUnmounted(() => {
 
 .ap-diff-name {
   flex: 0 0 auto;
-  min-width: 72px;
+  min-width: 4.5rem;
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--as-ink-3);
@@ -199,8 +208,8 @@ onUnmounted(() => {
 }
 
 .ap-diff-old {
-  padding: 1px 8px;
-  border-radius: 6px;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 0.375rem;
   background: color-mix(in oklab, var(--as-danger) 9%, transparent);
   color: color-mix(in oklab, var(--as-danger) 70%, var(--as-ink));
   &.is-none {
@@ -213,15 +222,15 @@ onUnmounted(() => {
 }
 
 .ap-diff-new {
-  padding: 1px 8px;
-  border-radius: 6px;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 0.375rem;
   background: color-mix(in oklab, var(--as-success) 11%, transparent);
   color: color-mix(in oklab, var(--as-success) 55%, var(--as-ink));
   font-weight: 500;
 }
 
 .ap-diff-arrow {
-  font-size: 10px;
+  font-size: 0.625rem;
   color: var(--as-ink-3);
 }
 

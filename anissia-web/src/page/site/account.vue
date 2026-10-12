@@ -1,6 +1,6 @@
 <template>
 
-  <div class="as-page max-w-[720px]!">
+  <div class="as-page max-w-[45rem]!">
 
     <div class="as-page-head">
       <h1 class="as-page-title">회원 정보</h1>
@@ -10,7 +10,7 @@
     <section class="as-box acc-card">
 
       <div class="acc-row">
-        <div class="acc-icon"><i class="fa-regular fa-envelope"></i></div>
+        <div class="acc-icon"><as-icon name="envelope"/></div>
         <div class="acc-body">
           <div class="acc-label">계정</div>
           <div class="acc-value break-all">{{account.email}}</div>
@@ -18,7 +18,7 @@
       </div>
 
       <div class="acc-row">
-        <div class="acc-icon"><i class="fa-regular fa-calendar-check"></i></div>
+        <div class="acc-icon"><as-icon name="calendar-check"/></div>
         <div class="acc-body">
           <div class="acc-label">가입일</div>
           <div class="acc-value tabular-nums">{{account.regDtText}}</div>
@@ -26,7 +26,7 @@
       </div>
 
       <div class="acc-row">
-        <div class="acc-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="acc-icon"><as-icon name="shield"/></div>
         <div class="acc-body">
           <div class="acc-label">권한</div>
           <div class="flex flex-wrap gap-1.5 mt-1.5">
@@ -36,7 +36,7 @@
       </div>
 
       <div class="acc-row">
-        <div class="acc-icon"><i class="fa-regular fa-user"></i></div>
+        <div class="acc-icon"><as-icon name="user"/></div>
         <div class="acc-body">
           <div class="acc-label">닉네임</div>
           <div v-if="mode != 'edit-nickname'" class="acc-value">{{account.name}}</div>
@@ -53,7 +53,7 @@
       </div>
 
       <div class="acc-row">
-        <div class="acc-icon"><i class="fa-solid fa-key"></i></div>
+        <div class="acc-icon"><as-icon name="key"/></div>
         <div class="acc-body">
           <div class="acc-label">암호</div>
           <div v-if="mode != 'edit-password'" class="acc-value tracking-widest text-ink-3!">••••••••</div>
@@ -75,7 +75,7 @@
     <section class="as-box acc-card acc-card-danger mt-6">
 
       <div class="acc-row">
-        <div class="acc-icon is-danger"><i class="fa-regular fa-trash-can"></i></div>
+        <div class="acc-icon is-danger"><as-icon name="trash"/></div>
         <div class="acc-body">
           <div class="acc-label is-danger">회원 탈퇴</div>
           <p class="acc-sub">탈퇴하면 계정과 작성한 글/댓글이 모두 삭제되며 되돌릴 수 없습니다.</p>
@@ -184,7 +184,7 @@ load();
 }
 
 .acc-icon {
-  @apply shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-xl text-[15px];
+  @apply shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-xl text-[0.9375rem];
   background: var(--as-brand-soft);
   color: var(--as-brand);
   &.is-danger {
@@ -219,7 +219,7 @@ load();
 }
 
 .acc-form {
-  @apply mt-3 max-w-[320px] space-y-3;
+  @apply mt-3 max-w-[20rem] space-y-3;
 }
 
 .acc-form-actions {
@@ -227,6 +227,6 @@ load();
 }
 
 .acc-card-danger {
-  border-color: color-mix(in oklab, var(--as-danger) 22%, var(--as-glass-line));
+  --as-edge: linear-gradient(155deg, color-mix(in oklab, var(--as-danger) 55%, transparent), color-mix(in oklab, var(--as-danger) 22%, transparent));
 }
 </style>

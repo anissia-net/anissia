@@ -1,11 +1,14 @@
 import {createRouter, createWebHistory} from 'vue-router'
 
-import siteLayout from '../page/site/layout.vue'
+import {whenIdle} from './idle'
+
+const siteLayout = () => import('../page/site/layout.vue')
 
 const p301 = () => import('../page/301.vue')
 const p404 = () => import('../page/404.vue')
 const p500 = () => import('../page/500.vue')
 
+const sc2026 = () => import('../page/schedule/2026.vue')
 const sc2024 = () => import('../page/schedule/2024.vue')
 const sc2015 = () => import('../page/schedule/2015.vue')
 const sc2009 = () => import('../page/schedule/2009.vue')
@@ -31,7 +34,6 @@ const adminCaption = () => import('../page/admin/caption.vue')
 
 const defaultTitle = import.meta.env.VITE_TITLE;
 const trackingId = import.meta.env.VITE_GA_TRACKING_ID;
-const env = import.meta.env.VITE_ENV;
 
 (window as any)['dataLayer'] = (window as any)['dataLayer'] || [];
 (window as any)['gtag'] = function() { (window as any)['dataLayer'].push(arguments); }
@@ -44,6 +46,7 @@ const router = createRouter({
     });
   },
   routes: [
+    { path: '/schedule/2026', component: sc2026, meta: { title: '애니편성표 2026' } },
     { path: '/schedule/2024', component: sc2024, meta: { title: '애니편성표 2024' } },
     { path: '/schedule/2015', component: sc2015, meta: { title: '애니편성표 2015' } },
     { path: '/schedule/2009', component: sc2009, meta: { title: '애니편성표 2009' } },
@@ -80,6 +83,41 @@ const router = createRouter({
     },
   ],
 });
+
+const warmed = new Set<string>();
+
+export function prefetchRoute(path: string) {
+  const connection = (navigator as Navigator & {connection?: {saveData?: boolean; effectiveType?: string}}).connection;
+  if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? '')) return;
+  if (warmed.has(path)) return;
+  warmed.add(path);
+  for (const record of router.resolve(path).matched) {
+    const component = record.components?.default;
+    if (typeof component == 'function') (component as () => Promise<unknown>)().catch(() => warmed.delete(path));
+  }
+}
+
+export function installPrefetch() {
+  const warm = (e: Event) => {
+    const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (a && a.origin == location.origin && a.target != '_blank' && !a.hasAttribute('download')) prefetchRoute(a.pathname);
+  };
+  for (const type of ['pointerover', 'touchstart', 'focusin']) {
+    addEventListener(type, warm, {passive: true, capture: true});
+  }
+}
+
+export function installAnalytics() {
+  if (!trackingId) return;
+  const load = () => whenIdle(() => {
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(trackingId)}`;
+    document.head.append(script);
+  });
+  if (document.readyState === 'complete') load();
+  else addEventListener('load', load, {once: true});
+}
 
 router.afterEach((to, from) => {
   // @ts-ignore

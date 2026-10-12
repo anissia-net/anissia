@@ -1,9 +1,9 @@
 <template>
 
- <div class="min-h-[225px]">
+ <div class="min-h-[13.125rem]">
    <router-link v-for="node in list" :key="node.topicNo"
                 :to="`/${props.ticker}?topicNo=${node.topicNo}`"
-                class="group flex items-center gap-3 py-3 -mx-2 px-2 text-sm as-row">
+                class="group flex items-center gap-3 py-2.5 -mx-2 px-2 text-sm as-row">
      <span class="flex-1 min-w-0 flex items-baseline font-medium text-ink transition-colors group-hover:text-brand">
        <span class="min-w-0 truncate">{{node.topic}}</span>
        <sup v-if="node.postCount" class="post-count shrink-0">{{node.postCount}}</sup>
@@ -32,7 +32,7 @@ const list = computed(() => (props.modelValue as any)[props.ticker!!]) as Ref<To
 @reference "../../common/tailwind.pcss";
 
 .post-count {
-  @apply ml-1 text-[11px] font-semibold tabular-nums;
+  @apply ml-1 text-[0.6875rem] font-semibold tabular-nums;
   color: var(--as-brand);
   vertical-align: baseline;
   position: relative;

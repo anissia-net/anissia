@@ -1,0 +1,60 @@
+import './icon.css';
+
+/** 24×24 선 아이콘. 색은 currentColor, 크기는 글자 크기(1em)를 따른다. */
+const ICONS = {
+  'address-card': '<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8.5" cy="10.5" r="2.5"/><path d="M5 16.5a3.5 3.5 0 0 1 7 0M15 9h4M15 13h4"/>',
+  'arrow-left': '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  'arrow-right': '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  'arrow-right-long': '<path d="M3 12h18M16 7l5 5-5 5"/>',
+  'bars': '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  'bell': '<path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16zM10 21a2 2 0 0 0 4 0"/>',
+  'calendar': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/>',
+  'calendar-check': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15.5l2 2 4-4"/>',
+  'cc': '<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10.3 10.2a2.5 2.5 0 1 0 0 3.6M17.3 10.2a2.5 2.5 0 1 0 0 3.6"/>',
+  'chat': '<path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>',
+  'chat-dots': '<path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zM8 10.5h.01M12 10.5h.01M16 10.5h.01"/>',
+  'chats': '<path d="M21 11a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6l4 3zM15 9V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8l3-3h3"/>',
+  'chevron-right': '<path d="M9 6l6 6-6 6"/>',
+  'circle-alert': '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/>',
+  'circle-check': '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5.5"/>',
+  'circle-play': '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/>',
+  'circle-user': '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.2 18.3a7 7 0 0 1 11.6 0"/>',
+  'circle-x': '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
+  'clock': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  'copy': '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/>',
+  'edit': '<path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+  'envelope': '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+  'external': '<path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
+  'gear': '<circle cx="12" cy="12" r="6.3"/><circle cx="12" cy="12" r="2.2"/><path stroke-width="3" stroke-linecap="butt" d="M19.3 12h2.5M17.2 17.2l1.7 1.7M12 19.3v2.5M6.8 17.2l-1.7 1.7M4.7 12H2.2M6.8 6.8 5.1 5.1M12 4.7V2.2M17.2 6.8l1.7-1.7"/>',
+  'globe': '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/>',
+  'house': '<path d="M3 10.5 12 3l9 7.5M5 9v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9"/>',
+  'key': '<circle cx="7.5" cy="16.5" r="4.5"/><path d="M10.7 13.3 20 4M16 8l2 2M18.5 5.5l2 2"/>',
+  'left-right': '<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/>',
+  'login': '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M3 12h11M10 8l4 4-4 4"/>',
+  'logout': '<path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M10 12h11M17 8l4 4-4 4"/>',
+  'mobile': '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
+  'moon': '<path d="M20.5 14A8.5 8.5 0 1 1 10 3.5a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  'pen': '<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4zM14.5 5.5l3 3"/>',
+  'search': '<circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4.5 4.5"/>',
+  'shield': '<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6zM12 3v18"/>',
+  'signature': '<path d="M3 16c2.5 0 4-9 6.5-9S9 16 11.5 16s2.5-3.5 4-3.5S17 15 21 15M3 20h18"/>',
+  'sliders': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  'star': '<path d="M12 3.1 14.3 9.4 21 9.7 15.7 13.8 17.6 20.3 12 16.5 6.4 20.3 8.3 13.8 3 9.7 9.7 9.4z"/>',
+  'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  'terminal': '<path d="M5 8l4 4-4 4M12 17h7"/>',
+  'trash': '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M5.5 6l1 13a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6"/>',
+  'truck': '<path d="M14 17V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1M8 17h7M19 17h2a1 1 0 0 0 1-1v-3.5L19 9h-5"/><circle cx="6" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+  'up-down': '<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',
+  'user': '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  'wrench': '<path d="M13.9 12.5A5 5 0 0 0 20.7 6.2L17.8 9.1 14.9 6.2 17.8 3.3A5 5 0 0 0 11.5 10.1L4.3 17.3a1.7 1.7 0 0 0 2.4 2.4z"/>',
+  'x': '<path d="M6 6l12 12M18 6 6 18"/>',
+  'x-logo': '<path d="M4 4l11.7 16H20L8.3 4zM4 20l6.8-6.8M13.2 10.8 20 4"/>',
+  'zoom-in': '<circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4.5 4.5M8 11h6M11 8v6"/>',
+  'zoom-out': '<circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4.5 4.5M8 11h6"/>',
+} as const;
+
+export type IconName = keyof typeof ICONS;
+
+export function iconSvg(name: IconName) {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+}

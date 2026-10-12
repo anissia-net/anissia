@@ -8,7 +8,7 @@
 
     <article>
       <div class="node">
-        <div class="tod">{{ isPureWeek() ? '시간' : '날짜' }}</div>
+        <div class="tod">{{ pureWeek ? '시간' : '날짜' }}</div>
         <div class="subject ti">제목</div>
         <div class="genres">분류</div>
       </div>
@@ -36,7 +36,7 @@
         <div v-if="captionList.length == 0" class="non-caption">
           자막이 없습니다.
         </div>
-      </div>A
+      </div>
     </section>
 
   </div>
@@ -44,26 +44,26 @@
 
 <script setup lang="ts">
 // 2009년 소스를 vuejs 에 맞게 변경 (IE6 호환성 제거)
-import {onBeforeUnmount, onMounted, Ref, ref} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref, shallowRef} from "vue";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import Anime from "../../domain/anime/Anime";
 import anissia from "../../common/anissia";
 import AnimeCaption from "../../domain/anime/AnimeCaption";
 
 // data
-const weekList = ref([...Array(9).keys()]);
+const weekList = [...Array(9).keys()];
 const weekNow = ref(-1);
-const animeList = ref([]) as Ref<Anime[]>;
-const animeNow = ref(null) as Ref<Anime|null>;
-const captionList = ref([]) as Ref<AnimeCaption[]>;
+const animeList = shallowRef<Anime[]>([]);
+const animeNow = shallowRef<Anime | null>(null);
+const captionList = shallowRef<AnimeCaption[]>([]);
+const pureWeek = computed(() => anissia.isPureWeek(weekNow.value));
 
 // method
-function isPureWeek() {
-  return anissia.isPureWeek(weekNow.value);
-}
 function getAnimeList(week: number): void {
   weekNow.value = week;
-  animeRemote.getScheduleAnimeList(week).then((list) => animeList.value = list);
+  animeRemote.getScheduleAnimeList(week).then((list) => {
+    if (weekNow.value == week) animeList.value = list;
+  });
 }
 function getCaptionList(anime: Anime) {
   animeRemote.getAnimeCaptionList(anime.animeNo).then((list) => {
@@ -93,12 +93,22 @@ onBeforeUnmount(() => {
 });
 </script>
 
+<style>
+html:has(#sc2009) {
+  background: #444;
+  color-scheme: light;
+  body, body::before { background: none }
+}
+</style>
+
 <style scoped>
 
 #sc2009 {
   position: absolute; top:0; right:0; bottom:0; left:0; background-color: #444;
   background-image: url('/src/page/schedule/2009/bg.jpg'); background-repeat: no-repeat;
   font-family: "Malgun Gothic", "Dotum", sans-serif; min-width:530px; box-sizing: border-box;
+  color: #000; font-size: 12px; font-weight: normal; line-height: normal; letter-spacing: normal; text-align: left;
+  -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; font-feature-settings: normal;
   ::-webkit-scrollbar{ width:0; height:0 }
   a { text-decoration: none }
   > * { position: absolute; }

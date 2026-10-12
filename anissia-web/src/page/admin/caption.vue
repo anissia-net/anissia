@@ -2,7 +2,7 @@
 
   <div class="as-page">
 
-    <div class="as-segment mt-2">
+    <div v-choice class="as-segment mt-2">
       <router-link to="/admin/caption" :class="{'is-on': state === 1}">
         방영중
       </router-link>
@@ -12,24 +12,24 @@
     </div>
 
     <div class="mt-5">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
         <div v-for="node in list.content" class="p-5 as-card">
           <div class="anissia-node-hover-view-del text-lg pt-1 px-1">
             {{node.subject}}
-            <i @click="doDelete(node)" class="fa-solid fa-xmark inline-block p-[3px] ml-1 cursor-pointer opacity-40 hover:opacity-100 hover:text-danger transition"></i>
+            <as-icon @click="doDelete(node)" name="x" class="w-auto h-auto p-[0.1875rem] ml-1 cursor-pointer opacity-40 hover:opacity-100 hover:text-danger transition"/>
           </div>
           <div class="mt-4 flex">
-            <input type="button" value="◀" @click="moveEpisode(node, false)" class="w-[60px] mr-2 as-input-btn" />
+            <input type="button" value="◀" @click="moveEpisode(node, false)" class="w-[3.75rem] mr-2 as-input-btn" />
             <input type="number" name="episode" min="0" v-model="node.episode" class="text-center p-2.5 as-input-text">
-            <input type="button" value="▶" @click="moveEpisode(node, true)" class="w-[60px] ml-2 as-input-btn" />
+            <input type="button" value="▶" @click="moveEpisode(node, true)" class="w-[3.75rem] ml-2 as-input-btn" />
           </div>
           <div class="mt-4 flex">
             <input type="datetime-local" v-model="node.updDt" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}" class="text-center p-2.5 as-input-text" />
-            <input type="button" value="현재" @click="setNow(node)" class="w-[60px] ml-2 as-input-btn" />
+            <input type="button" value="현재" @click="setNow(node)" class="w-[3.75rem] ml-2 as-input-btn" />
           </div>
           <div class="mt-4 flex">
             <input type="text" name="website" v-model="node.website" placeholder="https://example.com" class="p-2.5 as-input-text">
-            <input type="button" value="저장" @click="doSave(node)" class="w-[60px] ml-2 as-input-btn" />
+            <input type="button" value="저장" @click="doSave(node)" class="w-[3.75rem] ml-2 as-input-btn" />
           </div>
 
         </div>

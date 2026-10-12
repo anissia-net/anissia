@@ -46,24 +46,28 @@
             <tr>
               <th>상태</th>
               <td>
-                <label class="chip" :class="{'is-on': anime.status == 'ON'}">
+                <div v-choice class="as-segment as-segment-inline">
+                <label :class="{'is-on': anime.status == 'ON'}">
                   <input type="radio" name="status" v-model="anime.status" value="ON" class="hidden" />편성표
                 </label>
-                <label class="chip" :class="{'is-on': anime.status == 'OFF'}">
+                <label :class="{'is-on': anime.status == 'OFF'}">
                   <input type="radio" name="status" v-model="anime.status" value="OFF" class="hidden" />편성표-결방
                 </label>
-                <label class="chip" :class="{'is-on': anime.status == 'END'}">
+                <label :class="{'is-on': anime.status == 'END'}">
                   <input type="radio" name="status" v-model="anime.status" value="END" class="hidden" />완결
                 </label>
+                </div>
               </td>
             </tr>
             <tr>
               <th>요일</th>
               <td>
-                <label v-for="(week, i) in weekList" :key="week" class="chip" :class="{'is-on': (i+'') == anime.week}">
+                <div v-choice class="as-segment as-segment-inline">
+                <label v-for="(week, i) in weekList" :key="week" :class="{'is-on': (i+'') == anime.week}">
                   <input type="radio" name="week" v-model="anime.week" :value="i+''" class="hidden" />
                   {{week}}
                 </label>
+                </div>
               </td>
             </tr>
             <tr v-if="anime.week != '7'">
@@ -76,18 +80,18 @@
               <th>시작일</th>
               <td>
                 <div class="date-edit">
-                  <div class="date-chips">
-                    <label v-for="dateType in dateTypeList" :key="dateType" class="chip" :class="{'is-on': dateType == anime.editStartDateType}">
+                  <div v-choice class="as-segment as-segment-inline">
+                    <label v-for="dateType in dateTypeList" :key="dateType" :class="{'is-on': dateType == anime.editStartDateType}">
                       <input type="radio" name="startDate" v-model="anime.editStartDateType" :value="dateType" class="hidden" />
                       {{dateType}}
                     </label>
                   </div>
                   <div v-if="anime.editStartDateType != 'N/A'" class="date-fields">
-                    <input type="text" v-model="anime.editStartDateYear" maxlength="4" placeholder="YYYY" class="as-input-text w-[58px]! py-1.5 text-center text-xs!"> 년
+                    <input type="text" v-model="anime.editStartDateYear" maxlength="4" placeholder="YYYY" class="as-input-text w-[3.625rem]! py-1.5 text-center"> 년
                     <template v-if="anime.editStartDateType != 'Y'">
-                      <input type="text" v-model="anime.editStartDateMonth" maxlength="2" placeholder="MM" class="as-input-text w-[40px]! py-1.5 text-center text-xs!"> 월
+                      <input type="text" v-model="anime.editStartDateMonth" maxlength="2" placeholder="MM" class="as-input-text w-[2.5rem]! py-1.5 text-center"> 월
                       <template v-if="anime.editStartDateType != 'YM'">
-                        <input type="text" v-model="anime.editStartDateDate" maxlength="2" placeholder="DD" class="as-input-text w-[40px]! py-1.5 text-center text-xs!"> 일
+                        <input type="text" v-model="anime.editStartDateDate" maxlength="2" placeholder="DD" class="as-input-text w-[2.5rem]! py-1.5 text-center"> 일
                       </template>
                     </template>
                   </div>
@@ -98,18 +102,18 @@
               <th>종료일</th>
               <td>
                 <div class="date-edit">
-                  <div class="date-chips">
-                    <label v-for="dateType in dateTypeList" :key="dateType" class="chip" :class="{'is-on': dateType == anime.editEndDateType}">
+                  <div v-choice class="as-segment as-segment-inline">
+                    <label v-for="dateType in dateTypeList" :key="dateType" :class="{'is-on': dateType == anime.editEndDateType}">
                       <input type="radio" name="endDate" v-model="anime.editEndDateType" :value="dateType" class="hidden" />
                       {{dateType}}
                     </label>
                   </div>
                   <div v-if="anime.editEndDateType != 'N/A'" class="date-fields">
-                    <input type="text" v-model="anime.editEndDateYear" maxlength="4" placeholder="YYYY" class="as-input-text w-[58px]! py-1.5 text-center text-xs!"> 년
+                    <input type="text" v-model="anime.editEndDateYear" maxlength="4" placeholder="YYYY" class="as-input-text w-[3.625rem]! py-1.5 text-center"> 년
                     <template v-if="anime.editEndDateType != 'Y'">
-                      <input type="text" v-model="anime.editEndDateMonth" maxlength="2" placeholder="MM" class="as-input-text w-[40px]! py-1.5 text-center text-xs!"> 월
+                      <input type="text" v-model="anime.editEndDateMonth" maxlength="2" placeholder="MM" class="as-input-text w-[2.5rem]! py-1.5 text-center"> 월
                       <template v-if="anime.editEndDateType != 'YM'">
-                        <input type="text" v-model="anime.editEndDateDate" maxlength="2" placeholder="DD" class="as-input-text w-[40px]! py-1.5 text-center text-xs!"> 일
+                        <input type="text" v-model="anime.editEndDateDate" maxlength="2" placeholder="DD" class="as-input-text w-[2.5rem]! py-1.5 text-center"> 일
                       </template>
                     </template>
                   </div>
@@ -143,13 +147,9 @@
             </tr>
           </tbody>
         </table>
-        <div class="mt-4 overflow-auto">
-          <div class="float-left">
-            <input type="button" value="삭제" @click="doDelete()" class="as-input-btn p-1.5" />
-          </div>
-          <div class="float-right">
-            <input type="button" value="저장" @click="doSave()" class="as-input-btn p-1.5" />
-          </div>
+        <div class="mt-4 flex justify-between gap-2">
+          <input type="button" value="삭제" @click="doDelete()" class="as-input-btn py-2 hover:text-danger!" />
+          <input type="button" value="저장" @click="doSave()" class="as-btn-primary py-2" />
         </div>
 
 
@@ -162,7 +162,7 @@
 
     </div>
 
-    <div class="as-segment mt-2">
+    <div v-choice class="as-segment mt-2">
       <router-link to="/admin/anime" :class="{'is-on': state === 'list'}">
         전체
       </router-link>
@@ -175,17 +175,17 @@
 
       <div v-if="state == 'list'" class="relative">
         <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
-          <i class="fa-solid fa-magnifying-glass"></i>
+          <as-icon name="search"/>
         </div>
-        <input type="text" id="default-search" autocomplete="off" class="p-3 pl-9 as-input-text" placeholder="애니메이션 검색 : 검색어 #장르 @제작자 /완결"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @keyup="loadAutocorrect">
+        <input type="text" id="default-search" autocomplete="off" class="p-3 pl-9 as-input-text" placeholder="애니메이션 검색 : 검색어 #장르 @제작자 /완결"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @compositionstart="clearAutocorrect" @input="loadAutocorrect">
         <router-link to="/admin/anime?animeNo=0" type="button" class="as-input-btn absolute px-4 py-1.5 right-2 bottom-1.5" >신규</router-link>
       </div>
 
       <div v-if="autocorrectOn && autocorrect.length">
         <ul class="autocorrect-list as-box mt-2 py-1.5 overflow-hidden shadow-pop">
-          <li v-for="(node, i) in autocorrect" class="mx-1.5 rounded-ctl transition-colors cursor-pointer" :class="autocorrectIndex == i ? 'bg-brand-soft' : ''" @mouseover="autocorrectIndex = i">
+          <li v-for="(node, i) in autocorrect" :key="node.key" class="mx-1.5 rounded-ctl transition-colors cursor-pointer" :class="autocorrectIndex == i ? 'bg-brand-soft' : ''" @mouseover="autocorrectIndex = i">
             <router-link :to="`/admin/anime?animeNo=${node.key}`" class="flex items-center gap-2.5 px-3 py-2 text-sm" :class="autocorrectIndex == i ? 'text-brand' : 'text-ink-2'">
-              <i class="fa-solid fa-arrow-right-long text-[11px] transition-opacity" :class="autocorrectIndex != i ? 'opacity-0' : 'opacity-100'"></i>
+              <as-icon name="arrow-right-long" class="text-[0.6875rem] transition-opacity" :class="autocorrectIndex != i ? 'opacity-0' : 'opacity-100'"/>
               <span v-html="node.hl"></span>
             </router-link>
           </li>
@@ -196,8 +196,8 @@
         <div class="as-meta text-right mb-3">
           총 <b class="text-ink-2">{{list.totalElements}}</b> 작품
         </div>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <div v-for="(node, i) in list.content" class="p-5 as-card">
+        <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+          <div v-for="node in list.content" :key="node.agendaNo || node.animeNo" class="p-5 as-card flex flex-col">
             <div>
               <router-link v-if="!node.agendaNo" :to="toAnimeViewUrl(node.animeNo)">
                 <div class="text-md font-semibold text-ink">{{node.subject}}</div>
@@ -209,12 +209,12 @@
                 <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
               </div>
             </div>
-            <div class="mt-4 flex flex-wrap gap-1.5">
+            <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
               <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
               <span class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag"><router-link :to="`/admin/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link></span>
-              <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><i class="fa-solid fa-globe"></i></a></span>
-              <span class="as-tag-xs" v-if="node.x"><a :href="node.x" target="_blank" class="fa-brands fa-x-twitter"></a></span>
-              <span class="as-tag-xs" v-if="node.captionCount"><i class="fa-regular fa-closed-captioning mr-1 opacity-70"></i>{{node.captionCount}}</span>
+              <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><as-icon name="globe"/></a></span>
+              <span class="as-tag-xs" v-if="node.x"><a :href="node.x" target="_blank"><as-icon name="x-logo"/></a></span>
+              <span class="as-tag-xs" v-if="node.captionCount"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.captionCount}}</span>
             </div>
           </div>
         </div>
@@ -255,6 +255,11 @@ const autocorrect = ref([]) as Ref<AnimeAutocorrect[]>;
 const autocorrectOn = ref(false);
 const autocorrectIndex = ref(-1);
 let autocorrectQuery = '';
+let autocorrectTimer: ReturnType<typeof setTimeout> | undefined;
+let autocorrectRequest = 0;
+let animeRequest = 0;
+let listRequest = 0;
+let listQuery = '';
 const router = useRouter();
 const weekList = ref(['日', '月', '火', '水', '木', '金', '土', '外', '新']);
 const dateTypeList = ref(['YMD', 'YM', 'Y', 'N/A']);
@@ -270,20 +275,26 @@ function init() {
   animeRemote.getGenres().then(_genres => genres.value = _genres)
 }
 
+let listKey = '';
+let listDirty = false;
+
 function clear(locate: Locate) {
   state.value = locate.getParameter('state', 'list') == 'list' ? 'list' : 'delist';
-  page.value = 0;
 }
 
 function load(locate: Locate = new Locate()) {
-  autocorrectOn.value = false;
+  clearAutocorrect();
   const q = locate.getParameter('q', '')!!;
-  if (query.value != q) {
-    page.value = 0;
-  }
   query.value = q;
   loadAnime(locate);
-  loadList();
+  const key = `${state.value}|${q}`;
+  if (key != listKey || listDirty) {
+    listKey = key;
+    listQuery = q;
+    listDirty = false;
+    page.value = 0;
+    loadList();
+  }
 }
 
 function loadAnime(locate: Locate, forced: boolean = false) {
@@ -294,12 +305,17 @@ function loadAnime(locate: Locate, forced: boolean = false) {
   if (no > 0) {
     if (lastAnimeNo != no) {
       lastAnimeNo = no;
-      animeRemote.getAnime(no).then(node => anime.value = node.bindEdit());
+      const request = ++animeRequest;
+      animeRemote.getAnime(no).then(node => {
+        if (request === animeRequest) anime.value = node.bindEdit();
+      });
     }
   } else if (no == 0) {
+    animeRequest++;
     lastAnimeNo = -1;
     anime.value = new Anime().bindEdit();
   } else {
+    animeRequest++;
     lastAnimeNo = -1;
     anime.value = null;
   }
@@ -307,19 +323,24 @@ function loadAnime(locate: Locate, forced: boolean = false) {
 
 function loadList() {
   const isFirstPage = page.value == 0;
+  const request = ++listRequest;
+  sl.watch(false);
 
   if (state.value === 'list') {
-    animeRemote.getAnimeList(page.value, query.value).then(pageData => {
+    animeRemote.getAnimeList(page.value, listQuery).then(pageData => {
+      if (request !== listRequest) return;
       if (isFirstPage) {
         list.value = pageData;
       } else {
         list.value = list.value.merge(pageData);
       }
-      nextTick(() => sl.watch(pageData.next))
+      nextTick(() => {
+        if (request === listRequest) sl.watch(pageData.next);
+      });
     });
   } else if (state.value === 'delist') {
     animeRemote.getAdminAnimeDelist().then(pageData => {
-      list.value = pageData;
+      if (request === listRequest) list.value = pageData;
     });
   }
 }
@@ -327,19 +348,34 @@ function loadList() {
 
 
 function searchAnime() {
-  page.value = 0;
-  autocorrectOn.value = false;
+  clearAutocorrect();
   router.push(`/admin/anime?q=${encodeURIComponent(query.value)}`);
 }
 
-function loadAutocorrect(event: KeyboardEvent) {
-  const word = (event.target as any).value;
-  if (autocorrectQuery != word) {
-    autocorrectOn.value = true;
-    autocorrectIndex.value = -1;
-    autocorrectQuery = word;
-    animeRemote.getAnimeListAutocorrect(word).then(list => autocorrect.value = list);
-  }
+function clearAutocorrect() {
+  clearTimeout(autocorrectTimer);
+  autocorrectRequest++;
+  autocorrectQuery = '';
+  autocorrectOn.value = false;
+  autocorrectIndex.value = -1;
+  autocorrect.value = [];
+}
+
+function loadAutocorrect(event: Event) {
+  const input = event.target as HTMLInputElement & {composing?: boolean};
+  if ((event as InputEvent).isComposing || input.composing) return;
+  const word = input.value;
+  if (autocorrectQuery === word) return;
+  clearAutocorrect();
+  autocorrectQuery = word;
+  if (!word.trim()) return;
+  autocorrectOn.value = true;
+  const request = autocorrectRequest;
+  autocorrectTimer = setTimeout(() => {
+    animeRemote.getAnimeListAutocorrect(word).then(list => {
+      if (request === autocorrectRequest) autocorrect.value = list;
+    }).catch(() => {});
+  }, 180);
 }
 
 function toggleGenreOpen() {
@@ -362,8 +398,9 @@ function toggleGenre(genre: string) {
 }
 
 function keyAutocorrect(event: KeyboardEvent) {
+  if (event.isComposing || event.keyCode === 229) return;
   const key = event.key;
-  const len = autocorrect.value.length;
+  const len = autocorrectOn.value ? autocorrect.value.length : 0;
 
   switch (key) {
     case 'ArrowUp':
@@ -379,7 +416,7 @@ function keyAutocorrect(event: KeyboardEvent) {
       }
       return;
     case 'Enter':
-      if (!autocorrect.value.length || autocorrectIndex.value == -1) {
+      if (!len || autocorrectIndex.value == -1) {
         searchAnime();
       } else {
         router.push(`/admin/anime?animeNo=${autocorrect.value[autocorrectIndex.value].key}`)
@@ -399,6 +436,7 @@ function getNowSearchedQuery() {
 function addCaption() {
   animeRemote.addAdminCaption(anime.value?.animeNo!!).then(result => {
     if (result.code == 'ok') {
+      listDirty = true;
       loadAnime(new Locate(), true);
     }
     toast.result(result);
@@ -409,6 +447,7 @@ function doDelete() {
   if (confirm(`${anime.value?.subject}을(를) 삭제하시겠습니까?\n임의삭제시 권한박탈의 사유가됩니다.`)) {
     animeRemote.deleteAdminAnime(anime.value?.animeNo!!).then(result => {
       if (result.code == 'ok') {
+        listDirty = true;
         router.push(`/admin/anime`);
       } else if (result.message) {
         toast.error(result.message);
@@ -421,6 +460,7 @@ function doRecover(anime: Anime) {
   if (confirm(`${anime.subject}을(를) 복원하시겠습니까?\n임의조작시 권한박탈의 사유가됩니다.`)) {
     animeRemote.recoverAdminAnime(anime.agendaNo).then(result => {
       if (result.code == 'ok') {
+        listDirty = true;
         router.push(`/admin/anime?animeNo=${result.data}`);
       } else if (result.message) {
         toast.error(result.message);
@@ -446,6 +486,7 @@ function doSave() {
     if (isNew) {
       animeRemote.addAdminAnime(ani).then(result => {
         if (result.code == 'ok') {
+          listDirty = true;
           router.push(`/admin/anime?animeNo=${result.data}`)
           toast.success('애니메이션이 추가되었습니다.');
         } else if (result.message) {
@@ -455,6 +496,7 @@ function doSave() {
     } else {
       animeRemote.updateAdminAnime(ani).then(result => {
         if (result.code == 'ok') {
+          listDirty = true;
           loadAnime(new Locate(), true);
           toast.success('애니메이션이 수정되었습니다.');
         } else if (result.message) {
@@ -476,6 +518,9 @@ onBeforeRouteUpdate((to, from, next) => {
 });
 
 onUnmounted(() => {
+  clearAutocorrect();
+  animeRequest++;
+  listRequest++;
   sl.destroy();
 });
 </script>
@@ -487,11 +532,6 @@ onUnmounted(() => {
   @apply flex flex-wrap items-center gap-x-4 gap-y-2;
 }
 
-.date-chips {
-  @apply flex flex-wrap items-center;
-  margin-bottom: -.5rem;
-}
-
 .date-fields {
   @apply flex items-center gap-1.5 text-sm;
   color: var(--as-ink-2);
@@ -499,9 +539,9 @@ onUnmounted(() => {
 
 .chip {
   @apply inline-block mr-2 mb-2 px-3 py-1.5 text-xs font-medium cursor-pointer select-none transition-all duration-150;
-  border-radius: 999px;
+  border-radius: 0.25rem;
   background: var(--as-muted);
-  border: 1px solid var(--as-line);
+  border: 0.0625rem solid var(--as-line);
   color: var(--as-ink-3);
   &:hover { border-color: var(--as-line-2); color: var(--as-ink-2) }
   &.is-on {

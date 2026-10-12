@@ -9,17 +9,18 @@ import {AnimeRankItem} from "../../rank/AnimeRankItem";
 const api = import.meta.env.VITE_API_PATH;
 
 class AnimeRemote {
-    private cacheAutocorrect: any = {};
+    private cacheAutocorrect = new Map<string, {expires: number, promise: Promise<AnimeAutocorrect[]>}>();
     private genres: string[] = [];
 
     public getScheduleAnimeList(week: number|string): Promise<Anime[]> {
-        return ajax.fetch(`${api}/anime/schedule/${week}`)
+        // Public, always-fresh reads: no DAT preflight and no browser data cache.
+        return ajax.fetch(`${api}/anime/schedule/${week}`, null, {cache: 'no-store'}, false)
             .then(e => e.orIgnore)
             .then(list => list.map(Anime.assign));
     }
 
     public getAnimeCaptionList(animeNo: string|number): Promise<AnimeCaption[]> {
-        return ajax.fetch(`${api}/anime/caption/animeNo/${animeNo}`)
+        return ajax.fetch(`${api}/anime/caption/animeNo/${animeNo}`, null, {cache: 'no-store'}, false)
             .then(e => e.orIgnore)
             .then(list => list.map(AnimeCaption.assign));
     }
@@ -41,22 +42,37 @@ class AnimeRemote {
     }
 
     public getAnimeListAutocorrect(query: string): Promise<AnimeAutocorrect[]> {
-        if (query.trim() != '') {
-            const cache = this.cacheAutocorrect[query];
-            if (cache) {
-                return Promise.resolve(cache);
-            } else {
-                return ajax.fetch(`${api}/anime/autocorrect?q=${encodeURIComponent(query)}`)
-                    .then(e => e.orIgnore)
-                    .then(list => {
-                        const rv: AnimeAutocorrect[] = list.map((e: string) => new AnimeAutocorrect(query, e));
-                        rv.sort((a, b) => a.lo.localeCompare(b.lo));
-                        return rv;
-                    });
-            }
-        } else {
+        query = query.trim();
+        if (!query) {
             return Promise.resolve([]);
         }
+        const cached = this.cacheAutocorrect.get(query);
+        if (cached && cached.expires > Date.now()) {
+            return cached.promise;
+        }
+        this.cacheAutocorrect.delete(query);
+        const entry = {
+            expires: Infinity,
+            promise: ajax.fetch(`${api}/anime/autocorrect?q=${encodeURIComponent(query)}`)
+                .then(e => e.orIgnore)
+                .then(list => {
+                    const result: AnimeAutocorrect[] = list.map((e: string) => new AnimeAutocorrect(query, e));
+                    result.sort((a, b) => a.lo.localeCompare(b.lo));
+                    entry.expires = Date.now() + 60_000;
+                    return result;
+                })
+                .catch(error => {
+                    if (this.cacheAutocorrect.get(query) === entry) {
+                        this.cacheAutocorrect.delete(query);
+                    }
+                    throw error;
+                })
+        };
+        this.cacheAutocorrect.set(query, entry);
+        if (this.cacheAutocorrect.size > 64) {
+            this.cacheAutocorrect.delete(this.cacheAutocorrect.keys().next().value!);
+        }
+        return entry.promise;
     }
 
     public getAdminScheduleAnimeList(week: number): Promise<Anime[]> {
@@ -90,19 +106,26 @@ class AnimeRemote {
     }
 
     public addAdminAnime(anime: Anime): Promise<Result<any>> {
-        return ajax.post(`${api}/anime`, anime);
+        return ajax.post(`${api}/anime`, anime).then(result => this.invalidateAutocorrect(result));
     }
 
     public updateAdminAnime(anime: Anime): Promise<Result<any>> {
-        return ajax.put(`${api}/anime/${anime.animeNo}`, anime);
+        return ajax.put(`${api}/anime/${anime.animeNo}`, anime).then(result => this.invalidateAutocorrect(result));
     }
 
     public deleteAdminAnime(animeNo: number): Promise<Result<any>> {
-        return ajax.delete(`${api}/anime/${animeNo}`);
+        return ajax.delete(`${api}/anime/${animeNo}`).then(result => this.invalidateAutocorrect(result));
     }
 
     public recoverAdminAnime(agendaNo: number): Promise<Result<any>> {
-        return ajax.post(`${api}/anime/recover/${agendaNo}`);
+        return ajax.post(`${api}/anime/recover/${agendaNo}`).then(result => this.invalidateAutocorrect(result));
+    }
+
+    private invalidateAutocorrect(result: Result<any>): Result<any> {
+        if (result.code === 'ok') {
+            this.cacheAutocorrect.clear();
+        }
+        return result;
     }
 
     public getCaptionRecent(): Promise<AnimeCaption[]> {

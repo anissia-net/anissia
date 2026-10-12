@@ -16,6 +16,10 @@ object Texts {
     private val BASE64_URL_ENCODER: Base64.Encoder = Base64.getUrlEncoder()
     private val BASE64_URL_DECODER: Base64.Decoder = Base64.getUrlDecoder()
 
+    private val HTML_EMBED_REGEX = Regex("<(img|video|audio|iframe|embed|object|svg|canvas|hr)\\b", RegexOption.IGNORE_CASE)
+    private val HTML_TAG_REGEX = Regex("<[^>]*>")
+    private val HTML_BLANK_ENTITY_REGEX = Regex("&(nbsp|#160|#xa0|zwsp|ZeroWidthSpace|#8203|#x200b);", RegexOption.IGNORE_CASE)
+
     fun isName(value: String): Boolean = NAME_REGEX.matches(value)
 
     fun isMail(value: String): Boolean = MAIL_REGEX.matches(value)
@@ -37,6 +41,13 @@ object Texts {
             false
         }
     }
+
+    fun isBlankHtml(html: String): Boolean =
+        !HTML_EMBED_REGEX.containsMatchIn(html) &&
+            html.replace(HTML_TAG_REGEX, "")
+                .replace(HTML_BLANK_ENTITY_REGEX, " ")
+                .replace("\u200B", "")
+                .isBlank()
 
     fun encodeBase64Url(value: String): String =
         BASE64_URL_ENCODER.encodeToString(value.toByteArray(Charsets.UTF_8))

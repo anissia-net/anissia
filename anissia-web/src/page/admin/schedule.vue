@@ -2,12 +2,12 @@
 
   <div class="as-page">
 
-    <div class="as-segment">
+    <div v-choice class="as-segment">
       <button type="button" v-for="(week, idx) in weekList" :key="week" @click="getAnimeList(idx)" class="font-semibold text-md! px-0.5! py-2.5!" :class="({'is-on': idx == weekNow})">{{week}}</button>
     </div>
 
     <div class="mt-4">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
         <div v-for="(node, i) in animeList" class="p-5 as-card">
           <div>
             <router-link :to="`/admin/anime?animeNo=${node.animeNo}`">
@@ -24,9 +24,9 @@
           <div class="mt-4 flex flex-wrap gap-1.5">
             <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
             <span class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag"><router-link :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link></span>
-            <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><i class="fa-solid fa-globe"></i></a></span>
-            <span class="as-tag-xs" v-if="node.x"><a :href="node.x" target="_blank" class="fa-brands fa-x-twitter"></a></span>
-            <span class="as-tag-xs" v-if="node.captionCount"><i class="fa-regular fa-closed-captioning mr-1 opacity-70"></i>{{node.captionCount}}</span>
+            <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><as-icon name="globe"/></a></span>
+            <span class="as-tag-xs" v-if="node.x"><a :href="node.x" target="_blank"><as-icon name="x-logo"/></a></span>
+            <span class="as-tag-xs" v-if="node.captionCount"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.captionCount}}</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,24 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import {createHtmlPlugin} from "vite-plugin-html";
+
+function immutableBundleHeaders(): Plugin {
+  return {
+    name: 'immutable-bundle-headers',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle(_, bundle) {
+      // Match only real, fingerprinted bundles. An /assets/* rule would also
+      // give the SPA's HTML fallback a one-year TTL for missing asset URLs.
+      const files = Object.keys(bundle).filter(file => /\.(js|css)$/.test(file));
+      this.emitFile({
+        type: 'asset',
+        fileName: '_headers',
+        source: files.map(file => `/${file}\n  Cache-Control: public, max-age=31536000, immutable\n`).join('\n')
+      });
+    }
+  };
+}
 
 export default defineConfig(({command, mode}) => {
   const env = loadEnv(mode, './', 'VITE_') as any;
@@ -12,10 +30,17 @@ export default defineConfig(({command, mode}) => {
           minify: true,
           entry: '/src/main.ts',
           template: 'index.html'
-        })
+        }),
+        immutableBundleHeaders()
     ],
     build: {
-      cssTarget: ['chrome133', 'edge133', 'firefox135', 'safari18.4']
+      cssTarget: ['chrome133', 'edge133', 'firefox135', 'safari18.4'],
+      // One versioned JS/CSS pair, including admin and editor screens. Route
+      // imports stay lazy in development but require no extra production fetches.
+      cssCodeSplit: false,
+      rolldownOptions: {
+        output: { codeSplitting: false }
+      }
     }
   };
 

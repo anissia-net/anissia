@@ -3,6 +3,7 @@ package anissia.board.api.dto
 import anissia.board.domain.BoardPost
 import anissia.board.domain.BoardTicker
 import anissia.board.domain.BoardTopic
+import anissia.support.Texts
 import anissia.support.fail
 import anissia.support.failIf
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -67,7 +68,11 @@ class BoardTopicItem(
 data class NewTopicRequest(
     val topic: String = "",
     val content: String = "",
-)
+) {
+    fun validate() {
+        validateTopic(topic, content)
+    }
+}
 
 data class EditTopicRequest(
     val topic: String = "",
@@ -75,7 +80,7 @@ data class EditTopicRequest(
 ) {
     fun validate(topicNo: Long) {
         if (topicNo <= 0) fail(DEFAULT_FAIL)
-        failIf(content.isBlank()) { "내용을 입력해 주세요." }
+        validateTopic(topic, content)
     }
 }
 
@@ -84,7 +89,7 @@ data class NewPostRequest(
 ) {
     fun validate(topicNo: Long) {
         if (topicNo <= 0) fail(DEFAULT_FAIL)
-        failIf(content.isBlank()) { "내용을 입력해 주세요." }
+        failIf(Texts.isBlankHtml(content)) { CONTENT_BLANK }
     }
 }
 
@@ -93,8 +98,19 @@ data class EditPostRequest(
 ) {
     fun validate(postNo: Long) {
         if (postNo <= 0) fail(DEFAULT_FAIL)
-        failIf(content.isBlank()) { "내용을 입력해 주세요." }
+        failIf(Texts.isBlankHtml(content)) { CONTENT_BLANK }
     }
 }
 
+private fun validateTopic(topic: String, content: String) {
+    val errors = listOfNotNull(
+        "제목을 입력해 주세요.".takeIf { topic.isBlank() },
+        "제목은 ${TOPIC_MAX_LENGTH}자 이내로 입력해 주세요.".takeIf { topic.length > TOPIC_MAX_LENGTH },
+        CONTENT_BLANK.takeIf { Texts.isBlankHtml(content) },
+    )
+    failIf(errors.isNotEmpty()) { errors.joinToString("\n") }
+}
+
+private const val TOPIC_MAX_LENGTH = 64
+private const val CONTENT_BLANK = "내용을 입력해 주세요."
 private const val DEFAULT_FAIL = "알수없는 오류입니다."

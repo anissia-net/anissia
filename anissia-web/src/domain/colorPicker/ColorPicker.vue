@@ -20,10 +20,14 @@ function updateColor(e: any) {
 <style>
 @import url('vue-accessible-color-picker/styles');
 .vacp-color-picker {
-  border-radius: var(--radius-ctl); padding:8px;
+  --vacp-width-color-space: 18.75rem;
+  --vacp-spacing: 0.375rem;
+  --vacp-font-size: 1rem;
+  --vacp-width-border: 0.0625rem;
+  border-radius: var(--radius-ctl); padding:0.5rem;
   background: var(--as-glass-strong) !important;
-  border: 1px solid var(--as-glass-line) !important;
-  input[type=text] { background: var(--as-surface-2) !important; border:1px solid var(--as-line-2) !important; color: var(--as-ink) !important; }
+  border: 0.0625rem solid var(--as-glass-line) !important;
+  input[type=text] { background: var(--as-surface-2) !important; border:0.0625rem solid var(--as-line-2) !important; color: var(--as-ink) !important; }
 
   button.vacp-copy-button,
   .vacp-range-input-label-text--hue,

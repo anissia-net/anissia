@@ -3,6 +3,8 @@
 </template>
 
 <script setup lang="ts">
+import "nabi-note/nabi.css";
+import "../../common/nabi.pcss";
 import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {attachViewer} from "nabi-note/viewer";
 import type {ViewerAttachment} from "nabi-note/viewer";

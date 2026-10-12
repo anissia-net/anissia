@@ -83,4 +83,14 @@ class TextsTest {
         assertEquals(0L, "".tokenNumber)
         assertEquals("", "".tokenValue)
     }
+
+    @Test
+    fun `isBlankHtml 은 글자나 매체가 없는 HTML 을 빈 값으로 본다`() {
+        assertTrue(Texts.isBlankHtml(""))
+        assertTrue(Texts.isBlankHtml("<p></p>"))
+        assertTrue(Texts.isBlankHtml("<p><br></p><p>&nbsp; \u200B</p>"))
+        assertFalse(Texts.isBlankHtml("<p>a</p>"))
+        assertFalse(Texts.isBlankHtml("<p><img src=\"x.png\"></p>"))
+        assertFalse(Texts.isBlankHtml("<hr>"))
+    }
 }

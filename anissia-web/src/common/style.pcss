@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Hachi+Maru+Pop&family=Noto+Sans+JP:wght@100..900&family=Noto+Sans+KR:wght@100..900&display=swap');
 @import "./tailwind.pcss";
 
 @layer base {
@@ -12,46 +11,56 @@
         --font-family-cursive: "Hachi Maru Pop", "Gaegu", cursive;
     }
 
-    html.light {
+    html.light, #sc2026.light {
         color-scheme: light;
 
-        --as-canvas: #eef1f8;
-        --as-canvas-2: #e4e8f3;
-        --as-surface: rgba(255, 255, 255, .66);
-        --as-surface-2: rgba(255, 255, 255, .48);
-        --as-muted: #f2f4f7;
-        --as-line: rgba(15, 23, 42, .08);
-        --as-line-2: rgba(15, 23, 42, .16);
-        --as-ink: #0f1222;
-        --as-ink-2: #3d4557;
-        --as-ink-3: #666e83;
-        --as-brand: #4f6df5;
-        --as-brand-2: #3552e0;
-        --as-brand-soft: rgba(79, 109, 245, .11);
-        --as-danger: #d64545;
-        --as-success: #17916b;
+        --as-canvas: #fafafa;
+        --as-canvas-2: #f5f7fa;
+        --as-surface: #ffffff;
+        --as-surface-2: #ffffff;
+        --as-muted: rgba(40, 80, 125, .05);
+        --as-line: rgba(65, 73, 82, .20);
+        --as-line-2: rgba(65, 73, 82, .32);
+        --as-ink: #1b2633;
+        --as-ink-2: #445265;
+        --as-ink-3: #6a7789;
+        --as-brand: #2c6b9e;
+        --as-brand-2: #22557f;
+        --as-menu-hover: #006fe6;
+        --as-brand-soft: rgba(44, 107, 158, .08);
+        --as-danger: #b8453f;
+        --as-success: #2a7a5e;
 
-        --as-glass-line: rgba(255, 255, 255, .70);
-        --as-glass-line-2: rgba(255, 255, 255, .95);
-        --as-glass-strong: rgba(255, 255, 255, .88);
-        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .85);
-        --as-blur: 16px;
+        --as-glass-line: rgba(65, 73, 82, .22);
+        --as-glass-line-2: rgba(65, 73, 82, .34);
+        --as-glass-strong: rgba(255, 255, 255, .86);
+        --as-glass-inset: inset 0 0.0625rem 0 rgba(255, 255, 255, .95);
+        --as-blur: 0.875rem;
 
-        --as-bg-1: rgba(99, 102, 241, .16);
-        --as-bg-2: rgba(34, 211, 238, .13);
-        --as-bg-3: rgba(232, 121, 249, .10);
+        --as-bg-1: transparent;
+        --as-bg-2: transparent;
+        --as-bg-3: transparent;
 
-        --as-gradient: linear-gradient(120deg, #7c5cf0 0%, #4f6df5 52%, #21b1e8 100%);
+        --as-gradient: linear-gradient(180deg, #5892c2 0%, #3a76a7 55%, #2f6899 100%);
         --as-on-brand: #ffffff;
 
-        --as-shadow-1: 0 1px 2px rgba(19, 26, 60, .04);
-        --as-shadow-2: 0 10px 30px -14px rgba(19, 26, 60, .18);
-        --as-shadow-3: 0 24px 60px -20px rgba(19, 26, 60, .28);
-        --as-shadow-brand: 0 8px 22px -8px rgba(79, 109, 245, .50);
-        --as-ring: 0 0 0 3px rgba(79, 109, 245, .16);
+        --as-shadow-1: 0 0.0625rem 0.125rem rgba(15, 30, 50, .04);
+        --as-shadow-2: 0 0.0625rem 0.125rem rgba(15, 30, 50, .04), 0 0.5rem 1.25rem -0.75rem rgba(15, 30, 50, .12);
+        --as-shadow-3: 0 1.5rem 3rem -1.5rem rgba(20, 45, 75, .22), 0 0.125rem 0.375rem -0.125rem rgba(20, 45, 75, .06);
+        --as-shadow-brand: 0 0.0625rem 0.125rem rgba(20, 55, 90, .12), 0 0.25rem 0.625rem -0.375rem rgba(44, 107, 158, .38);
+        --as-ring: 0 0 0 0.1875rem rgba(44, 107, 158, .16);
+        --as-title-rule: #5f87aa;
+        --as-wordmark-gradient: linear-gradient(120deg, #1a3550 0%, #2c6b9e 55%, #74a3c9 100%);
+
+        --as-edge-stops: rgba(65, 73, 82, .28) 0%, rgba(65, 73, 82, .20) 30%, rgba(65, 73, 82, .20) 70%, rgba(32, 119, 190, .58) 100%;
+        --as-edge-glow: #2077be;
+
+        --as-choice-bg: rgba(44, 107, 158, .10);
+        --as-choice-shadow: inset 0 0 0 0.0625rem rgba(44, 107, 158, .30), 0 0.0625rem 0.1875rem -0.0625rem rgba(20, 45, 75, .10);
+        --as-choice-ink: #22557f;
     }
 
-    html.dark {
+    html.dark, #sc2026.dark {
         color-scheme: dark;
 
         --as-canvas: #0b0b10;
@@ -73,8 +82,8 @@
         --as-glass-line: rgba(255, 255, 255, .09);
         --as-glass-line-2: rgba(255, 255, 255, .18);
         --as-glass-strong: rgba(40, 40, 52, .85);
-        --as-glass-inset: inset 0 1px 0 rgba(255, 255, 255, .06);
-        --as-blur: 18px;
+        --as-glass-inset: inset 0 0.0625rem 0 rgba(255, 255, 255, .06);
+        --as-blur: 1.125rem;
 
         --as-bg-1: rgba(225, 145, 125, .10);
         --as-bg-2: rgba(150, 115, 120, .06);
@@ -83,11 +92,20 @@
         --as-gradient: linear-gradient(120deg, #f7d0c2 0%, #e3aa9a 55%, #c28270 100%);
         --as-on-brand: #181110;
 
-        --as-shadow-1: 0 1px 2px rgba(0, 0, 0, .25);
-        --as-shadow-2: 0 10px 32px -14px rgba(0, 0, 0, .60);
-        --as-shadow-3: 0 28px 70px -24px rgba(0, 0, 0, .80);
-        --as-shadow-brand: 0 8px 24px -10px rgba(220, 150, 130, .35);
-        --as-ring: 0 0 0 3px rgba(227, 170, 154, .18);
+        --as-shadow-1: 0 0.0625rem 0.125rem rgba(0, 0, 0, .25);
+        --as-shadow-2: 0 0.625rem 2rem -0.875rem rgba(0, 0, 0, .60);
+        --as-shadow-3: 0 1.75rem 4.375rem -1.5rem rgba(0, 0, 0, .80);
+        --as-shadow-brand: 0 0.5rem 1.5rem -0.625rem rgba(220, 150, 130, .35);
+        --as-ring: 0 0 0 0.1875rem rgba(227, 170, 154, .18);
+        --as-title-rule: #c9b3ab;
+        --as-wordmark-gradient: linear-gradient(120deg, #fcf0eb 0%, #ebc6b8 45%, #b28d80 100%);
+
+        --as-edge-stops: rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .07) 28%, rgba(255, 255, 255, .05) 66%, rgba(227, 170, 154, .22) 100%;
+        --as-edge-glow: rgba(247, 208, 194, .95);
+
+        --as-choice-bg: rgba(227, 170, 154, .17);
+        --as-choice-shadow: inset 0 0 0 0.0625rem rgba(227, 170, 154, .42), 0 0.125rem 0.5rem -0.1875rem rgba(0, 0, 0, .5);
+        --as-choice-ink: #f6d3c7;
     }
 
     html {
@@ -101,35 +119,42 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
 
+        background: var(--as-canvas);
+        color: var(--as-ink);
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
         background:
             radial-gradient(52rem 34rem at 12% -10%, var(--as-bg-1), transparent 62%),
             radial-gradient(44rem 30rem at 92% 6%, var(--as-bg-2), transparent 64%),
-            radial-gradient(60rem 40rem at 50% 115%, var(--as-bg-3), transparent 62%),
-            var(--as-canvas);
-        background-attachment: fixed;
-        color: var(--as-ink);
+            radial-gradient(60rem 40rem at 50% 115%, var(--as-bg-3), transparent 62%);
     }
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px }
+::-webkit-scrollbar { width: 0.625rem; height: 0.625rem }
 ::-webkit-scrollbar-corner { background: transparent }
 
 html.light {
     ::-webkit-scrollbar-track { background-color: transparent }
-    ::-webkit-scrollbar-thumb { background-color: rgba(20, 23, 29, .18); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
-    ::-webkit-scrollbar-thumb:hover { background-color: rgba(20, 23, 29, .34) }
-    ::selection { background: rgba(47, 111, 237, .16); color: #14171d }
+    ::-webkit-scrollbar-thumb { background-color: rgba(28, 58, 92, .2); border: 0.1875rem solid transparent; background-clip: content-box; border-radius: 62.4375rem }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(28, 58, 92, .36) }
+    ::selection { background: rgba(44, 107, 158, .16); color: #1b2633 }
 }
 
 html.dark {
     ::-webkit-scrollbar-track { background-color: transparent }
-    ::-webkit-scrollbar-thumb { background-color: rgba(236, 234, 242, .16); border: 3px solid transparent; background-clip: content-box; border-radius: 999px }
+    ::-webkit-scrollbar-thumb { background-color: rgba(236, 234, 242, .16); border: 0.1875rem solid transparent; background-clip: content-box; border-radius: 62.4375rem }
     ::-webkit-scrollbar-thumb:hover { background-color: rgba(236, 234, 242, .30) }
     ::selection { background: rgba(227, 170, 154, .24); color: #eceaf2 }
 }
 
-html:has(#sc2009, #sc2015, #sc2024) {
-    body { background: none }
+html:has(#sc2015, #sc2024) {
+    body, body::before { background: none }
 
     &.light {
         background: #fff;
@@ -150,6 +175,7 @@ html:has(#sc2009, #sc2015, #sc2024) {
 }
 
 .as-app {
+    container: site / inline-size;
     color: var(--as-ink);
 
     overflow-x: clip;
@@ -160,7 +186,7 @@ html:has(#sc2009, #sc2015, #sc2024) {
 
     .container {
         width: 100%;
-        max-width: 1200px;
+        max-width: 75rem;
         margin-inline: auto;
     }
 }
@@ -171,12 +197,12 @@ html:has(#sc2009, #sc2015, #sc2024) {
  */
 .as-container, .as-page {
     width: 100%;
-    max-width: 1200px;
+    max-width: 75rem;
     margin-inline: auto;
     padding-inline: 0.5rem;
 }
 
-@media (min-width: 480px) {
+@container site (width >= 30rem) {
     .as-container, .as-page {
         padding-inline: 1rem;
     }
@@ -187,7 +213,7 @@ html:has(#sc2009, #sc2015, #sc2024) {
     padding-bottom: 1rem;
 }
 
-@media (min-width: 768px) {
+@container site (width >= 48rem) {
     .as-container, .as-page {
         padding-inline: var(--spacing-gutter);
     }
@@ -198,7 +224,7 @@ html:has(#sc2009, #sc2015, #sc2024) {
 
 .as-page-narrow {
     @apply w-full mx-auto;
-    max-width: 480px;
+    max-width: 30rem;
     padding-inline: 1rem;
 }
 
@@ -214,30 +240,34 @@ html:has(#sc2009, #sc2015, #sc2024) {
     letter-spacing: .08em;
 }
 
-html.dark .as-wordmark {
-    --as-wordmark-gradient: linear-gradient(120deg, #fcf0eb 0%, #ebc6b8 45%, #b28d80 100%);
+.as-section-title {
+    @apply relative inline-flex items-center gap-2.5 font-bold;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    letter-spacing: -.015em;
+    padding-bottom: .4rem;
+    color: var(--as-ink);
+    box-shadow: inset 0 -0.125rem 0 var(--as-title-rule, var(--as-ink));
 }
 
-.as-section-title {
-    @apply relative inline-flex items-center gap-2.5 text-lg font-semibold;
-    color: var(--as-ink);
-    &::before {
-        content: "";
-        width: 2px;
-        height: 14px;
-        border-radius: 999px;
-        background: var(--as-gradient);
-    }
+/* 섹션 머리 — 제목 밑줄이 줄 전체의 가는 선 위에 선다. */
+.as-section-head {
+    @apply flex items-end justify-between gap-4 mb-3;
+    box-shadow: inset 0 -0.0625rem 0 var(--as-line-2);
 }
 
 .as-page-title {
-    @apply text-2xl font-bold;
+    @apply font-extrabold;
+    font-size: 2rem;
+    line-height: 1.25;
+    letter-spacing: -.035em;
     color: var(--as-ink);
 }
 
 .as-sub-title {
-    @apply block text-xs font-semibold uppercase;
-    letter-spacing: .08em;
+    @apply block font-semibold uppercase;
+    font-size: .6875rem;
+    letter-spacing: .2em;
     color: var(--as-ink-3);
 }
 
@@ -262,7 +292,7 @@ html.dark .as-wordmark {
 }
 
 .as-divider {
-    height: 1px;
+    height: 0.0625rem;
     background: linear-gradient(90deg, transparent, var(--as-line) 12%, var(--as-line) 88%, transparent);
 }
 
@@ -280,14 +310,22 @@ html.dark .as-wordmark {
     &:hover { color: var(--as-brand-2) }
 }
 
+/*
+ * 흐름 속 상자(.as-box·.as-card·.as-table·머리 줄) 뒤에는 부드러운 바탕 그러데이션뿐이라 blur 가 눈에 보이는 차이를
+ * 내지 못하고 GPU 만 크게 쓴다 — 걷어냈다. 쌓임 맥락은 그대로 두려고 isolation 을 건다.
+ * 다른 내용 위에 뜨는 면(메뉴·토스트·오류 상자)만 .as-frost 로 뒤를 흐린다.
+ */
 .as-box {
     background: var(--as-surface);
+    isolation: isolate;
+    border-radius: var(--radius-card);
+    box-shadow: var(--as-shadow-1);
+    transition: box-shadow .2s ease, background-color .2s ease;
+}
+
+.as-frost {
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
-    border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
-    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
 }
 
 /*
@@ -300,9 +338,8 @@ html.dark .as-wordmark {
  */
 .as-post {
     background: var(--as-surface);
-    border: 1px solid var(--as-line);
     border-radius: var(--radius-card);
-    box-shadow: var(--as-shadow-2);
+    box-shadow: var(--as-shadow-1);
 }
 
 /*
@@ -312,14 +349,16 @@ html.dark .as-wordmark {
  * 글이 앉은 종이가 혼자 두른다.
  */
 :root {
-    --as-post-pad-x: 0.625rem;
-    --as-post-pad-y: 0.5rem;
+    --as-post-pad-x: 1rem;
+    --as-post-pad-y: 0.875rem;
+    --as-post-head-pad: 0.625rem;
 }
 
-@media (min-width: 640px) {
+@container site (width >= 40rem) {
     :root {
-        --as-post-pad-x: 0.875rem;
-        --as-post-pad-y: 0.75rem;
+        --as-post-pad-x: 1.5rem;
+        --as-post-pad-y: 1.25rem;
+        --as-post-head-pad: 0.75rem;
     }
 }
 
@@ -329,7 +368,7 @@ html.dark .as-wordmark {
  * 조작부의 라운드를 쓴다.
  */
 .as-post-head {
-    padding: 0.4375rem var(--as-post-pad-x);
+    padding: var(--as-post-head-pad);
     border-radius: var(--radius-ctl);
 }
 
@@ -363,19 +402,20 @@ html.dark .as-wordmark {
  */
 .as-input-bare {
     @apply block w-full bg-transparent border-0 p-0;
+    font-size: 1rem;
     color: var(--as-ink);
     &::placeholder { color: var(--as-ink-3) }
     &:focus, &:focus-visible { outline: none }
 }
 
 .as-post-head:has(.as-input-bare:focus) {
-    border-color: var(--as-brand);
+    --as-edge: linear-gradient(var(--as-brand), var(--as-brand));
     box-shadow: var(--as-ring);
 }
 
 /* 라이트는 흰 종이. */
 html.light .as-post {
-    background: #ffffff88;
+    background: #ffffff;
 }
 
 /* 어둠에서 흰 종이는 눈을 찌른다 — 바탕(`--as-canvas`)보다 한 단 밝은 면으로 같은 높이를 낸다. */
@@ -385,17 +425,14 @@ html.dark .as-post {
 
 .as-card {
     background: var(--as-surface);
-    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
+    isolation: isolate;
     border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
-    transition: transform .22s var(--ease-out-quint), border-color .2s ease, box-shadow .22s ease, background-color .2s ease;
+    box-shadow: var(--as-shadow-1);
+    transition: transform .22s var(--ease-out-quint), box-shadow .22s ease, background-color .2s ease;
     &:hover {
-        transform: translateY(-2px);
-        border-color: var(--as-glass-line-2);
+        transform: translateY(-0.0625rem);
         background: var(--as-glass-strong);
-        box-shadow: var(--as-glass-inset), var(--as-shadow-2);
+        box-shadow: var(--as-shadow-2);
     }
 }
 
@@ -403,8 +440,13 @@ html.dark .as-post {
     background: var(--as-surface);
     -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
     backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    box-shadow: var(--as-shadow-1);
+}
+
+/* 라이트 카드 hover — 바탕은 거의 그대로, 바뀌는 만큼은 천천히. */
+html.light .as-card {
+    transition: transform .3s var(--ease-out-quint), box-shadow .4s ease, background-color .5s ease;
+    &:hover { background-color: #ffffff }
 }
 
 .as-table {
@@ -412,23 +454,21 @@ html.dark .as-post {
     border-collapse: separate;
     border-spacing: 0;
     background: var(--as-surface);
-    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    backdrop-filter: blur(var(--as-blur)) saturate(160%);
-    border: 1px solid var(--as-glass-line);
+    isolation: isolate;
     border-radius: var(--radius-card);
-    box-shadow: var(--as-glass-inset), var(--as-shadow-1);
+    box-shadow: var(--as-shadow-1);
     overflow: hidden;
 
     th {
         @apply px-5 py-3.5 font-semibold align-top;
         color: var(--as-ink);
-        border-bottom: 1px solid var(--as-line);
+        border-bottom: 0.0625rem solid var(--as-line);
     }
 
     td {
         @apply px-5 py-3.5 align-top;
         color: var(--as-ink-2);
-        border-bottom: 1px solid var(--as-line);
+        border-bottom: 0.0625rem solid var(--as-line);
     }
 
     thead th {
@@ -443,7 +483,7 @@ html.dark .as-post {
 
 .as-table-kv {
     tbody th {
-        @apply w-[26%] min-w-[96px] text-xs font-semibold uppercase;
+        @apply w-[26%] min-w-[6rem] text-xs font-semibold uppercase;
         letter-spacing: .06em;
         background: var(--as-muted);
         color: var(--as-ink-3);
@@ -452,18 +492,21 @@ html.dark .as-post {
 
 a.as-row {
     transition: translate .22s var(--ease-out-quint);
-    &:hover { translate: 3px 0 }
+    &:hover { translate: 0.1875rem 0 }
 }
 
 .as-input-none {
-    @apply outline-hidden resize-none border-none bg-transparent
+    @apply outline-hidden resize-none border-none bg-transparent;
+    font-size: 1rem;
 }
 
 .as-input-text {
-    @apply block w-full text-sm resize-none;
+    @apply block w-full resize-none;
+    font-size: 1rem;
+    line-height: 1.7;
     border-radius: var(--radius-ctl);
     background: var(--as-surface-2);
-    border: 1px solid var(--as-line);
+    border: 0.0625rem solid var(--as-line);
     color: var(--as-ink);
     transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
     &::placeholder { color: var(--as-ink-3) }
@@ -477,12 +520,12 @@ a.as-row {
 }
 
 .as-input-btn {
-    @apply inline-block text-center text-sm font-medium cursor-pointer select-none;
+    @apply inline-block shrink-0 whitespace-nowrap text-center text-sm font-medium cursor-pointer select-none;
     border-radius: var(--radius-ctl);
     padding-left: 1rem;
     padding-right: 1rem;
     background: var(--as-surface);
-    border: 1px solid var(--as-glass-line);
+    border: 0.0625rem solid var(--as-glass-line);
     color: var(--as-ink);
     box-shadow: var(--as-glass-inset);
     transition: transform .12s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease;
@@ -491,85 +534,107 @@ a.as-row {
         border-color: var(--as-glass-line-2);
         color: var(--as-brand);
     }
-    &:active { transform: translateY(1px) }
+    &:active { transform: translateY(0.0625rem) }
 }
 
 .as-btn-primary {
-    @apply inline-block text-center text-sm font-semibold cursor-pointer select-none;
+    @apply inline-block shrink-0 whitespace-nowrap text-center text-sm font-semibold cursor-pointer select-none;
     border-radius: var(--radius-ctl);
     padding-left: 1rem;
     padding-right: 1rem;
     background: var(--as-gradient);
-    border: 1px solid transparent;
+    border: 0.0625rem solid transparent;
     color: var(--as-on-brand);
     box-shadow: var(--as-shadow-brand);
     transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
     &:hover { filter: brightness(1.06) saturate(1.05) }
-    &:active { transform: translateY(1px); box-shadow: none }
+    &:active { transform: translateY(0.0625rem); box-shadow: none }
+}
+
+/*
+ * 라이트 단추는 Aqua 를 차분하게 다시 푼 것 — 곡률·테두리는 다크와 같고, 윗쪽 옅은 광과 한 가지 파랑만 쓴다.
+ * 검색 단추·랭킹 뱃지·nav 활성 글자가 모두 같은 `--as-brand` 계열이어야 한다.
+ */
+html.light {
+    .as-btn-primary {
+        border-color: #2a5e8a;
+        text-shadow: 0 0.0625rem 0 rgba(10, 40, 70, .2);
+        background: linear-gradient(rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 55%), var(--as-gradient);
+        box-shadow: inset 0 0.0625rem 0 rgba(255, 255, 255, .25), var(--as-shadow-brand);
+        &:active { filter: brightness(.96); box-shadow: inset 0 0.0625rem 0 rgba(255, 255, 255, .25) }
+    }
+    .as-input-btn, .as-input-btn:hover {
+        background: linear-gradient(#ffffff, #f3f6f9);
+    }
+    .as-input-btn {
+        border-color: rgba(28, 58, 92, .15);
+        box-shadow: inset 0 0.0625rem 0 #ffffff, 0 0.0625rem 0.125rem rgba(20, 45, 75, .06);
+        &:hover { border-color: rgba(44, 107, 158, .4) }
+    }
 }
 
 .as-switch {
     @apply relative inline-flex items-center cursor-pointer select-none;
     > input { @apply sr-only }
     > .as-switch-track {
-        @apply w-[40px] h-[22px] rounded-full transition-colors duration-200;
+        @apply w-[2.5rem] h-[1.375rem] rounded-full transition-colors duration-200;
         background: var(--as-line-2);
         &::after {
             content: "";
-            @apply absolute top-[3px] left-[3px] h-4 w-4 rounded-full bg-white transition-transform duration-200;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+            @apply absolute top-[0.1875rem] left-[0.1875rem] h-4 w-4 rounded-full bg-white transition-transform duration-200;
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, .3);
         }
     }
     > input:checked + .as-switch-track {
         background: var(--as-brand);
-        &::after { transform: translateX(18px) }
+        &::after { transform: translateX(1.125rem) }
     }
     > input:focus-visible + .as-switch-track { box-shadow: var(--as-ring) }
 }
 
 .as-range {
     @apply w-full appearance-none cursor-pointer bg-transparent;
-    height: 20px;
+    height: 1.25rem;
     &::-webkit-slider-runnable-track {
-        height: 6px;
-        border-radius: 999px;
+        height: 0.375rem;
+        border-radius: 62.4375rem;
         background: var(--as-muted);
-        border: 1px solid var(--as-line);
+        border: 0.0625rem solid var(--as-line);
     }
     &::-webkit-slider-thumb {
         appearance: none;
-        margin-top: -6px;
-        height: 16px;
-        width: 16px;
-        border-radius: 999px;
+        margin-top: -0.375rem;
+        height: 1rem;
+        width: 1rem;
+        border-radius: 62.4375rem;
         background: var(--as-glass-strong);
-        border: 2px solid var(--as-brand);
+        border: 0.125rem solid var(--as-brand);
         box-shadow: var(--as-shadow-1);
         transition: transform .12s ease;
     }
     &::-webkit-slider-thumb:hover { transform: scale(1.12) }
     &::-moz-range-track {
-        height: 6px;
-        border-radius: 999px;
+        height: 0.375rem;
+        border-radius: 62.4375rem;
         background: var(--as-muted);
-        border: 1px solid var(--as-line);
+        border: 0.0625rem solid var(--as-line);
     }
     &::-moz-range-thumb {
-        height: 14px;
-        width: 14px;
-        border-radius: 999px;
+        height: 0.875rem;
+        width: 0.875rem;
+        border-radius: 62.4375rem;
         background: var(--as-glass-strong);
-        border: 2px solid var(--as-brand);
+        border: 0.125rem solid var(--as-brand);
     }
 }
 
 .as-segment {
-    @apply flex p-1 gap-1;
+    @apply flex flex-wrap p-1 gap-1;
     border-radius: var(--radius-ctl);
     background: var(--as-muted);
-    > button, > a {
-        @apply flex-1 text-center text-sm font-medium py-2 px-3 transition-all duration-200;
-        border-radius: calc(var(--radius-ctl) - 4px);
+    > button, > a, > label {
+        @apply flex-1 text-center text-sm font-medium py-2 px-3 cursor-pointer select-none whitespace-nowrap transition-all duration-200;
+        border-radius: calc(var(--radius-ctl) - 0.125rem);
         color: var(--as-ink-2);
         &:hover { color: var(--as-ink) }
         &.is-on {
@@ -580,11 +645,64 @@ a.as-row {
     }
 }
 
+/* 칸 폭이 글자만큼인 인라인 묶음 — 넘치면 줄을 바꾼다. */
+.as-segment-inline {
+    @apply inline-flex flex-wrap p-[0.1875rem] gap-0.5;
+    max-width: 100%;
+    > button, > a, > label {
+        @apply flex-none text-xs py-1.5 px-3;
+    }
+}
+
+/*
+ * `v-choice` — 고른 칸 뒤의 판 하나가 미끄러져 옮겨 간다.
+ * 칸 자체의 바탕은 걷고, 판(::before)이 고른 칸의 자리·크기(--choice-*)를 따라간다.
+ */
+.as-choice {
+    position: relative;
+    isolation: isolate;
+    --choice-ease: cubic-bezier(.22, .8, .25, 1);
+    --choice-duration: 380ms;
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+        width: var(--choice-w, 0);
+        height: var(--choice-h, 0);
+        translate: var(--choice-x, 0) var(--choice-y, 0);
+        border-radius: calc(var(--radius-ctl) - 0.125rem);
+        background: var(--as-choice-bg);
+        box-shadow: var(--as-choice-shadow);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            translate var(--choice-duration) var(--choice-ease),
+            width var(--choice-duration) var(--choice-ease),
+            height var(--choice-duration) var(--choice-ease),
+            opacity .2s ease;
+    }
+
+    &.has-choice::before { opacity: 1 }
+    &:not([data-choice-ready])::before { transition: none }
+
+    > * { position: relative; z-index: 1 }
+
+    &.as-segment > .is-on {
+        background: transparent;
+        box-shadow: none;
+        color: var(--as-choice-ink);
+        font-weight: 600;
+    }
+}
+
 .as-tag, .as-tag-xs {
     @apply inline-block text-xs font-medium leading-none;
-    border-radius: 999px;
-    background: var(--as-muted);
-    border: 1px solid var(--as-line);
+    border-radius: 0.25rem;
+    background: transparent;
+    border: 0.0625rem solid var(--as-line-2);
     color: var(--as-ink-2);
     transition: background-color .18s ease, border-color .18s ease, color .18s ease;
     &:hover {
@@ -596,9 +714,118 @@ a.as-row {
 }
 
 .as-tag-xs {
-    @apply px-2.5 py-[6px]
+    @apply px-2.5 py-[0.375rem]
 }
 
 .as-tag {
-    @apply px-3 py-[7px]
+    @apply px-3 py-[0.4375rem]
+}
+
+.as-toast-host {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.as-toast {
+    @apply flex items-start gap-2.5 text-sm font-medium cursor-pointer select-none;
+    pointer-events: auto;
+    max-width: 26rem;
+    padding: .6875rem 1rem;
+    border-radius: var(--radius-ctl);
+    background: var(--as-glass-strong);
+    -webkit-backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    backdrop-filter: blur(var(--as-blur)) saturate(160%);
+    border: 0.0625rem solid var(--as-line-2);
+    color: var(--as-ink);
+    box-shadow: var(--as-glass-inset), var(--as-shadow-3);
+    animation: as-toast-in .28s var(--ease-out-quint) both;
+
+    &.is-leave { animation: as-toast-out .18s ease both }
+}
+
+.as-toast-icon {
+    @apply shrink-0 text-[0.9375rem];
+    line-height: var(--text-sm--line-height);
+}
+
+.as-toast-success .as-toast-icon { color: var(--as-success) }
+.as-toast-error .as-toast-icon { color: var(--as-danger) }
+
+.as-toast-text {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@keyframes as-toast-in {
+    from { opacity: 0; transform: translateY(-0.5rem) scale(.98) }
+}
+
+@keyframes as-toast-out {
+    to { opacity: 0; transform: translateY(-0.375rem) scale(.98) }
+}
+
+/*
+ * 상자 테두리 — 단색 실선 대신 1px 마스크 고리 두 겹.
+ * ::before 는 왼쪽 위에서 빛을 받은 듯 색이 갈리는 선, ::after 는 커서 자리(--edge-mx/--edge-my, edgeLight.ts)에서 번지는 빛 — 반경은 상자 크기 기준(%)이라 큰 상자·작은 상자에서 같은 비율로 번진다.
+ * 위치·각도는 상자에 쓰고 바로 아래 자식에서 상속을 끊는다 — 값이 바뀔 때 상자 안쪽 전체가 다시 계산되지 않는다.
+ * (상속 안 되는 @property + 의사요소 inherit 는 WebKit 에서 첫 값만 받고 이후 변경을 무시해 쓰지 않는다.)
+ * --as-edge 를 주면 선 전체를 그것으로 바꾼다.
+ */
+:is(.as-box, .as-card, .as-table, .as-post, .as-glass) {
+    position: relative;
+}
+
+:is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass) {
+    &::before, &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        padding: 0.0625rem;
+        border-radius: inherit;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+    & > * {
+        --edge-deg: initial;
+        --edge-mx: initial;
+        --edge-my: initial;
+    }
+    &::before {
+        background: var(--as-edge, linear-gradient(var(--edge-deg, 155deg), var(--as-edge-stops)));
+    }
+    &::after {
+        background: radial-gradient(var(--edge-light-size, 50%) var(--edge-light-size, 50%) at var(--edge-mx, 50%) var(--edge-my, 0),
+            color-mix(in srgb, var(--as-edge-glow) 55%, transparent) 0%,
+            color-mix(in srgb, var(--as-edge-glow) 34%, transparent) 35%,
+            color-mix(in srgb, var(--as-edge-glow) 15%, transparent) 70%,
+            transparent 100%);
+        opacity: 0;
+        transition: opacity .35s ease;
+    }
+    &:hover::after { opacity: 1 }
+}
+
+/* 고쳐 쓰는 종이 — 붙는 단추 줄(--nabi-z-sticky: 31)이 테두리를 덮지 않게 고리를 그 위로. */
+.as-post-editor::before, .as-post-editor::after { z-index: 32 }
+
+/* 마우스가 없는 기기 — 빛은 늘 켜 두고 상자 가운데에서 번지며 기울기를 따라 움직인다(edgeLight.ts 가 보이는 상자에 --edge-*). */
+html.as-edge-scroll :is(.as-box, .as-card, .as-table, .as-post, .as-header-bar, .as-menu-panel, .as-glass) {
+    --edge-my: 50%;
+    &::after {
+        --edge-light-size: 90%;
+        opacity: 1;
+    }
 }

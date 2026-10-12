@@ -13,15 +13,15 @@
     <p class="as-desc leading-[1.9]">
       애니시아의 관리를 총괄하고 있는 운영진입니다.
     </p>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in adminMembers" :key="node.name" class="p-5 as-card">
+    <div class="mt-4 grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <div v-for="node in adminMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
-            <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
+            <a :href="sn.link" v-if="sn.link">{{sn.text}} <as-icon name="external" class="ml-1 text-[0.5625rem] opacity-60"/></a>
             <span v-else>{{sn.text}}</span>
           </span>
         </div>
@@ -32,15 +32,15 @@
     <p class="as-desc leading-[1.9] as-a-color">
       테라시아(현 <a href="https://gs.saro.me">가리사니</a>)의 멤버로 애니시아 독립 이전에는 운영을 이후에는 지원을 하고 있습니다.
     </p>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in supportMembers" :key="node.name" class="p-5 as-card">
+    <div class="mt-4 grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <div v-for="node in supportMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
-            <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
+            <a :href="sn.link" v-if="sn.link">{{sn.text}} <as-icon name="external" class="ml-1 text-[0.5625rem] opacity-60"/></a>
             <span v-else>{{sn.text}}</span>
           </span>
         </div>
@@ -48,15 +48,15 @@
     </div>
 
     <h2 class="as-section-title mt-14 mb-3">그래픽 지원</h2>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in supportGraphicMembers" :key="node.name" class="p-5 as-card">
+    <div class="mt-4 grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <div v-for="node in supportGraphicMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
-            <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
+            <a :href="sn.link" v-if="sn.link">{{sn.text}} <as-icon name="external" class="ml-1 text-[0.5625rem] opacity-60"/></a>
             <span v-else>{{sn.text}}</span>
           </span>
         </div>
@@ -64,15 +64,15 @@
     </div>
 
     <h2 class="as-section-title mt-14 mb-3">과거 맴버</h2>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div v-for="node in prevMembers" :key="node.name" class="p-5 as-card">
+    <div class="mt-4 grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <div v-for="node in prevMembers" :key="node.name" class="p-5 as-card flex flex-col">
         <div>
           <div class="text-md font-semibold text-ink">{{node.name}}</div>
           <div class="as-meta mt-1.5 leading-[1.7]" v-html="node.date"></div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
           <span class="as-tag-xs" v-for="sn in node.tags" :key="sn.text">
-            <a :href="sn.link" v-if="sn.link">{{sn.text}} <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px] opacity-60"></i></a>
+            <a :href="sn.link" v-if="sn.link">{{sn.text}} <as-icon name="external" class="ml-1 text-[0.5625rem] opacity-60"/></a>
             <span v-else>{{sn.text}}</span>
           </span>
         </div>
@@ -86,20 +86,20 @@
         <time class="as-meta">{{node.date}}</time>
         <h3 class="mt-1 text-sm font-medium text-ink whitespace-pre-line">{{node.desc}}</h3>
         <a :href="node.link" target="_blank" v-if="node.link" class="as-input-btn py-1 mt-2.5 text-xs!">
-          자세히 <i class="fa-solid fa-chevron-right ml-1 text-[9px]"></i>
+          자세히 <as-icon name="chevron-right" class="ml-1 text-[0.5625rem]"/>
         </a>
       </li>
     </ol>
 
     <h2 class="as-section-title mt-14 mb-3">갤러리</h2>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div class="mt-4 grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
 
-      <div v-for="node in gallery" :key="node.src"  class="as-card overflow-hidden">
-        <div class="p-4 pb-0 text-center bg-muted/40">
+      <div v-for="node in gallery" :key="node.src"  class="as-card overflow-hidden flex flex-col">
+        <div class="flex-1 flex items-end justify-center p-4 pb-0 text-center bg-muted/40">
           <a v-if="node.popup" :href="node.src" target="_blank">
-            <img class="m-auto max-w-full" :src="node.src" alt="" />
+            <img class="m-auto h-auto max-w-full" :src="node.src" :width="node.width" :height="node.height" alt="" loading="lazy" decoding="async" />
           </a>
-          <img v-else class="m-auto max-w-full" :src="node.src" alt="" />
+          <img v-else class="m-auto h-auto max-w-full" :src="node.src" :width="node.width" :height="node.height" alt="" loading="lazy" decoding="async" />
         </div>
         <div class="p-5">
           <h5 class="text-md font-semibold text-ink">{{node.title}}</h5>
@@ -136,14 +136,13 @@ import anissia_2022_2 from './introduce/anissia.2022.2.png';
 import anissia_2026_1 from './introduce/anissia.2026.1.png';
 import anissia_2026_2 from './introduce/anissia.2026.2.png';
 
-import {ref} from "vue";
 import {SiteHistory} from "./introduce/SiteHistory";
 import {SiteMember} from "./introduce/SiteMember";
 import {SiteGallery} from "./introduce/SiteGallery";
 
 const nowYear = new Date().getFullYear();
 
-const adminMembers = ref<SiteMember[]>([
+const adminMembers: SiteMember[] = [
   {
     name: '또_탈퇴된코란',
     date: `2009 ~ ${nowYear}`,
@@ -162,9 +161,9 @@ const adminMembers = ref<SiteMember[]>([
       { text: '관리' }
     ]
   },
-]);
+];
 
-const supportMembers = ref<SiteMember[]>([
+const supportMembers: SiteMember[] = [
   {
     name: '박용서',
     date: `2007 ~ 2013: 개발운영 (애니시아 독립 전)<br/>2013 ~ ${nowYear}: 개발지원`,
@@ -190,9 +189,9 @@ const supportMembers = ref<SiteMember[]>([
       { text: '블로그', link: 'https://codename393.tistory.com/' }
     ]
   },
-]);
+];
 
-const supportGraphicMembers = ref<SiteMember[]>([
+const supportGraphicMembers: SiteMember[] = [
   {
     name: '당무지',
     date: `2023 ~ ${nowYear}`,
@@ -201,9 +200,9 @@ const supportGraphicMembers = ref<SiteMember[]>([
       { text: '블로그', link: 'https://blog.naver.com/vip125' }
     ]
   },
-]);
+];
 
-const prevMembers = ref<SiteMember[]>([
+const prevMembers: SiteMember[] = [
   {
     name: 'UTPasiirs',
     date: '2015 ~ 2018',
@@ -266,12 +265,13 @@ const prevMembers = ref<SiteMember[]>([
       { text: '블로그', link: 'http://blog.lancekun.com/tc/' }
     ]
   },
-]);
+];
 
-const siteHistory = ref<SiteHistory[]>([
+const siteHistory: SiteHistory[] = [
+  { date: `2026-10-10`, desc: `애니편성표 2026 출시` },
   { date: `2026-07-31`, desc: `2026 디자인 리뉴얼 (개발:사로[가리사니 개발자공간 병합])`, link: `/notice?topicNo=368` },
   { date: `2025-11-11`, desc: `애니시아 서버이전` },
-  { date: `2024-08-13`, desc: `애니편성표 2024 출시`, link: `/notice?topicNo=248` },
+  { date: `2024-08-13`, desc: `애니편성표 2024 출시 (2026 출시 후 종료)` },
   { date: `2024-02-23`, desc: `테라시아 도메인 종료`, link: `/notice?topicNo=198` },
   { date: `2024-01-24`, desc: `애니시아 안드로이드 앱 출시`, link: `https://play.google.com/store/apps/dev?id=6556202027842431619` },
   { date: `2023-04-16`, desc: `백엔드 리팩토링`, link: `/notice?topicNo=134` },
@@ -320,30 +320,30 @@ const siteHistory = ref<SiteHistory[]>([
   { date: `2007-02-22`, desc: `테라시아 마니아즈파트의 애니메이션탭 소매뉴 생성 : 현 애니시아의 전신` },
   { date: `2007-02-22`, desc: `테라시아 개발자 포럼(현:가리사니 개발자 공간) 개시` },
   { date: `2007-02-22`, desc: `클라비스 -> 테라시아 이름변경 후 도메인(terassia.com) 구입 서비스 개시` },
-]);
+];
 
-const gallery = ref<SiteGallery[]>([
-  { src: timetable_1_jpg, popup: false, title: `최초의 애니편성표 [2009년]`, desc: `애니시간표 -> 애니편성표 (기존 애니시간표는 자료소실)` },
-  { src: timetable_2_jpg, popup: false, title: `두번째 애니편성표 [2009년]`, desc: `이 디자인을 선호하는 사람이 많아 현재도 제공중` },
-  { src: timetable_3_jpg, popup: false, title: `세번째 애니편성표 [2015년]`, desc: `2020년에 다크모드가 추가됨 (정확히는 네번째로 2013년 부터 2015년 까지 존재한 편성표가 있음)` },
-  { src: timetable_4_jpg, popup: false, title: `네번째 애니편성표 [2024년]`, desc: `애니시아 리뉴얼 디자인에 맞춘 tailwind를 사용한 반응형 테이블 버전의 편성표` },
-  { src: timetable_radio_jpg, popup: false, title: `라디오 편성표 [2009년]`, desc: `라디오 편성표` },
-  { src: timetable_widget_1_jpg, popup: false, title: `최초의 애니편성표 위젯 [2009년 1차]`, desc: `스크린샷이 없어 소스로 복원 [내용부분이 다를 수 있음]` },
-  { src: timetable_widget_2_jpg, popup: false, title: `애니편성표 위젯 [2009년 2차]`, desc: `여러가지 배경 테마가 있음 (이때부터 커스텀의 시작)` },
-  { src: timetable_widget_3_jpg, popup: false, title: `애니편성표 위젯 [2009년 3차]`, desc: `각각의 색상을 바꿀 수 있음` },
-  { src: timetable_widget_4_jpg, popup: false, title: `애니편성표 위젯 [2015년]`, desc: `HTML 태그를 지원하지 않는 곳을 위한 이미지 전용으로 퀄리티는 다소 떨어짐` },
-  { src: other_1_jpg, popup: false, title: `애니편성표 [2009년]`, desc: `2009년 버전의 드로잉 [작업자: 매디]` },
-  { src: anissia_2007, popup: true, title: `테라시아 (현: 가리사니) [2007년]`, desc: `애니시아는 원래 개발자 사이트인 테라시아를 홍보하기 위해 만들어진 소메뉴였다.` },
-  { src: anissia_2_jpg, popup: false, title: `애니시아 디자인도안 [작업자: 메티오]`, desc: `애니시아 분리독립을 위해 만들어진 도안중 하나` },
-  { src: anissia_3_jpg, popup: false, title: `애니시아 디자인도안 [작업자: 메티오]`, desc: `기획을 지나치게 크게 잡았다가 개발시간이 부족하여 무산됨, 이 "Anissia 마크"는 오랫동안 애니시아의 상징으로 쓰임` },
-  { src: anissia_4_jpg, popup: false, title: `애니시아 1차`, desc:`결국 Anissia 마크만 가져와서 제작` },
-  { src: anissia_5_jpg, popup: false, title: `애니시아 2차 2015년`, desc:`애니시아 2차` },
-  { src: anissia_6_jpg, popup: false, title: `애니시아 2차 2019년`, desc:`실제 서비스 되지 못함 / 2020 리뉴얼의 도안이라고 할 수 있음` },
-  { src: anissia_2022_1, popup: true, title: `애니시아 2022년 리뉴얼`, desc:`2026년 데이터 기준으로 찍음.` },
-  { src: anissia_2022_2, popup: true, title: `애니시아 2022년 리뉴얼`, desc:`2026년 데이터 기준으로 찍음.` },
-  { src: anissia_2026_1, popup: true, title: `애니시아 2026년 리뉴얼`, desc:`2026년 리뉴얼` },
-  { src: anissia_2026_2, popup: true, title: `애니시아 2026년 리뉴얼`, desc:`2026년 리뉴얼` },
-]);
+const gallery: SiteGallery[] = [
+  { src: timetable_1_jpg, width: 200, height: 199, popup: false, title: `최초의 애니편성표 [2009년]`, desc: `애니시간표 -> 애니편성표 (기존 애니시간표는 자료소실)` },
+  { src: timetable_2_jpg, width: 200, height: 208, popup: false, title: `두번째 애니편성표 [2009년]`, desc: `이 디자인을 선호하는 사람이 많아 현재도 제공중` },
+  { src: timetable_3_jpg, width: 300, height: 175, popup: false, title: `세번째 애니편성표 [2015년]`, desc: `2020년에 다크모드가 추가됨 (정확히는 네번째로 2013년 부터 2015년 까지 존재한 편성표가 있음)` },
+  { src: timetable_4_jpg, width: 300, height: 248, popup: false, title: `네번째 애니편성표 [2024년]`, desc: `애니시아 리뉴얼 디자인에 맞춘 tailwind를 사용한 반응형 테이블 버전의 편성표` },
+  { src: timetable_radio_jpg, width: 240, height: 157, popup: false, title: `라디오 편성표 [2009년]`, desc: `라디오 편성표` },
+  { src: timetable_widget_1_jpg, width: 164, height: 256, popup: false, title: `최초의 애니편성표 위젯 [2009년 1차]`, desc: `스크린샷이 없어 소스로 복원 [내용부분이 다를 수 있음]` },
+  { src: timetable_widget_2_jpg, width: 100, height: 171, popup: false, title: `애니편성표 위젯 [2009년 2차]`, desc: `여러가지 배경 테마가 있음 (이때부터 커스텀의 시작)` },
+  { src: timetable_widget_3_jpg, width: 178, height: 279, popup: false, title: `애니편성표 위젯 [2009년 3차]`, desc: `각각의 색상을 바꿀 수 있음` },
+  { src: timetable_widget_4_jpg, width: 169, height: 279, popup: false, title: `애니편성표 위젯 [2015년]`, desc: `HTML 태그를 지원하지 않는 곳을 위한 이미지 전용으로 퀄리티는 다소 떨어짐` },
+  { src: other_1_jpg, width: 200, height: 140, popup: false, title: `애니편성표 [2009년]`, desc: `2009년 버전의 드로잉 [작업자: 매디]` },
+  { src: anissia_2007, width: 1230, height: 703, popup: true, title: `테라시아 (현: 가리사니) [2007년]`, desc: `애니시아는 원래 개발자 사이트인 테라시아를 홍보하기 위해 만들어진 소메뉴였다.` },
+  { src: anissia_2_jpg, width: 300, height: 177, popup: false, title: `애니시아 디자인도안 [작업자: 메티오]`, desc: `애니시아 분리독립을 위해 만들어진 도안중 하나` },
+  { src: anissia_3_jpg, width: 300, height: 262, popup: false, title: `애니시아 디자인도안 [작업자: 메티오]`, desc: `기획을 지나치게 크게 잡았다가 개발시간이 부족하여 무산됨, 이 "Anissia 마크"는 오랫동안 애니시아의 상징으로 쓰임` },
+  { src: anissia_4_jpg, width: 300, height: 390, popup: false, title: `애니시아 1차`, desc:`결국 Anissia 마크만 가져와서 제작` },
+  { src: anissia_5_jpg, width: 300, height: 277, popup: false, title: `애니시아 2차 2015년`, desc:`애니시아 2차` },
+  { src: anissia_6_jpg, width: 300, height: 161, popup: false, title: `애니시아 2차 2019년`, desc:`실제 서비스 되지 못함 / 2020 리뉴얼의 도안이라고 할 수 있음` },
+  { src: anissia_2022_1, width: 2812, height: 2150, popup: true, title: `애니시아 2022년 리뉴얼`, desc:`2026년 데이터 기준으로 찍음.` },
+  { src: anissia_2022_2, width: 2812, height: 2150, popup: true, title: `애니시아 2022년 리뉴얼`, desc:`2026년 데이터 기준으로 찍음.` },
+  { src: anissia_2026_1, width: 2812, height: 2150, popup: true, title: `애니시아 2026년 리뉴얼`, desc:`2026년 리뉴얼` },
+  { src: anissia_2026_2, width: 2812, height: 2150, popup: true, title: `애니시아 2026년 리뉴얼`, desc:`2026년 리뉴얼` },
+];
 
 </script>
 
@@ -351,7 +351,7 @@ const gallery = ref<SiteGallery[]>([
 @reference "../../common/tailwind.pcss";
 
 .timeline {
-  border-left: 1px solid var(--as-line-2);
+  border-left: 0.0625rem solid var(--as-line-2);
 }
 
 .history-dot {
@@ -359,7 +359,7 @@ const gallery = ref<SiteGallery[]>([
   top: .35rem;
   left: -1.8125rem;
   background: var(--as-canvas);
-  border: 2px solid var(--as-line-2);
+  border: 0.125rem solid var(--as-line-2);
   transition: border-color .2s ease;
 }
 

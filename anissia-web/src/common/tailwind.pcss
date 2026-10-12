@@ -4,6 +4,11 @@
 @source "../**/*.{vue,js,ts,jsx,tsx}";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant cq-sm (@container site (width >= 40rem));
+@custom-variant cq-md (@container site (width >= 48rem));
+@custom-variant cq-lg (@container site (width >= 64rem));
+@custom-variant cq-xl (@container site (width >= 80rem));
+@custom-variant cq-max-md (@container site (width < 48rem));
 
 @theme {
     --font-sans: var(--font-family-sans);
@@ -64,9 +69,9 @@
     --text-8xl--line-height: 1;
     --text-8xl--letter-spacing: -0.04em;
 
-    --radius-card: 20px;
-    --radius-ctl: 12px;
-    --radius-pill: 999px;
+    --radius-card: 0.625rem;
+    --radius-ctl: 0.375rem;
+    --radius-pill: 62.4375rem;
 
     --spacing-header: 3.5rem;
     --spacing-gutter: 1.5rem;
@@ -94,6 +99,12 @@
         line-height: inherit;
     }
 
+    /* 16px at 100% display zoom; rem deliberately follows user-selected zoom. */
+    input:not([type=button], [type=submit], [type=reset], [type=checkbox], [type=radio], [type=range], [type=color], [type=hidden]),
+    textarea, select {
+        font-size: 1rem;
+    }
+
     input::placeholder, textarea::placeholder {
         color: var(--as-ink-3);
     }
@@ -103,7 +114,7 @@
     }
 
     :focus-visible {
-        outline: 2px solid var(--as-brand);
-        outline-offset: 2px;
+        outline: 0.125rem solid var(--as-brand);
+        outline-offset: 0.125rem;
     }
 }

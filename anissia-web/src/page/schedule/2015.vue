@@ -1,61 +1,63 @@
 <template>
-  <div id="sc2015" @click="e => evtClickClosePopup(e)" :class="colorMode">
-    <div class="title">
-      <div class="title-main"><a href="/" target="_blank">애니<span class="mob-hide">메이션</span> 편성표</a></div>
-      <div class="color-mode" v-if="isWeb">
-        <svg id="dark-mode" @click="applyColorMode('dark')" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="moon" class="svg-inline--fa fa-moon fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.2 12.9 31.3s23 8 33.8 2.3l128.3-68.5 128.3 68.5c10.8 5.7 23.9 4.9 33.8-2.3s14.9-19.3 12.9-31.3L438.5 329 542.7 225.9c8.6-8.5 11.7-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.2 150.3 316.9 18z"/></svg>
-        <svg id="light-mode" @click="applyColorMode('light')" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="sun" class="svg-inline--fa fa-sun fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 160c-52.9 0-96 43.1-96 96s43.1 96 96 96 96-43.1 96-96-43.1-96-96-96zm246.4 80.5l-94.7-47.3 33.5-100.4c4.5-13.6-8.4-26.5-21.9-21.9l-100.4 33.5-47.4-94.8c-6.4-12.8-24.6-12.8-31 0l-47.3 94.7L92.7 70.8c-13.6-4.5-26.5 8.4-21.9 21.9l33.5 100.4-94.7 47.4c-12.8 6.4-12.8 24.6 0 31l94.7 47.3-33.5 100.5c-4.5 13.6 8.4 26.5 21.9 21.9l100.4-33.5 47.3 94.7c6.4 12.8 24.6 12.8 31 0l47.3-94.7 100.4 33.5c13.6 4.5 26.5-8.4 21.9-21.9l-33.5-100.4 94.7-47.3c13-6.5 13-24.7.2-31.1zm-155.9 106c-49.9 49.9-131.1 49.9-181 0-49.9-49.9-49.9-131.1 0-181 49.9-49.9 131.1-49.9 181 0 49.9 49.9 49.9 131.1 0 181z"></path></svg>
-      </div>
-    </div>
-    <table class="nav">
-      <tbody>
-        <tr>
-          <th v-for="(name, idx) in weekList" :key="name" @click="getAnimeList(idx)" :class="{'sel': (weekNow == idx)}">{{name}}</th>
-        </tr>
-      </tbody>
-    </table>
-    <div class="main">
-      <table class="list">
-        <tr v-for="node in animeList" :key="node.animeNo">
-          <td class="tod" :class="{'tod-date': !isPureWeek()}">
-            <span v-if="isPureWeek()">{{node.scheduleTime}}</span>
-            <span v-else>
-              <span>{{node.scheduleTime.length === 10 ? node.scheduleTime.substring(0, 4) : node.scheduleTime}}</span><span
-                class="mob-hide">{{node.scheduleTime.length === 10 ? node.scheduleTime.substring(4) : ''}}</span>
-            </span>
-          </td>
-          <td class="subject" @click="getCaptionList(node);">
-            <span class="prefix" v-if="node.subjectPrefix">[<b>{{node.subjectPrefix}}</b>] </span>
-            {{node.subject}}
-          </td>
-          <td class="genres mob-hide">{{node.genres.replace(',', ' / ')}}</td></tr>
-      </table>
-    </div>
-    <div class="popup" v-if="animeNow != null">
-      <div class="box">
-        <a target="_blank" v-if="animeNow.website.length > 10" :href="animeNow.website" class="subject">{{animeNow.subject}}</a>
-        <span class="subject" v-else>{{animeNow.subject}}</span>
-        <div class="date" v-if="animeNow.period">{{animeNow.period}}</div>
-        <div v-for="node in captionList" :key="`${node.name}`">
-          <a v-if="node.website !== ''" class="node" :href="node.website" target="_blank">
-            <span>{{node.episodeText}}</span>
-            <b>&nbsp;{{node.name}}&nbsp;</b>
-            <span class="time">{{node.updDtText}}</span>
-          </a>
-          <div v-else class="node">
-            <span>{{node.episodeText}}</span>
-            <b>&nbsp;{{node.name}}&nbsp;</b>
-            <span class="time">{{node.updDtText}}</span>
-          </div>
+  <div class="sc2015-host" :class="{embedded}">
+    <div id="sc2015" :class="colorMode">
+      <div class="title">
+        <div class="title-main"><a href="/" target="_blank">애니<span class="mob-hide">메이션</span> 편성표</a></div>
+        <div class="color-mode" v-if="isWeb">
+          <svg id="dark-mode" @click="applyColorMode('dark')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 3.1 14.3 9.4 21 9.7 15.7 13.8 17.6 20.3 12 16.5 6.4 20.3 8.3 13.8 3 9.7 9.7 9.4z"/></svg>
+          <svg id="light-mode" @click="applyColorMode('light')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M23 12l-4-1.8v3.6zM12 23l-1.8-4h3.6zM1 12l4-1.8v3.6zM12 1l-1.8 4h3.6zM19.8 19.8l-4.1-1.6 2.5-2.5zM4.2 19.8l1.6-4.1 2.5 2.5zM4.2 4.2l4.1 1.6-2.5 2.5zM19.8 4.2l-1.6 4.1-2.5-2.5z"/></svg>
         </div>
-        <div v-if="captionList.length === 0" class="node-empty">자막이 없습니다.</div>
       </div>
-    </div>
-    <div id="user-style"></div>
-    <div id="sc2015-theme-error" style="display:none">
-      <table>
-        <tbody><tr><td>애니편성표의 커스텀코드가 잘못되었습니다.<br/><br/><a href="/schedule" target="_blank">애니시아</a>에서 재설정 하시기 바랍니다.</td></tr></tbody>
+      <table class="nav">
+        <tbody>
+          <tr>
+            <th v-for="(name, idx) in weekList" :key="name" @click="getAnimeList(idx)" :class="{'sel': (weekNow == idx)}">{{name}}</th>
+          </tr>
+        </tbody>
       </table>
+      <div class="main">
+        <table class="list">
+          <tr v-for="node in animeList" :key="node.animeNo">
+            <td class="tod" :class="{'tod-date': !pureWeek}">
+              <span v-if="pureWeek">{{node.scheduleTime}}</span>
+              <span v-else>
+                <span>{{node.scheduleTime.length === 10 ? node.scheduleTime.substring(0, 4) : node.scheduleTime}}</span><span
+                  class="mob-hide">{{node.scheduleTime.length === 10 ? node.scheduleTime.substring(4) : ''}}</span>
+              </span>
+            </td>
+            <td class="subject" @click="getCaptionList(node);">
+              <span class="prefix" v-if="node.subjectPrefix">[<b>{{node.subjectPrefix}}</b>] </span>
+              {{node.subject}}
+            </td>
+            <td class="genres mob-hide">{{node.genres.replace(',', ' / ')}}</td></tr>
+        </table>
+      </div>
+      <div class="popup" v-if="animeNow != null" @click.self="animeNow = null">
+        <div class="box">
+          <a target="_blank" v-if="animeNow.website.length > 10" :href="animeNow.website" class="subject">{{animeNow.subject}}</a>
+          <span class="subject" v-else>{{animeNow.subject}}</span>
+          <div class="date" v-if="animeNow.period">{{animeNow.period}}</div>
+          <div v-for="node in captionList" :key="`${node.name}`">
+            <a v-if="node.website !== ''" class="node" :href="node.website" target="_blank">
+              <span>{{node.episodeText}}</span>
+              <b>&nbsp;{{node.name}}&nbsp;</b>
+              <span class="time">{{node.updDtText}}</span>
+            </a>
+            <div v-else class="node">
+              <span>{{node.episodeText}}</span>
+              <b>&nbsp;{{node.name}}&nbsp;</b>
+              <span class="time">{{node.updDtText}}</span>
+            </div>
+          </div>
+          <div v-if="captionList.length === 0" class="node-empty">자막이 없습니다.</div>
+        </div>
+      </div>
+      <div ref="userStyle"></div>
+      <div id="sc2015-theme-error" v-if="themeError">
+        <table>
+          <tbody><tr><td>애니편성표의 커스텀코드가 잘못되었습니다.<br/><br/><a href="/schedule" target="_blank">애니시아</a>에서 재설정 하시기 바랍니다.</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -64,38 +66,37 @@
 // 2019-08-17: 2015년 소스를 vuejs 에 맞게 변경
 // 2020-12-25: 다크모드 추가 (2015 Version 유지)
 // 2022-10-03: Vue3 컴포넌트 스타일로 변경. (CSS 는 스킨 호환성을 위해 post-css 로 변경하지 않음)
-import {onBeforeUnmount, onMounted, Ref, ref} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref, shallowRef, watch} from "vue";
 import AnimeCaption from "../../domain/anime/AnimeCaption";
 import Anime from "../../domain/anime/Anime";
 import anissia from "../../common/anissia";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 
-const weekList = ref(['日', '月', '火', '水', '木', '金', '土', '外', '新']);
+const props = withDefaults(defineProps<{embedded?: boolean, themeCode?: string}>(), {embedded: false});
+const userStyle = ref<HTMLElement | null>(null);
+const themeError = ref(false);
+
+const weekList = ['日', '月', '火', '水', '木', '金', '土', '外', '新'];
 const weekNow = ref(-1);
 const isWeb = ref(true);
-const animeList = ref([]) as Ref<Anime[]>;
-const animeNow = ref(null) as Ref<Anime|null>;
-const captionList = ref([]) as Ref<AnimeCaption[]>;
+const animeList = shallowRef<Anime[]>([]);
+const animeNow = shallowRef<Anime | null>(null);
+const captionList = shallowRef<AnimeCaption[]>([]);
 const colorMode = ref('light');
+const pureWeek = computed(() => anissia.isPureWeek(weekNow.value));
 
 // method
-function isPureWeek() {
-  return anissia.isPureWeek(weekNow.value);
-}
 function getAnimeList(week: number): void {
   weekNow.value = week;
-  animeRemote.getScheduleAnimeList(week).then((list) => animeList.value = list);
+  animeRemote.getScheduleAnimeList(week).then((list) => {
+    if (weekNow.value == week) animeList.value = list;
+  });
 }
 function getCaptionList(anime: Anime) {
   animeRemote.getAnimeCaptionList(anime.animeNo).then((list) => {
     captionList.value = list;
     animeNow.value = anime;
   });
-}
-function evtClickClosePopup(event: MouseEvent) {
-  if (animeNow.value != null && (event.target as HTMLElement).closest('body,.box')?.tagName == 'BODY') {
-    animeNow.value = null;
-  }
 }
 function evtKeyClosePopup(event: KeyboardEvent) {
   if (animeNow.value !== null && event.key === 'Escape') {
@@ -119,17 +120,22 @@ function applyColorMode(mode: string|null) {
   }
 }
 
+let repaint: ((colors: string) => void) | undefined;
+watch(() => props.themeCode, code => repaint?.(code ?? ''));
+defineExpose({applyColorMode});
+
 // mounted
 onMounted(() => {
   applyColorMode(null);
   getAnimeList(new Date().getDay());
-  (window as any).colorMode = applyColorMode;
+  if (!props.embedded) (window as any).colorMode = applyColorMode;
   window.addEventListener('keydown', evtKeyClosePopup, true);
   const theme = location.hash.length > 1 ? location.hash : 'ffffff5987b6fffffff2f2f2497ba79cb3c7ffffffffffff555555f8f8f82474cecb3434000000000000777777111111777777111111c3b443070707999999000000cccccc3a7da3';
   // custom theme
-  ((window as any).repaint = ((colors: string) => {
+  repaint = (colors: string) => {
     const c: string[] = colors.match(/[0-9a-f]{6}/ig) || [];
     if (c.filter((e: string) => /^[0-9a-f]{6}$/i.test(e)).length === 24) {
+      themeError.value = false;
       /**
        * c[light/dark]  description
        * c[0/12]    body background color
@@ -145,7 +151,7 @@ onMounted(() => {
        * c[10/22]   list:hover front color
        * c[11/23]   subject prefix front color
        */
-      (document.getElementById('user-style') as any).innerHTML = `<style>
+      userStyle.value!.innerHTML = `<style>
         #sc2015.light .main, #sc2015.light .popup .box { background: #${c[0]} }
         #sc2015.light .title, #sc2015.light .popup .box .subject { background: #${c[1]} }
         #sc2015.light .title a, #sc2015.light .popup .box .subject { color: #${c[2]} }
@@ -166,17 +172,30 @@ onMounted(() => {
         #sc2015.dark .list tr:not(:hover) td .prefix b { color:#${c[23]} }
         </style>`;
     } else {
-      (document.querySelector('#sc2015-theme-error') as any).style.display = '';
+      themeError.value = true;
     }
-  }))(theme);
+  };
+  repaint(props.themeCode ?? theme);
+  if (!props.embedded) (window as any).repaint = repaint;
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', evtKeyClosePopup, true);
+  if ((window as any).colorMode === applyColorMode) delete (window as any).colorMode;
+  if ((window as any).repaint === repaint) delete (window as any).repaint;
 });
 </script>
 
 <style scoped>
+.sc2015-host {
+  container: schedule2015 / inline-size;
+  contain: layout style;
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  isolation: isolate;
+}
+.sc2015-host.embedded { height: 100% }
 @keyframes sc2015-popup {
   from { background-color: rgba(0, 0, 0, 0); } to { background-color: rgba(0, 0, 0, .3); }
 }
@@ -216,13 +235,13 @@ onBeforeUnmount(() => {
 #sc2015-theme-error table { width:100%; height:100%; }
 #sc2015-theme-error table td { text-align: center; color:#fff; line-height: 1; font-size: 1.5em; }
 
-@media (min-width: 601px) {
+@container schedule2015 (min-width: 601px) {
   #sc2015 .main { top:104px; }
   #sc2015 .list td.tod.tod-date { width:106px; }
   #sc2015 .popup .box { width: 400px; margin: 120px auto 0 auto; }
 }
 
-@media (max-width: 600px) {
+@container schedule2015 (max-width: 600px) {
   #sc2015 .main { top:92px; }
   #sc2015 .title { height: 52px }
   #sc2015 .title .color-mode svg { width:28px; height:28px; }
@@ -231,7 +250,7 @@ onBeforeUnmount(() => {
   #sc2015 .popup .box .subject { font-size:18px; }
 }
 
-@media (max-width: 300px) {
+@container schedule2015 (max-width: 300px) {
   #sc2015 .main { top:92px; }
   #sc2015 .title { height: 52px }
   #sc2015 .title .color-mode svg { width:28px; height:24px; }

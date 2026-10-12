@@ -7,7 +7,20 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-/AGENTS.md
 /ailog
 .claude/
 .idea/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+llms.txt
+llms-full.txt
+llms/
+.codex/
+.agents/
+.cursor/
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/

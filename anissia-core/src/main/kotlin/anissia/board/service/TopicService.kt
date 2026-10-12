@@ -57,6 +57,7 @@ class TopicService(
 
     @Transactional
     fun add(ticker: String, request: NewTopicRequest, actor: Actor): ApiResponse<Long> {
+        request.validate()
         accountService.validateCriticalActor(actor)
 
         if (!boardService.canWriteTopic(ticker, actor.roles)) {

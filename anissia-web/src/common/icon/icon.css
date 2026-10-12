@@ -1,0 +1,25 @@
+/* base 층 — 쓰는 곳의 tailwind 유틸·페이지 규칙이 이긴다. 폭 1.25em 은 예전 아이콘 폰트의 고정폭과 같다. */
+@layer base {
+  .as-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.25em;
+    height: 1em;
+    line-height: 1;
+    font-style: normal;
+    vertical-align: -.125em;
+  }
+  .as-icon > svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    overflow: visible;
+  }
+  .as-icon-spin > svg { animation: as-icon-spin 2s linear infinite }
+}
+
+@keyframes as-icon-spin {
+  to { transform: rotate(360deg) }
+}

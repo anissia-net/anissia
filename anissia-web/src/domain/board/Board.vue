@@ -17,12 +17,12 @@
             -->
             <div class="as-post as-post-head flex items-center gap-3 text-sm">
               <span class="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-brand-soft text-brand text-xs">
-                <i class="fa-solid fa-user"></i>
+                <as-icon name="user"/>
               </span>
               <span class="flex-1 font-medium text-ink truncate">{{node.name}}</span>
               <span class="as-meta">{{node.regDtText}}</span>
-              <button v-if="node.canEdit(user)" @click="node.isEditMode = true" class="post-act" title="수정"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button v-if="node.canDelete(user)" @click="doDelete(node)" class="post-act is-danger" title="삭제"><i class="fa-solid fa-trash"></i></button>
+              <button v-if="node.canEdit(user)" @pointerenter="preloadEditor" @focus="preloadEditor" @click="node.isEditMode = true" class="post-act" title="수정"><as-icon name="edit"/></button>
+              <button v-if="node.canDelete(user)" @click="doDelete(node)" class="post-act is-danger" title="삭제"><as-icon name="trash"/></button>
             </div>
             <NoteView :content="node.content" class="as-post as-post-body mt-2"/>
           </div>
@@ -46,20 +46,20 @@
     <div class="flex items-center justify-between gap-4 mb-5" :class="topicNo >= 0 ? 'mt-14' : ''">
       <h2 v-if="props.title" class="as-section-title">{{props.title}}</h2>
       <span v-else></span>
-      <router-link v-if="boardInfo.canWriteTopic(user)" to="?topicNo=0" class="as-btn-primary py-2">
-        <i class="fa-solid fa-pen mr-1.5 text-xs"></i> 글쓰기
+      <router-link v-if="boardInfo.canWriteTopic(user)" to="?topicNo=0" @pointerenter="preloadEditor" @focus="preloadEditor" class="as-btn-primary py-2">
+        <as-icon name="pen" class="mr-1.5 text-xs"/> 글쓰기
       </router-link>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <router-link v-for="(node, i) in list.content" :key="node.topicNo" :to="`?topicNo=${node.topicNo}`" class="as-card group p-5 block">
+    <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <router-link v-for="(node, i) in list.content" :key="node.topicNo" :to="`?topicNo=${node.topicNo}`" class="as-card group p-5 flex flex-col">
         <div class="text-md font-semibold text-ink group-hover:text-brand transition-colors line-clamp-2">
           {{node.topic}}
         </div>
-        <div class="mt-4 flex items-center gap-4 as-meta">
-          <span class="inline-flex items-center gap-1.5 truncate"><i class="fa-regular fa-user opacity-60"></i>{{node.name}}</span>
-          <span class="inline-flex items-center gap-1.5"><i class="fa-regular fa-comment opacity-60"></i>{{node.postCount}}</span>
-          <span class="inline-flex items-center gap-1.5 ml-auto shrink-0"><i class="fa-regular fa-clock opacity-60"></i>{{node.regDtText}}</span>
+        <div class="mt-auto pt-4 flex items-center gap-4 as-meta">
+          <span class="inline-flex items-center gap-1.5 truncate"><as-icon name="user" class="opacity-60"/>{{node.name}}</span>
+          <span class="inline-flex items-center gap-1.5"><as-icon name="chat" class="opacity-60"/>{{node.postCount}}</span>
+          <span class="inline-flex items-center gap-1.5 ml-auto shrink-0"><as-icon name="clock" class="opacity-60"/>{{node.regDtText}}</span>
         </div>
       </router-link>
     </div>
@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, onUnmounted, Ref, ref} from "vue";
+import {computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, Ref, ref} from "vue";
 import PageData from "../../common/PageData";
 import {onBeforeRouteUpdate, useRouter} from "vue-router";
 import { ScrollLoader } from "raon";
@@ -79,9 +79,16 @@ import boardRemote from "./remote/boardRemote";
 import {BoardInfo} from "./BoardInfo";
 import {Topic} from "./Topic";
 import {Post} from "./Post";
-import PostEditor from "./PostEditor.vue";
-import NoteView from "./NoteView.vue";
 import toast from "../../common/toast";
+
+const loadEditor = () => import("./PostEditor.vue");
+const loadNoteView = () => import("./NoteView.vue");
+const PostEditor = defineAsyncComponent(loadEditor);
+const NoteView = defineAsyncComponent(loadNoteView);
+
+function preloadEditor() {
+  void loadEditor().catch(() => {});
+}
 
 const props = defineProps({
   ticker: String,
@@ -131,6 +138,7 @@ function loadViewForce() {
 function loadView(locate: Locate = new Locate()) {
   const no = topicNo.value = locate.getIntParameter('topicNo', -1);
   if (no > 0) {
+    void loadNoteView().catch(() => {});
     if (lastTopicNo != no) {
       lastTopicNo = no;
       boardRemote.getTopic(props.ticker!!, no).then(node => {

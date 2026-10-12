@@ -5,7 +5,7 @@ import sessionService from "../domain/session/remote/sessionService";
 class Ajax {
   private ajaxState: any = null;
 
-  fetch(url: string, body: any = null, options: any = null): Promise<Result<any>> {
+  fetch(url: string, body: any = null, options: any = null, authenticated = true): Promise<Result<any>> {
     if (!this.ajaxState) {
       this.ajaxState = ajaxStateStore();
     }
@@ -16,7 +16,10 @@ class Ajax {
     if (!options.headers) {
       options.headers = {};
     }
-    options.headers['dat'] = sessionService.getDat();
+    if (authenticated) {
+      const dat = sessionService.getDat();
+      if (dat) options.headers['dat'] = dat;
+    }
     if (body) {
       options.body = typeof body == 'string' ? body : JSON.stringify(body);
     }

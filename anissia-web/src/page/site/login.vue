@@ -1,7 +1,7 @@
 <template>
 
 
-  <section class="flex items-center justify-center min-h-[calc(100vh-14rem)] py-16 transition-opacity duration-300" :class="({'opacity-0': !show})">
+  <section class="flex items-center justify-center min-h-[calc(100vh-14rem)] py-16">
     <div class="as-page-narrow">
 
       <div class="text-center mb-8">
@@ -47,15 +47,12 @@ import {ref} from "vue";
 import sessionService from "../../domain/session/remote/sessionService";
 import {Locate} from "raon";
 import {useRouter} from "vue-router";
-import {sessionStore} from "../../domain/session/sessionStore";
 
 const email = ref('');
 const password = ref('');
 const makeLoginToken = ref(false);
 const router = useRouter();
 const path = new Locate().getParameter('path', '');
-const show = ref(path == '');
-const session = sessionStore();
 
 function doLogin() {
   sessionService.login(email.value, password.value, makeLoginToken.value).then(success => {
@@ -63,10 +60,6 @@ function doLogin() {
           router.push(path && path.startsWith('/') ? path : '/');
       }
   });
-}
-
-if (!show.value) {
-  setTimeout(() => show.value = true, 200);
 }
 
 

@@ -31,25 +31,25 @@
       </div>
 
       <div v-if="mode == 'needMailAuth'" class="as-box px-7 py-12 text-center">
-        <img class="w-[120px] m-auto" src="./recover/logo-pass.svg" />
+        <img class="w-[7.5rem] m-auto" src="./recover/logo-pass.svg" />
         <p class="mt-8 text-lg font-semibold text-ink">인증메일이 전송되었습니다.</p>
         <p class="as-desc mt-2">메일함에서 인증 링크를 확인해주세요.</p>
       </div>
 
       <div v-if="mode == 'pass'" class="as-box px-7 py-12 text-center">
-        <img class="w-[120px] m-auto" src="./recover/logo-pass.svg" />
+        <img class="w-[7.5rem] m-auto" src="./recover/logo-pass.svg" />
         <p class="mt-8 text-lg font-semibold text-ink">가입완료</p>
         <p class="as-desc mt-2"><router-link to="/login" class="font-semibold as-link">로그인</router-link> 페이지로 이동하여 로그인해주세요.</p>
       </div>
 
       <div v-if="mode == 'wait'" class="as-box px-7 py-12 text-center">
-        <img class="w-[120px] m-auto animate-[spin_3s_linear_infinite]" src="./recover/logo-wait.svg" />
+        <img class="w-[7.5rem] m-auto animate-[spin_3s_linear_infinite]" src="./recover/logo-wait.svg" />
         <p class="mt-8 text-lg font-semibold text-ink">이메일 인증 확인중</p>
         <p class="as-desc mt-2">이메일 인증을 확인하는 중입니다...</p>
       </div>
 
       <div v-if="mode == 'fail'" class="as-box px-7 py-12 text-center">
-        <img class="w-[120px] m-auto" src="./recover/logo-fail.svg" />
+        <img class="w-[7.5rem] m-auto" src="./recover/logo-fail.svg" />
         <p class="mt-8 text-lg font-semibold text-ink">이메일 인증에 실패하였습니다.</p>
         <p class="as-desc mt-2">{{message || '이메일 인증이 만료되었습니다.'}}</p>
       </div>
