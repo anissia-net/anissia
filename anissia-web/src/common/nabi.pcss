@@ -69,6 +69,7 @@
      * 사이트 머리줄(30) 위에 선다 — 머리줄이 아직 안 지나갔을 때 단추 줄이 그 뒤로 묻히면 안 된다.
      */
     --nabi-z-sticky: 31;
+    --nabi-outline-z: calc(var(--nabi-z-overlay) + 1);
 
     /* 전체화면(1.1.2~): 바깥은 사이트 바탕, 종이는 `--nabi-bg` 그대로. */
     --nabi-fullscreen-bg: var(--as-canvas);
@@ -124,6 +125,61 @@ html.dark .nabi-content.nabi-content.nabi-content {
  */
 .nabi .nabi-content {
     padding: var(--as-post-pad-y) var(--as-post-pad-x);
+}
+
+.nabi .nabi-content.nabi-footnote-area {
+    padding-block-start: 0;
+    font-size: 1rem;
+}
+
+.as-note-view > .nabi-content {
+    padding: 0;
+}
+
+.as-note-outline-tools {
+    display: flex;
+    justify-content: flex-end;
+    padding-block-end: 0.25rem;
+}
+
+.as-note-outline-tools[hidden],
+.as-note-outline-trigger[hidden] {
+    display: none;
+}
+
+.nabi-toolbar > .as-note-outline-tools {
+    padding-inline: 0.25rem;
+}
+
+.as-note-outline-trigger {
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--as-line);
+    border-radius: var(--radius-ctl);
+    color: var(--as-ink-2);
+    background: transparent;
+    font: 500 0.8125rem/1.25 var(--font-sans);
+    cursor: pointer;
+}
+
+.as-note-outline-trigger:hover,
+.as-note-outline-trigger[aria-expanded=true] {
+    color: var(--as-brand);
+    background: var(--as-muted);
+}
+
+.as-note-outline-trigger:focus-visible {
+    outline: 2px solid var(--as-brand);
+    outline-offset: 2px;
+}
+
+.as-note-preview-tools {
+    padding: 0.5rem 3rem 0 0.875rem;
+}
+
+@media print {
+    .as-note-outline-tools {
+        display: none;
+    }
 }
 
 /*

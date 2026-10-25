@@ -1,5 +1,8 @@
 <template>
-  <div ref="root" class="nabi-content" v-html="html"></div>
+  <div class="as-note-view">
+    <div ref="outlineTools" class="as-note-outline-tools" hidden></div>
+    <div ref="root" class="nabi-content" v-html="html"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -9,12 +12,14 @@ import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {attachViewer} from "nabi-note/viewer";
 import type {ViewerAttachment} from "nabi-note/viewer";
 import {sanitizeNote} from "../../common/sanitize";
+import {mountNoteOutline} from "../../common/noteOutline";
 
 const props = defineProps({
   content: String
 });
 
 const root = ref<HTMLElement>();
+const outlineTools = ref<HTMLElement>();
 
 /**
  * 저장값은 나비가 만든 것이라는 보장이 없으므로 그릴 때마다 거른다.
@@ -25,11 +30,14 @@ const root = ref<HTMLElement>();
 const html = computed(() => sanitizeNote(props.content ?? ''));
 
 let viewer: ViewerAttachment | null = null;
+let outline: ReturnType<typeof mountNoteOutline> | null = null;
 
 /** 뷰어는 버튼을 꽂고 행 순서를 바꾸므로 언제나 읽기 전용 사본에만 붙인다. */
 function attach() {
+  outline?.unmount();
   viewer?.unmount();
   viewer = root.value ? attachViewer(root.value, {locale: 'ko'}) : null;
+  outline = root.value && outlineTools.value ? mountNoteOutline(root.value, outlineTools.value) : null;
 }
 
 onMounted(attach);
@@ -41,6 +49,8 @@ onMounted(attach);
 watch(html, attach, {flush: 'post'});
 
 onBeforeUnmount(() => {
+  outline?.unmount();
+  outline = null;
   viewer?.unmount();
   viewer = null;
 });

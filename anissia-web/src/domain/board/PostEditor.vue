@@ -30,6 +30,7 @@
             <span ref="toolsElement"></span>
             <div ref="toolbarElement"></div>
           </div>
+          <div ref="outlineToolsElement" class="as-note-outline-tools" hidden></div>
           <div ref="contextElement" class="nabi-context" hidden></div>
         </div>
         <div ref="surfaceElement" class="nabi-content" contenteditable="true"></div>
@@ -70,6 +71,7 @@ import type {Nabi} from "nabi-note";
 import {mountDiffWing, type DiffWingMount} from "nabi-note/diff";
 import {attachViewer} from "nabi-note/viewer";
 import {isBlankNote, noteWings} from "../../common/note";
+import {mountNoteOutline} from "../../common/noteOutline";
 import boardRemote from "./remote/boardRemote";
 import toast from "../../common/toast";
 
@@ -91,6 +93,7 @@ const toolsElement = ref<HTMLElement>();
 const toolbarElement = ref<HTMLElement>();
 const contextElement = ref<HTMLElement>();
 const surfaceElement = ref<HTMLElement>();
+const outlineToolsElement = ref<HTMLElement>();
 
 const placeholderText = computed(() => props.placeholder || '내용');
 
@@ -254,10 +257,23 @@ onMounted(() => {
     // 미리보기는 굳은 HTML 이라 읽는 쪽 동작(표 정렬·코드 색)이 저절로 붙지 않는다 — 읽는 화면과 같게 맞춘다.
     onBody: body => {
       const viewer = attachViewer(body, {locale: 'ko'});
-      return () => viewer.unmount();
+      const card = body.parentElement!!;
+      const controls = body.ownerDocument.createElement('div');
+      controls.className = 'as-note-outline-tools as-note-preview-tools';
+      card.insertBefore(controls, body);
+      const outline = mountNoteOutline(body, controls, {container: card, scrollContainer: card});
+      return () => {
+        outline.unmount();
+        controls.remove();
+        viewer.unmount();
+      };
     },
   });
-  diff = mountDiffWing({nabi, registry, surface, locale: 'ko'});
+  const outline = mountNoteOutline(surface, outlineToolsElement.value!!, {
+    scrollContainer: () => rootElement.value!!.classList.contains('is-fullscreen') ? rootElement.value!! : window,
+    offset: () => chromeElement.value!!.offsetHeight + (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16),
+  });
+  diff = mountDiffWing({nabi, registry, surface, locale: 'ko', merge: true});
   /*
    * `nabi` 를 건네면 0.8 의 스티키가 **고친 뒤 스스로 겨눈다** — 가려진 만큼만 캐럿을 단추 줄
    * 밑에서 밀어낸다. 건네지 않으면 호스트가 `aim()` 을 부를 때만 움직이므로, 손가락 기기에서
@@ -282,6 +298,7 @@ onMounted(() => {
     () => diff?.unmount(),
     () => picked.unmount(),
     () => sticky.unmount(),
+    () => outline.unmount(),
     () => viewTools.unmount(),
     () => hints.unmount(),
     () => context.unmount(),
