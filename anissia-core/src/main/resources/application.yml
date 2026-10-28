@@ -4,6 +4,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   jpa:
     properties.hibernate:
       jdbc.batch_size: 4
@@ -33,6 +37,15 @@ server:
       max: 400
 
 anissia:
+  wiki:
+    upload:
+      enabled: ${ANISSIA_WIKI_UPLOAD_ENABLED:false}
+      ffmpeg-path: ${ANISSIA_FFMPEG_PATH:ffmpeg}
+      ffprobe-path: ${ANISSIA_FFPROBE_PATH:ffprobe}
+  push:
+    vapid-public-key: ${ANISSIA_PUSH_VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${ANISSIA_PUSH_VAPID_PRIVATE_KEY:}
+    vapid-subject: ${ANISSIA_PUSH_VAPID_SUBJECT:}
   concurrency:
     fan-out-limit: 16
   search:

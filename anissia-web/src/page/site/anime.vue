@@ -2,68 +2,22 @@
 
   <div class="as-page">
 
-    <div v-if="anime" class="mb-12">
-      <div v-if="anime.animeNo != 0" class="as-box overflow-hidden">
-
-        <div class="p-6 cq-md:p-8">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span class="status-pill" :class="{'is-on': anime.status == 'ON'}">
-              <span class="dot"></span>
-              <span v-if="anime.status == 'ON' && anime.pureWeek">방영중 · 매주 ({{anime.weekText}}) {{anime.timeText}}</span>
-              <span v-else-if="anime.status == 'ON' && !anime.pureWeek">{{anime.statusText}} ({{anime.weekText}})</span>
-              <span v-else>{{anime.statusText}}</span>
-            </span>
-            <span v-if="anime.period" class="as-meta">{{anime.period}}</span>
-          </div>
-
-          <h1 class="as-page-title mt-4">{{anime.subject}}</h1>
-          <div v-if="anime.originalSubject" class="as-desc mt-1.5" lang="ja">{{anime.originalSubject}}</div>
-
-          <div class="mt-5 flex flex-wrap items-center gap-1.5">
-            <router-link class="as-tag-xs" v-for="tag in anime.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
-            <span v-if="anime.website || anime.x" class="w-[0.0625rem] h-4 mx-1 bg-line-2"></span>
-            <a v-if="anime.website" :href="anime.website" target="_blank" class="as-tag-xs" :title="anime.website"><as-icon name="globe" class="mr-1.5 opacity-70"/>공식 사이트</a>
-            <a v-if="anime.x" :href="anime.x" target="_blank" class="as-tag-xs" :title="anime.x"><as-icon name="x-logo" class="opacity-70"/></a>
-          </div>
-        </div>
-
-        <div v-if="anime.captions.length" class="px-6 cq-md:px-8 pt-5 pb-4 cq-md:pt-6 cq-md:pb-5 border-t-[0.0625rem] border-line">
-          <div class="as-sub-title py-2">자막정보</div>
-          <ul>
-            <li v-for="caption in anime.captions" :key="caption.name" class="as-row flex items-center gap-4 py-2.5 text-sm">
-              <span class="w-16 shrink-0">
-                <a v-if="caption.website" :href="caption.website" target="_blank" class="as-link font-semibold">{{caption.episodeText}}</a>
-                <span v-else class="text-ink-3">준비중</span>
-              </span>
-              <router-link :to="`/anime?q=%40${encodeURIComponent(caption.name)}`" class="as-link flex-1 min-w-0 truncate">{{caption.name}}</router-link>
-              <span class="as-meta whitespace-nowrap">{{caption.updDtText}}</span>
-            </li>
-          </ul>
-        </div>
-
-      </div>
-      <div v-else class="as-empty">
-        존재하지 않거나 삭제된 애니메이션 입니다.
-      </div>
-
-    </div>
-
     <div class="relative">
 
+      <WikiNavigation :query="query" class="mb-3"/>
+
       <label for="default-search" class="sr-only">애니검색</label>
-      <div class="relative">
-        <div class="flex absolute inset-y-0 left-0 items-center pl-4 pointer-events-none text-ink-3">
-          <as-icon name="search"/>
-        </div>
-        <input type="text" id="default-search" autocomplete="off" class="py-3.5 pl-11 pr-24 as-input-text" placeholder="애니검색  #장르  @제작자  /완결  /도움말"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @compositionstart="clearAutocorrect" @input="loadAutocorrect">
-        <button type="button" @click="searchAnime()" class="as-btn-primary absolute py-1.5 right-2 top-1/2 -translate-y-1/2">검색</button>
+      <div class="as-input-with-icon">
+        <as-icon name="search"/>
+        <input type="text" id="default-search" autocomplete="off" class="py-3.5 pr-24 as-input-text" placeholder="애니검색  #장르  @제작자  /완결  /도움말" v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @compositionstart="clearAutocorrect" @input="loadAutocorrect">
+        <button type="button" @click="search()" class="as-btn-primary absolute py-1.5 right-2 top-1/2 -translate-y-1/2">검색</button>
       </div>
 
       <div v-if="autocorrectOn && autocorrect.length" class="relative z-20">
         <ul class="autocorrect-list as-box mt-2 py-1.5 overflow-hidden shadow-pop">
           <li v-for="(node, i) in autocorrect" :key="node.key" @mouseover="autocorrectIndex = i"
               class="mx-1.5 rounded-ctl transition-colors" :class="autocorrectIndex == i ? 'bg-brand-soft' : ''">
-            <router-link :to="`/anime?animeNo=${node.key}`" class="flex items-center gap-2.5 px-3 py-2 text-sm"
+            <router-link :to="`/anime/${node.key}`" class="flex items-center gap-2.5 px-3 py-2 text-sm"
                          :class="autocorrectIndex == i ? 'text-brand' : 'text-ink-2'">
               <as-icon name="arrow-right-long" class="text-[0.6875rem] transition-opacity" :class="autocorrectIndex != i ? 'opacity-0' : 'opacity-100'"/>
               <span v-html="node.hl"></span>
@@ -74,7 +28,7 @@
 
       <div v-if="searchHelpOn" class="as-box p-6 mt-4">
         <div class="flex items-center justify-between mb-2">
-          <router-link to="/notice?topicNo=141" class="as-section-title">애니메이션 검색 도움말</router-link>
+          <router-link to="/notice/141" class="as-section-title">애니메이션 검색 도움말</router-link>
           <button @click="searchHelpOn = false" class="nav-icon-sm" aria-label="닫기"><as-icon name="x"/></button>
         </div>
         <div class="grid gap-x-8 gap-y-6 cq-md:grid-cols-2 cq-xl:grid-cols-3 mt-5">
@@ -135,18 +89,23 @@
         <div class="as-meta text-right mb-3">
           총 <b class="text-ink-2">{{list.totalElements}}</b> 작품
         </div>
-        <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
-          <div v-for="(node, i) in list.content" :key="node.animeNo" class="as-card p-5 flex flex-col">
-            <router-link :to="toAnimeViewUrl(node.animeNo)" class="group block">
-              <div class="text-md font-semibold text-ink group-hover:text-brand transition-colors">{{node.subject}}</div>
-              <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
-            </router-link>
-            <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
-              <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
-              <router-link class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
-              <a class="as-tag-xs" v-if="node.website" :href="node.website" target="_blank"><as-icon name="globe"/></a>
-              <a class="as-tag-xs" v-if="node.x" :href="node.x" target="_blank"><as-icon name="x-logo"/></a>
-              <span class="as-tag-xs" v-if="node.captionCount"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.captionCount}}</span>
+        <div class="anime-list">
+          <div v-for="node in list.content" :key="node.animeNo" class="as-card p-3.5 flex items-start gap-2.5">
+            <img v-if="node.thumbnail" :src="node.thumbnail" alt="" width="60" height="60" loading="lazy" decoding="async" class="w-15 h-15 mt-1 shrink-0 rounded-ctl object-cover"/>
+            <div class="min-w-0 flex-1">
+              <div class="text-md font-semibold leading-5 text-ink">
+                <router-link :to="toAnimeViewUrl(node.animeNo)" class="hover:text-brand transition-colors">{{node.subject}}</router-link>
+              </div>
+              <div class="text-2xs mt-1 leading-4 text-ink-3" lang="ja" v-if="node.originalSubject">
+                <router-link :to="toAnimeViewUrl(node.animeNo)" class="hover:text-brand transition-colors">{{node.originalSubject}}</router-link>
+              </div>
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                <span class="as-tag-xs as-tag-compact" v-for="tag in node.tags" :key="tag">{{tag}}</span>
+                <router-link class="as-tag-xs as-tag-compact" v-for="tag in node.genres.split(/,/g)" :key="tag" :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link>
+                <a class="as-tag-xs as-tag-compact as-icon-link" v-if="node.website" :href="node.website" target="_blank" :aria-label="`${node.subject} 공식 사이트 (새 창)`" :title="`${node.subject} 공식 사이트 (새 창)`"><as-icon name="globe"/></a>
+                <a class="as-tag-xs as-tag-compact as-icon-link" v-if="node.x" :href="node.x" target="_blank" :aria-label="`${node.subject} X 계정 (새 창)`" :title="`${node.subject} X 계정 (새 창)`"><as-icon name="x-logo"/></a>
+                <span class="as-tag-xs as-tag-compact" v-if="node.captionCount"><as-icon name="cc" class="opacity-70"/>{{node.captionCount}}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -163,20 +122,22 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onUnmounted, Ref, ref} from "vue";
+import {nextTick, onDeactivated, onUnmounted, Ref, ref} from "vue";
 import PageData from "../../common/PageData";
 import Anime from "../../domain/anime/Anime";
+import WikiNavigation from "../../domain/wiki/WikiNavigation.vue";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import AnimeAutocorrect from "../../domain/anime/AnimeAutocorrect";
-import {onBeforeRouteUpdate, useRouter} from "vue-router";
-import {Locate} from "raon";
-import { ScrollLoader } from "raon";
+import {useRouter} from "vue-router";
 
+import {useListScroll} from '../../common/useListScroll';
+import {animeUpdates} from '../../domain/anime/animeUpdates';
+
+defineOptions({name: 'AnimeList'});
 const list = ref(PageData.empty().notLoaded()) as Ref<PageData<Anime>>;
-const anime = ref(null) as Ref<Anime|null>;
-let lastAnimeNo = -1;
 const page = ref(0);
-const query = ref<string>(new Locate().getParameter('q', '') as string);
+const query = ref('');
+const searchedQuery = ref('');
 const autocorrect = ref([]) as Ref<AnimeAutocorrect[]>;
 const autocorrectOn = ref(false);
 const searchHelpOn = ref(false);
@@ -184,44 +145,39 @@ const autocorrectIndex = ref(-1);
 let autocorrectQuery = '';
 let autocorrectTimer: ReturnType<typeof setTimeout> | undefined;
 let autocorrectRequest = 0;
-let animeRequest = 0;
 let listRequest = 0;
 let listQuery: string | undefined;
 const router = useRouter();
 
-const sl = new ScrollLoader().onNeedNextPage(() => {
+const sl = useListScroll(() => {
   page.value++;
   loadList();
 });
 
-function load(locate: Locate = new Locate()) {
+function load(fullPath = window.location.href) {
   clearAutocorrect();
-  const q = locate.getParameter('q', '')!!;
+  searchHelpOn.value = false;
+  const params = new URL(fullPath, window.location.origin).searchParams;
+  const q = params.get('q') ?? '';
   query.value = q;
-  loadAnime(locate);
+  searchedQuery.value = q;
   if (listQuery !== q) {
     listQuery = q;
     page.value = 0;
+    list.value = PageData.empty<Anime>().notLoaded();
     loadList();
   }
 }
 
-function loadAnime(locate: Locate) {
-  const animeNo = locate.getIntParameter('animeNo', -1);
-  if (animeNo > 0) {
-    if (lastAnimeNo != animeNo) {
-      lastAnimeNo = animeNo;
-      const request = ++animeRequest;
-      animeRemote.getAnime(animeNo).then(node => {
-        if (request === animeRequest) anime.value = node;
-      });
-    }
-  } else {
-    animeRequest++;
-    lastAnimeNo = -1;
-    anime.value = null;
+animeUpdates.subscribe((id, changes) => {
+  const item = list.value.content.find(item => item.animeNo === id);
+  if (!item) return;
+  if (changes) Object.assign(item, changes);
+  else {
+    list.value.content = list.value.content.filter(item => item.animeNo !== id);
+    list.value.totalElements--;
   }
-}
+});
 
 function loadList() {
   const isFirstPage = page.value == 0;
@@ -241,7 +197,7 @@ function loadList() {
   });
 }
 
-function searchAnime() {
+function search() {
   clearAutocorrect();
   const q = query.value;
   if (q.indexOf('/도움말') != -1) {
@@ -250,7 +206,7 @@ function searchAnime() {
     return;
   }
   searchHelpOn.value = false;
-  router.push(`/anime?q=${encodeURIComponent(q)}`);
+  router.push({path: '/anime', query: {q}});
 }
 
 function clearAutocorrect() {
@@ -299,62 +255,50 @@ function keyAutocorrect(event: KeyboardEvent) {
       return;
     case 'Enter':
       if (!len || autocorrectIndex.value == -1) {
-        searchAnime();
+        search();
       } else {
-        router.push(`/anime?animeNo=${autocorrect.value[autocorrectIndex.value].key}`)
+        router.push(`/anime/${autocorrect.value[autocorrectIndex.value].key}`)
       }
       return;
   }
 }
 
 function toAnimeViewUrl(animeNo: number) {
-  return new Locate().setParameter('animeNo', animeNo+'').fullPath
+  return `/anime/${animeNo}`;
 }
 
 function getNowSearchedQuery() {
-  return new Locate().getParameter('q', '');
+  return searchedQuery.value;
 }
 
 load();
 
-onBeforeRouteUpdate((to, from, next) => {
-  load(new Locate(to.fullPath));
-  next();
-});
+onDeactivated(clearAutocorrect);
 
 onUnmounted(() => {
   clearAutocorrect();
-  animeRequest++;
   listRequest++;
-  sl.destroy();
 });
 </script>
 
 <style scoped>
 @reference "../../common/tailwind.pcss";
 
+.anime-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+@container site (width >= 64rem) {
+  .anime-list { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
+
 .nav-icon-sm {
   @apply inline-flex items-center justify-center w-8 h-8 rounded-ctl text-sm transition-colors;
   color: var(--as-ink-3);
   &:hover { color: var(--as-ink); background: var(--as-muted) }
-}
-
-.status-pill {
-  @apply inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold;
-  border-radius: 0.25rem;
-  background: var(--as-muted);
-  color: var(--as-ink-2);
-  .dot {
-    width: 0.375rem;
-    height: 0.375rem;
-    border-radius: 62.4375rem;
-    background: var(--as-ink-3);
-  }
-  &.is-on {
-    background: color-mix(in oklab, var(--as-success) 13%, transparent);
-    color: var(--as-success);
-    .dot { background: var(--as-success) }
-  }
 }
 
 .help-item {

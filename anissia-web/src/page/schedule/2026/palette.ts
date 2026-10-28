@@ -169,6 +169,7 @@ export function palette(seed: Seed, dark: boolean): Record<string, string> {
       '--hi': 'var(--as-brand)',
       '--hi-2': 'var(--as-brand-2)',
       '--hi-soft': 'var(--as-brand-soft)',
+      '--hi-ring': `color-mix(in srgb, var(--as-brand) ${dark ? 32 : 26}%, transparent)`,
       '--on-hi': 'var(--as-on-brand)',
       '--gradient': 'var(--as-gradient)',
       '--pill': dark ? 'var(--as-gradient)' : 'var(--as-choice-bg)',
@@ -180,19 +181,21 @@ export function palette(seed: Seed, dark: boolean): Record<string, string> {
       '--shadow-1': 'var(--as-shadow-1)',
       '--shadow-2': 'var(--as-shadow-2)',
       '--shadow-3': 'var(--as-shadow-3)',
+      '--backdrop': `color-mix(in srgb, var(--as-canvas) ${dark ? 50 : 35}%, transparent)`,
+      '--scroll': `color-mix(in srgb, var(${dark ? '--as-ink' : '--as-brand'}) ${dark ? 16 : 24}%, transparent)`,
+      '--scroll-hover': `color-mix(in srgb, var(${dark ? '--as-ink' : '--as-brand'}) ${dark ? 30 : 40}%, transparent)`,
+      '--selection': dark ? 'rgba(227, 170, 154, .24)' : '#ebc7d4',
     });
-    if (dark) {
-      // 50이 사이트의 기본 번짐 세기이며, 사용자가 조절한 강도는 유지한다.
-      for (let i = 1; i <= 3; i++) {
-        colors[`--bg-${i}`] = `rgb(from var(--as-bg-${i}) r g b / calc(alpha * ${glow}))`;
-      }
+    // 두 모드 모두 50이 사이트의 기본 번짐 세기다.
+    for (let i = 1; i <= 3; i++) {
+      colors[`--bg-${i}`] = `rgb(from var(--as-bg-${i}) r g b / calc(alpha * ${glow}))`;
     }
   }
   return colors;
 }
 
 export const DEFAULT_THEME: Theme = {
-  light: {accent: '2c6b9e', base: 'fafafa', aura: '74a3c9', glow: 0},
+  light: {accent: '905574', base: 'f5efe6', aura: 'ae97be', glow: 50},
   dark: {accent: 'e3aa9a', base: '0b0b10', aura: '967378', glow: 50},
 };
 
@@ -209,9 +212,15 @@ export function encodeTheme(t: Theme): string {
 export function decodeTheme(code: string | null | undefined): Theme {
   const m = (code || '').replace(/^#/, '').match(/^([0-9a-f]{36})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!m) return DEFAULT_THEME;
-  const c = m[1].match(/.{6}/g)!;
+  const c = m[1].toLowerCase().match(/.{6}/g)!;
+  const lightGlow = clamp(parseInt(m[2], 16), 0, 100);
+  // 이미 배포된 이전 애니시아 iframe 코드도 현재 프리셋으로 읽는다.
+  // 사용자가 다른 색을 고른 테마와 별도로 지정한 번짐 세기는 유지한다.
+  const legacyAnissia = c[0] === '2c6b9e' && c[1] === 'fafafa' && c[2] === '74a3c9';
   return {
-    light: {accent: c[0], base: c[1], aura: c[2], glow: clamp(parseInt(m[2], 16), 0, 100)},
+    light: legacyAnissia
+      ? {...DEFAULT_THEME.light, glow: lightGlow === 0 ? DEFAULT_THEME.light.glow : lightGlow}
+      : {accent: c[0], base: c[1], aura: c[2], glow: lightGlow},
     dark: {accent: c[3], base: c[4], aura: c[5], glow: clamp(parseInt(m[3], 16), 0, 100)},
   };
 }

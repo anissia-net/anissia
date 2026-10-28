@@ -33,6 +33,7 @@
             <span class="dark:hidden"><as-icon name="sun"/></span>
             <span class="hidden dark:inline"><as-icon name="moon"/></span>
           </button>
+          <NotificationMenu v-if="user.isLogin" @open="onHeaderMenu = false"/>
           <button class="nav-icon" :class="{'is-on': user.isLogin}" @click="onHeaderMenu = true" title="메뉴" aria-label="메뉴">
             <as-icon v-if="user.isLogin" name="circle-user"/>
             <as-icon v-else name="bars"/>
@@ -61,13 +62,14 @@
                 <li v-if="user.isLogin"><router-link to="/account" class="pop-close as-menu-item"><as-icon name="address-card"/> 회원정보</router-link></li>
                 <li><router-link to="/schedule" class="pop-close as-menu-item"><as-icon name="calendar"/> 애니 편성표</router-link></li>
                 <li><router-link to="/anime" class="pop-close as-menu-item"><as-icon name="circle-play"/> 애니정보</router-link></li>
+                <li><router-link to="/notifications" class="pop-close as-menu-item"><as-icon name="bell"/> 알림</router-link></li>
                 <li><router-link to="/caption/recent" class="pop-close as-menu-item"><as-icon name="cc"/> 최근 자막</router-link></li>
                 <li><router-link to="/translator/apply" class="pop-close as-menu-item"><as-icon name="signature"/> 자막제작자 신청</router-link></li>
                 <li><router-link to="/introduce" class="pop-close as-menu-item"><as-icon name="star"/> 애니시아 소개</router-link></li>
                 <li><router-link to="/notice" class="pop-close as-menu-item"><as-icon name="bell"/> 공지사항</router-link></li>
                 <li><router-link to="/inquiry" class="pop-close as-menu-item"><as-icon name="chat-dots"/> 질문답변</router-link></li>
                 <li v-if="user.isLogin" class="mt-1 pt-1 border-t-[0.0625rem] border-line">
-                  <span @click="logout" class="pop-close as-menu-item is-danger"><as-icon name="logout"/> 로그아웃</span>
+                  <button type="button" @click="logout" :disabled="loggingOut" class="as-menu-item is-danger w-full"><as-icon name="logout"/> {{loggingOut ? '로그아웃 중…' : '로그아웃'}}</button>
                 </li>
               </ul>
 
@@ -78,7 +80,11 @@
     </transition>
 
     <main class="flex-1 pb-16">
-      <router-view/>
+      <router-view v-slot="{Component, route: pageRoute}">
+        <KeepAlive :key="user.email" :include="['AnimeList', 'InquiryList', 'NoticeList', 'AdminLayout']" :max="16">
+          <component :is="Component" :key="pageRoute.matched[1]?.path === '/admin' ? '/admin' : pageRoute.fullPath"/>
+        </KeepAlive>
+      </router-view>
     </main>
 
     <transition name="as-fade">
@@ -119,6 +125,7 @@ import image_error from "./layout/image_error.svg";
 import {ajaxStateStore} from "../../common/ajaxStateStore";
 import {allowGyro, gyroAsk} from "../../common/edgeLight";
 import {useDisplayZoom, ZOOMS} from "../../common/display";
+import NotificationMenu from "../../domain/notification/NotificationMenu.vue";
 
 
 const router = useRouter();
@@ -131,10 +138,16 @@ const {zoom, changeZoom} = useDisplayZoom();
 const onHeaderMenu = ref(false)
 const url = anissia.url;
 const user = computed(() => session.user);
+const loggingOut = ref(false);
 
-function logout() {
-  sessionService.logout();
-  sessionService.amendPathBySession(location.pathname, router);
+async function logout() {
+  if (loggingOut.value) return;
+  loggingOut.value = true;
+  try {
+    await sessionService.logout();
+    onHeaderMenu.value = false;
+    sessionService.amendPathBySession(location.pathname, router);
+  } finally { loggingOut.value = false; }
 }
 
 function toggleTheme() {

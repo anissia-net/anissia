@@ -10,6 +10,7 @@ import anissia.anime.domain.AnimeCaption
 import anissia.anime.repository.AnimeCaptionRepository
 import anissia.anime.repository.AnimeRepository
 import anissia.counter.DerivedCounters
+import anissia.push.CaptionPushOutbox
 import anissia.security.Actor
 import anissia.support.ApiResponse
 import anissia.support.DateFormats
@@ -32,6 +33,7 @@ class AnimeCaptionService(
     private val activePanelLogService: ActivePanelLogService,
     private val animeRankService: AnimeRankService,
     private val events: ApplicationEventPublisher,
+    private val captionPushOutbox: CaptionPushOutbox,
 ) {
     private val recentCache = ttlCache<Int, Page<CaptionRecentItem>>(5.minutes)
 
@@ -100,6 +102,8 @@ class AnimeCaptionService(
         val caption = animeCaptionRepository.findByIdOrNull(AnimeCaption.Key(animeNo, actor.an))
             ?: return ApiResponse.fail("존재하지 않는 자막입니다.")
 
+        val previousEpisode = caption.episode
+        val previousWebsite = caption.website
         animeCaptionRepository.save(
             caption.apply {
                 edit(
@@ -108,6 +112,17 @@ class AnimeCaptionService(
                     website = request.website,
                 )
             },
+        )
+
+        captionPushOutbox.captionUpdated(
+            animeNo = animeNo,
+            translatorAn = actor.an,
+            subject = caption.anime!!.subject,
+            translatorName = actor.name,
+            previousEpisode = previousEpisode,
+            previousWebsite = previousWebsite,
+            episode = request.episode,
+            website = request.website,
         )
 
         return ApiResponse.of("ok", "자막정보가 반영되었습니다.")

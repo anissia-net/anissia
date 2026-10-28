@@ -12,9 +12,11 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import org.hibernate.annotations.UpdateTimestamp
+import org.hibernate.annotations.DynamicUpdate
 import java.time.OffsetDateTime
 
 @Entity
+@DynamicUpdate
 @Table(
     uniqueConstraints = [
         UniqueConstraint(name = "anime_uk__subject", columnNames = ["subject"]),
@@ -80,6 +82,9 @@ class Anime(
 
     @Column(nullable = false, length = 512)
     var note: String = "",
+
+    @Column(length = 1024)
+    var thumbnail: String? = null,
 
     @Column(nullable = false)
     var captionCount: Int = 0,

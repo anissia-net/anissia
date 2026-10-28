@@ -33,8 +33,8 @@ class Ajax {
         }
         throw `server status: ${e.status}`;
       }
-      if (e?.headers?.get('Dat-Error') == 'INVALID') {
-          sessionService.logout();
+      if (e?.headers?.get('Dat-Error') == 'INVALID' && options.headers['dat'] && sessionService.getDat() === options.headers['dat']) {
+          void sessionService.logout();
       }
       this.ajaxState.setOk();
       return e.json().then(e => Result.assign(e));

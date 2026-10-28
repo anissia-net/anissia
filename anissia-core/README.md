@@ -62,6 +62,10 @@ java -jar anissia-core-1.0.jar --spring.profiles.active=prod
 ### 로컬 기본 데이터 생성
 - http://localhost:8080/install (예정)
 
+## 애니메이션 검색
+
+Elasticsearch의 `analysis-nori` 플러그인이 필요합니다. 제목의 저장과 검색에 Nori를 사용하며 기존 부분 검색도 지원합니다. 기존 인덱스는 백엔드 배포 전에 삭제 없이 매핑 추가와 재색인을 진행합니다.
+
 ## 참고 
 * [애니시아 문서](https://github.com/anissia-net/anissia/tree/master/docs)
 * [애니편성표 API](https://github.com/anissia-net/anissia/tree/master/docs/anime_schdule.md)

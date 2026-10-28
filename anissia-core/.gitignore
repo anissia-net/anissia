@@ -8,8 +8,10 @@ build/
 
 ### anissia ###
 email.json
-tmp/anissia-local.**
+/tmp/
+/scripts/
 logs
+/data/wiki/
 
 ### STS ###
 .apt_generated

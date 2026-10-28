@@ -8,9 +8,9 @@
         <span class="as-meta pb-2">명령어 <b class="text-ink-2">/도움말</b></span>
       </div>
 
-      <div class="relative mb-5">
-        <as-icon name="terminal" class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-ink-3 pointer-events-none"/>
-        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" placeholder="운영기록작성  /도움말" class="pl-10 pr-4 py-3 as-input-text">
+      <div class="as-input-with-icon mb-5">
+        <as-icon name="terminal"/>
+        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" aria-label="운영기록 작성 및 명령어" placeholder="운영기록작성  /도움말" class="pr-4 py-3 as-input-text">
       </div>
 
       <div v-if="openHelp" class="p-5 mb-5 text-sm leading-[2] as-box">

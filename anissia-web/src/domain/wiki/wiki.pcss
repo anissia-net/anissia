@@ -1,0 +1,23 @@
+.as-wiki-dialog {
+  color: var(--as-ink);
+  width: min(46rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1.25rem;
+  margin: auto;
+  overflow: auto;
+}
+.as-wiki-dialog::backdrop { background: #0007; }
+.nabi [data-template-no][contenteditable="false"] { border: .125rem dotted var(--as-line-2); padding: .5rem; }
+.as-wiki-template-caption { display: block; font-size: .75rem; text-align: right; color: var(--as-ink-3); }
+.nabi [data-template-editor] { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.nabi [data-template-editor] * { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+.nabi [data-template-editor]:is(.is-template-selected, :focus-visible) { border-style: solid; border-color: var(--as-brand); outline: none; }
+.as-wiki-template-menu {
+  display: flex;
+  position: fixed;
+  inset: auto;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  margin: 0;
+  padding: .5rem;
+}

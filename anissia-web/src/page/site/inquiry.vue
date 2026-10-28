@@ -5,4 +5,5 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({name: 'InquiryList'});
 import Board from "../../domain/board/Board.vue";</script>

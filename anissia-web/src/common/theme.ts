@@ -1,11 +1,19 @@
+import {shallowRef} from 'vue';
+
+export type ColorMode = 'light' | 'dark';
+
 class Theme {
     constructor() {
         this.apply();
     }
 
-    private lastValue = '';
+    private readonly mode = shallowRef<ColorMode>('light');
 
-    public get value(): string {
+    public get value(): ColorMode {
+        return this.mode.value;
+    }
+
+    private read(): ColorMode {
         return (
             (localStorage.getItem("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? 'dark' : 'light')) == 'dark'
                 ? 'dark' : 'light'
@@ -22,13 +30,11 @@ class Theme {
     }
 
     public apply() {
-        const value = this.value;
-        if (this.lastValue != value) {
-            const classes = document.querySelector('html')!!.classList;
-            classes.remove("dark", 'light');
-            classes.add(value);
-            this.lastValue = value;
-        }
+        const value = this.read();
+        const classes = document.documentElement.classList;
+        classes.toggle('dark', value === 'dark');
+        classes.toggle('light', value === 'light');
+        this.mode.value = value;
     }
 }
 

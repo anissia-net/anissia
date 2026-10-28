@@ -1,7 +1,7 @@
 import {createApp} from 'vue'
 import './common/style.pcss'
 import App from './App.vue'
-import router, {installAnalytics, installPrefetch} from "./common/router";
+import router, {installAnalytics, installNoteNavigation, installPrefetch} from "./common/router";
 import {createPinia} from "pinia";
 import {vChoice} from "./common/choice";
 import {installEdgeLight} from "./common/edgeLight";
@@ -23,4 +23,5 @@ createApp(App)
 
 installEdgeLight(router);
 installPrefetch();
+installNoteNavigation();
 installAnalytics();

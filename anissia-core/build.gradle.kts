@@ -44,6 +44,16 @@ dependencies {
     implementation("me.saro:dat:4.6.1")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 
+	// Web Push 암호화/VAPID만 사용한다. HTTP 전송은 timeout을 둔 JDK HttpClient로 처리한다.
+	implementation("nl.martijndwars:web-push:5.1.2") {
+		exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+		exclude(group = "org.apache.httpcomponents", module = "httpasyncclient")
+		exclude(group = "org.asynchttpclient", module = "async-http-client")
+		exclude(group = "com.beust", module = "jcommander")
+	}
+	implementation("org.bouncycastle:bcprov-jdk18on:1.86")
+	implementation("org.bitbucket.b_c:jose4j:0.9.6")
+
 	// logger
 	implementation("org.slf4j:slf4j-api")
 	implementation("ch.qos.logback:logback-classic")

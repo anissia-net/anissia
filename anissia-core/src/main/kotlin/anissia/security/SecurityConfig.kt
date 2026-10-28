@@ -2,6 +2,9 @@ package anissia.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
+import anissia.support.ApiResponse
+import anissia.support.Json
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -53,7 +56,17 @@ class SecurityConfig {
                 it.cacheControl { cache -> cache.disable() }
                 it.frameOptions { frame -> frame.disable() }
             }
-            .authorizeHttpRequests { it.anyRequest().permitAll() }
+            .exceptionHandling {
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.status = 401
+                    response.contentType = "application/json;charset=UTF-8"
+                    response.writer.write(Json.write(ApiResponse.fail("로그인이 필요합니다.")))
+                }
+            }
+            .authorizeHttpRequests {
+                it.requestMatchers(HttpMethod.POST, "/wiki/images").authenticated()
+                it.anyRequest().permitAll()
+            }
             .addFilterBefore(datAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
 

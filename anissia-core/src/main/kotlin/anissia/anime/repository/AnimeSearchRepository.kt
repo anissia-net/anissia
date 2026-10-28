@@ -45,8 +45,8 @@ class AnimeSearchRepository(
 
                         if (keywords.isNotEmpty() || genres.isNotEmpty()) {
                             putArray("must").apply {
-                                keywords.forEach {
-                                    addObject().apply { putObject("wildcard").apply { put("subject", "*$it*") } }
+                                if (keywords.isNotEmpty()) {
+                                    add(titleQuery(keywords))
                                 }
                                 genres.forEach {
                                     addObject().apply { putObject("match").apply { put("genres", it) } }
@@ -99,6 +99,25 @@ class AnimeSearchRepository(
         )
     }
 
+    private fun titleQuery(keywords: List<String>) = Json.objectNode().apply {
+        putObject("bool").apply {
+            put("minimum_should_match", 1)
+            putArray("should").apply {
+                // Analyze the complete title query so Nori can discard particles in context.
+                addObject().putObject("match").putObject("subject.nori").apply {
+                    put("query", keywords.joinToString(" "))
+                    put("operator", "and")
+                }
+                // Preserve partial-word searches such as "비밥 카우" -> "카우보이비밥".
+                addObject().putObject("bool").putArray("must").apply {
+                    keywords.forEach {
+                        addObject().putObject("wildcard").put("subject", "*$it*")
+                    }
+                }
+            }
+        }
+    }
+
     fun update(anime: Anime, translators: List<String>) {
         val body = Json.write(
             mapOf(
@@ -128,14 +147,8 @@ class AnimeSearchRepository(
 
     companion object {
         private const val INDEX = "anissia_anime"
-        private val INDEX_MAPPING = """{"mappings":{"properties": {
-            "animeNo": {"type": "long","store": true},
-            "week": {"type": "keyword"},
-            "subject": {"type": "text"},
-            "genres": {"type": "keyword"},
-            "status": {"type": "keyword"},
-            "translators": {"type": "keyword"},
-            "endDate": {"type": "long"}
-        }}}""".trimIndent()
+        private val INDEX_MAPPING = requireNotNull(
+            AnimeSearchRepository::class.java.getResource("/elasticsearch/anime-index.json"),
+        ).readText(Charsets.UTF_8)
     }
 }

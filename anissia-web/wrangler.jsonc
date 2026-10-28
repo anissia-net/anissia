@@ -8,7 +8,7 @@
   },
 
   "build": {
-    "command": "yarn build",
+    "command": "npm run build",
     "watch_dir": ["src", "public", "index.html", "vite.config.ts"]
   },
 

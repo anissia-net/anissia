@@ -11,3 +11,15 @@ elasticsearch:
   username:
   password:
 
+spring.servlet.multipart.location: /anissia/web/file-temp
+
+anissia.wiki.upload:
+  temp-root: /anissia/web/file-temp
+  public-root: /anissia/web/file
+  original-root: /anissia/web/file-original
+  public-base-url: https://file.anissia.net/file
+  retain-originals: true
+  serve-files: false
+  ffmpeg-path: ${ANISSIA_FFMPEG_PATH:/anissia/tools/ffmpeg/9.0.2/bin/ffmpeg}
+  ffprobe-path: ${ANISSIA_FFPROBE_PATH:/anissia/tools/ffmpeg/9.0.2/bin/ffprobe}
+

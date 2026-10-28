@@ -1,6 +1,8 @@
 <template>
   <div class="as-note-view">
-    <div ref="outlineTools" class="as-note-outline-tools" hidden></div>
+    <Teleport v-if="floatingOutline" to="body">
+      <div ref="outlineTools" class="as-note-outline-tools as-note-outline-floating" hidden></div>
+    </Teleport>
     <div ref="root" class="nabi-content" v-html="html"></div>
   </div>
 </template>
@@ -15,7 +17,8 @@ import {sanitizeNote} from "../../common/sanitize";
 import {mountNoteOutline} from "../../common/noteOutline";
 
 const props = defineProps({
-  content: String
+  content: String,
+  floatingOutline: Boolean
 });
 
 const root = ref<HTMLElement>();

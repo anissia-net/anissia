@@ -138,9 +138,9 @@ function withdraw() {
   if (!confirm('정말로 탈퇴하시겠습니까?\n- 계정이 삭제됩니다.\n- 작성한 글과 댓글이 모두 삭제됩니다.\n- 되돌릴 수 없습니다.')) {
     return;
   }
-  accountRemote.withdraw(withdrawPassword.value).then(e => {
+  accountRemote.withdraw(withdrawPassword.value).then(async e => {
     if (e.success) {
-      sessionService.logout();
+      await sessionService.logout();
       toast.success('탈퇴가 완료되었습니다.');
       router.push('/');
     } else {

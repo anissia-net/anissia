@@ -10,7 +10,7 @@
       <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
         <div v-for="(node, i) in animeList" class="p-5 as-card">
           <div>
-            <router-link :to="`/admin/anime?animeNo=${node.animeNo}`">
+            <router-link :to="`/admin/anime/${node.animeNo}`">
               <div v-if="node.scheduleTime != '-'" class="text-sm font-semibold text-brand">
                 {{node.scheduleTime}}
               </div>
@@ -24,8 +24,8 @@
           <div class="mt-4 flex flex-wrap gap-1.5">
             <span class="as-tag-xs" v-for="tag in node.tags" :key="tag">{{tag}}</span>
             <span class="as-tag-xs" v-for="tag in node.genres.split(/,/g)" :key="tag"><router-link :to="`/anime?q=%23${encodeURIComponent(tag)}`">{{tag}}</router-link></span>
-            <span class="as-tag-xs" v-if="node.website"><a :href="node.website" target="_blank"><as-icon name="globe"/></a></span>
-            <span class="as-tag-xs" v-if="node.x"><a :href="node.x" target="_blank"><as-icon name="x-logo"/></a></span>
+            <a class="as-tag-xs as-icon-link" v-if="node.website" :href="node.website" target="_blank" :aria-label="`${node.subject} 공식 사이트 (새 창)`" :title="`${node.subject} 공식 사이트 (새 창)`"><as-icon name="globe"/></a>
+            <a class="as-tag-xs as-icon-link" v-if="node.x" :href="node.x" target="_blank" :aria-label="`${node.subject} X 계정 (새 창)`" :title="`${node.subject} X 계정 (새 창)`"><as-icon name="x-logo"/></a>
             <span class="as-tag-xs" v-if="node.captionCount"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.captionCount}}</span>
           </div>
         </div>
@@ -41,10 +41,22 @@ import {ref} from "vue";
 import Anime from "../../domain/anime/Anime";
 import anissia from "../../common/anissia";
 import animeRemote from "../../domain/anime/remote/animeRemote";
+import {animeUpdates} from "../../domain/anime/animeUpdates";
+
+defineOptions({name: 'AdminSchedule'});
 
 const weekList = ref(['日', '月', '火', '水', '木', '金', '土', '外', '新']);
 const weekNow = ref(-1);
 const animeList = ref([] as Anime[]);
+
+animeUpdates.subscribe((id, changes) => {
+  const item = animeList.value.find(item => item.animeNo === id);
+  if (!item) return;
+  if (changes) Object.assign(item, changes);
+  if (!changes || Number(item.week) !== weekNow.value || item.status === 'END') {
+    animeList.value = animeList.value.filter(item => item.animeNo !== id);
+  }
+});
 
 function isPureWeek() {
   return anissia.isPureWeek(weekNow.value);

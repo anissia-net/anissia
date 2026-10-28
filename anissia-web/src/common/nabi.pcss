@@ -32,7 +32,7 @@
      * 편집기가 앉은 종이(`.as-post`)와 같은 색을 준다 — 단추 줄이 제 색으로 따로 놀지 않고
      * 한 장 위에 얹힌 것처럼 보인다. 판·알림·전체화면도 같은 종이색이라 어디서나 읽힌다.
      */
-    --nabi-bg: #ffffff;
+    --nabi-bg: var(--as-surface);
     --nabi-soft: var(--as-muted);
 
     --nabi-fg: var(--as-ink-2);
@@ -75,6 +75,13 @@
     --nabi-fullscreen-bg: var(--as-canvas);
 }
 
+/* 편집기의 강조 면은 진한 로즈색이므로 밝은 글자를 쓴다. */
+html.light .nabi.nabi.nabi,
+html.light .nabi-scrim.nabi-scrim.nabi-scrim,
+html.light .nabi-content.nabi-content.nabi-content {
+    --nabi-on-accent: #fffcf7;
+}
+
 /* 어둠에서 흰 종이는 눈을 찌른다 — 읽는 글(`.as-post`)과 같은 한 단 밝은 면을 쓴다. */
 html.dark .nabi.nabi.nabi,
 html.dark .nabi-content.nabi-content.nabi-content {
@@ -98,6 +105,12 @@ html.dark .nabi-content.nabi-content.nabi-content {
 .nabi-content.nabi-content {
     font-size: 0.9375rem;
     line-height: 1.9;
+}
+
+/* 각주만 살짝 올린다. sup의 기본 top 보정이 겹쳐 너무 높이 뜨지 않게 한다. */
+.nabi-content.nabi-content [data-nabi-fn] {
+    top: 0;
+    vertical-align: 0.25em;
 }
 
 .nabi-content.nabi-content[contenteditable=true],
@@ -147,10 +160,6 @@ html.dark .nabi-content.nabi-content.nabi-content {
     display: none;
 }
 
-.nabi-toolbar > .as-note-outline-tools {
-    padding-inline: 0.25rem;
-}
-
 .as-note-outline-trigger {
     padding: 0.375rem 0.625rem;
     border: 1px solid var(--as-line);
@@ -172,8 +181,39 @@ html.dark .nabi-content.nabi-content.nabi-content {
     outline-offset: 2px;
 }
 
-.as-note-preview-tools {
-    padding: 0.5rem 3rem 0 0.875rem;
+/* 본문 밖으로 옮겨 카드의 잘림과 컨테이너에 영향받지 않고 화면에 고정한다. */
+.as-note-outline-floating {
+    position: fixed;
+    right: calc(1rem + env(safe-area-inset-right, 0px));
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    padding: 0;
+}
+
+.as-note-outline-floating > .as-note-outline-trigger {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--as-glass-strong);
+    box-shadow: var(--as-shadow-2);
+    backdrop-filter: blur(0.75rem);
+    font-size: 1.5rem;
+    touch-action: manipulation;
+}
+
+.as-note-outline-floating > .as-note-outline-trigger:hover,
+.as-note-outline-floating > .as-note-outline-trigger[aria-expanded=true] {
+    color: var(--as-brand);
+    background: var(--as-surface);
+    border-color: var(--as-brand);
+}
+
+.as-note-outline-floating-panel .nabi-outline-item {
+    min-height: 2.75rem;
+    align-items: center;
 }
 
 @media print {

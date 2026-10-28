@@ -12,6 +12,17 @@ elasticsearch:
   password:
 
 spring:
+  config:
+    import: optional:file:../.local/anissia.properties,optional:file:./.local/anissia.properties
   jpa:
     hibernate:
       ddl-auto: update
+
+anissia.wiki.upload:
+  enabled: ${ANISSIA_WIKI_UPLOAD_ENABLED:true}
+  temp-root: ./data/wiki/temp
+  public-root: ./data/wiki/public
+  original-root: ./data/wiki/originals
+  public-base-url: http://localhost:8001/wiki/files
+  retain-originals: true
+  serve-files: true

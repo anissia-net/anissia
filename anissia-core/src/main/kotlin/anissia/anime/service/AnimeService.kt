@@ -20,6 +20,7 @@ import anissia.anime.repository.jooq.AnimeQueryRepository
 import anissia.counter.DerivedCounters
 import anissia.security.Actor
 import anissia.translator.service.TranslatorApplyService
+import anissia.wiki.WikiContentService
 import anissia.support.ApiResponse
 import anissia.support.DateFormats
 import anissia.support.Json
@@ -35,6 +36,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Isolation
 import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -53,6 +55,7 @@ class AnimeService(
     private val accountRepository: AccountRepository,
     private val translatorApplyService: TranslatorApplyService,
     private val events: ApplicationEventPublisher,
+    private val wiki: WikiContentService,
 ) {
     private val log = logger<AnimeService>()
     private val autocorrectCache = ttlCache<String, List<String>>(60.minutes)
@@ -213,7 +216,7 @@ class AnimeService(
         return ApiResponse.of("ok", "", anime.animeNo)
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     fun delete(animeNo: Long, actor: Actor): ApiResponse<Unit> {
         require(animeNo > 0) { "animeNo 는 0 이상이어야 합니다." }
         actor.validateAdmin()
@@ -229,6 +232,7 @@ class AnimeService(
 
         activePanelLogService.addText("[${actor.name}]님이 애니메이션 [${anime.subject}]을(를) 삭제하였습니다.")
 
+        wiki.deleteForAnime(animeNo)
         animeCaptionRepository.deleteByAnimeNo(animeNo)
         animeRepository.delete(anime)
         agendaRepository.save(agenda)

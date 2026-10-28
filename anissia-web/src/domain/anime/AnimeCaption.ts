@@ -6,6 +6,7 @@ export default class AnimeCaption {
     public episode: string = '';
     public name: string = '';
     public subject: string = '';
+    public thumbnail: string | null = null;
     public updDt: string = '';
     public website: string = '';
 

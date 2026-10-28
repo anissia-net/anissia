@@ -30,7 +30,6 @@
             <span ref="toolsElement"></span>
             <div ref="toolbarElement"></div>
           </div>
-          <div ref="outlineToolsElement" class="as-note-outline-tools" hidden></div>
           <div ref="contextElement" class="nabi-context" hidden></div>
         </div>
         <div ref="surfaceElement" class="nabi-content" contenteditable="true"></div>
@@ -71,9 +70,9 @@ import type {Nabi} from "nabi-note";
 import {mountDiffWing, type DiffWingMount} from "nabi-note/diff";
 import {attachViewer} from "nabi-note/viewer";
 import {isBlankNote, noteWings} from "../../common/note";
-import {mountNoteOutline} from "../../common/noteOutline";
 import boardRemote from "./remote/boardRemote";
 import toast from "../../common/toast";
+import {topicUpdates} from "./topicUpdates";
 
 const props = defineProps({
   post: Post,
@@ -93,7 +92,6 @@ const toolsElement = ref<HTMLElement>();
 const toolbarElement = ref<HTMLElement>();
 const contextElement = ref<HTMLElement>();
 const surfaceElement = ref<HTMLElement>();
-const outlineToolsElement = ref<HTMLElement>();
 
 const placeholderText = computed(() => props.placeholder || '내용');
 
@@ -151,7 +149,7 @@ function doSaveTopic(post: Post) {
   if (post.isNew) {
     boardRemote.createTopic(props.ticker!!, topic.value, content.value).then(result => {
       if (result.success) {
-        router.push(`?topicNo=${result.data}`);
+        router.replace(`/${props.ticker}/${result.data}`);
       } else {
         toast.error(result.messageNotNull);
       }
@@ -159,6 +157,7 @@ function doSaveTopic(post: Post) {
   } else {
     boardRemote.updateTopic(post.topicNo, topic.value, content.value).then(result => {
       if (result.success) {
+        topicUpdates.publish(post.topicNo, {topic: topic.value});
         post.topic = topic.value;
         post.content = content.value;
         post.isEditMode = false;
@@ -194,7 +193,7 @@ function doSavePost(post: Post) {
 
 function doCancel() {
   if (post.value.isNewTopic) {
-    router.push(location.pathname);
+    router.push(`/${props.ticker}`);
   } else {
     post.value.isEditMode = false;
   }
@@ -257,21 +256,8 @@ onMounted(() => {
     // 미리보기는 굳은 HTML 이라 읽는 쪽 동작(표 정렬·코드 색)이 저절로 붙지 않는다 — 읽는 화면과 같게 맞춘다.
     onBody: body => {
       const viewer = attachViewer(body, {locale: 'ko'});
-      const card = body.parentElement!!;
-      const controls = body.ownerDocument.createElement('div');
-      controls.className = 'as-note-outline-tools as-note-preview-tools';
-      card.insertBefore(controls, body);
-      const outline = mountNoteOutline(body, controls, {container: card, scrollContainer: card});
-      return () => {
-        outline.unmount();
-        controls.remove();
-        viewer.unmount();
-      };
+      return () => viewer.unmount();
     },
-  });
-  const outline = mountNoteOutline(surface, outlineToolsElement.value!!, {
-    scrollContainer: () => rootElement.value!!.classList.contains('is-fullscreen') ? rootElement.value!! : window,
-    offset: () => chromeElement.value!!.offsetHeight + (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16),
   });
   diff = mountDiffWing({nabi, registry, surface, locale: 'ko', merge: true});
   /*
@@ -298,7 +284,6 @@ onMounted(() => {
     () => diff?.unmount(),
     () => picked.unmount(),
     () => sticky.unmount(),
-    () => outline.unmount(),
     () => viewTools.unmount(),
     () => hints.unmount(),
     () => context.unmount(),

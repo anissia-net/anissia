@@ -5,4 +5,5 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({name: 'NoticeList'});
 import Board from "../../domain/board/Board.vue";</script>

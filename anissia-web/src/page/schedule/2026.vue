@@ -24,24 +24,27 @@
               <span class="now-time">{{nowText}}</span>
               <span class="now-rule"></span>
             </li>
-            <li v-else class="row" :class="{past: row.past, next: row.next, cont: !row.label.main && row.timed}">
+            <li v-else class="row" :class="{next: row.next, cont: !row.label.main && row.timed}">
               <div class="time">
                 <span class="time-main">{{row.label.main}}</span>
                 <span class="time-sub" v-if="row.label.sub">{{row.label.sub}}</span>
               </div>
               <div class="rail"><i class="dot"></i></div>
               <article class="card glass" role="button" tabindex="0" @click="getCaptionList(row.anime)" @keydown.enter="getCaptionList(row.anime)">
-                <div class="subject">
-                  <span class="prefix" v-if="row.anime.subjectPrefix">{{row.anime.subjectPrefix}}</span>{{row.anime.subject}}
-                </div>
-                <div class="original" v-if="row.anime.originalSubject">{{row.anime.originalSubject}}</div>
-                <div class="meta" v-if="row.genres.length || row.anime.website || row.anime.x || row.anime.captionCount">
-                  <a v-for="tag in row.genres" :key="tag" class="tag" :href="`/anime?q=%23${encodeURIComponent(tag)}`" target="_blank" @click.stop>{{tag}}</a>
-                  <span class="meta-end">
-                    <a v-if="row.anime.website" class="icon" :href="row.anime.website" target="_blank" @click.stop aria-label="공식 사이트"><as-icon name="house"/></a>
-                    <a v-if="row.anime.x" class="icon" :href="row.anime.x" target="_blank" @click.stop aria-label="X"><as-icon name="x-logo"/></a>
-                    <span v-if="row.anime.captionCount" class="cc"><as-icon name="cc"/>{{row.anime.captionCount}}</span>
-                  </span>
+                <img v-if="row.anime.thumbnail" :src="row.anime.thumbnail" class="thumbnail" alt="" width="48" height="48" loading="lazy" decoding="async"/>
+                <div class="card-content">
+                  <div class="subject">
+                    <span class="prefix" v-if="row.anime.subjectPrefix">{{row.anime.subjectPrefix}}</span>{{row.anime.subject}}
+                  </div>
+                  <div class="original" v-if="row.anime.originalSubject">{{row.anime.originalSubject}}</div>
+                  <div class="meta" v-if="row.genres.length || row.anime.website || row.anime.x || row.anime.captionCount">
+                    <a v-for="tag in row.genres" :key="tag" class="tag" :href="`/anime?q=%23${encodeURIComponent(tag)}`" target="_blank" @click.stop>{{tag}}</a>
+                    <span class="meta-end">
+                      <a v-if="row.anime.website" class="icon" :href="row.anime.website" target="_blank" @click.stop aria-label="공식 사이트"><as-icon name="house"/></a>
+                      <a v-if="row.anime.x" class="icon" :href="row.anime.x" target="_blank" @click.stop aria-label="X"><as-icon name="x-logo"/></a>
+                      <span v-if="row.anime.captionCount" class="cc"><as-icon name="cc"/>{{row.anime.captionCount}}</span>
+                    </span>
+                  </div>
                 </div>
               </article>
             </li>
@@ -54,7 +57,10 @@
         <div class="popup" v-if="animeNow != null" @click.self="animeNow = null">
           <section class="sheet glass" role="dialog" aria-modal="true">
             <button type="button" class="close" @click="animeNow = null" aria-label="닫기"><as-icon name="x"/></button>
-            <a class="sheet-title" :href="`/anime?animeNo=${animeNow.animeNo}`" target="_blank">{{animeNow.subject}}</a>
+            <div class="sheet-heading">
+              <a class="sheet-title" :href="`/anime/${animeNow.animeNo}`" target="_blank">{{animeNow.subject}}</a>
+              <NotificationButton v-if="session.user.isLogin" class="sheet-notification" :anime-no="animeNow.animeNo" :subject="animeNow.subject" icon-only/>
+            </div>
             <div class="sheet-original" v-if="animeNow.originalSubject">{{animeNow.originalSubject}}</div>
             <div class="sheet-tags" v-if="animeNow.tags.length">
               <span v-for="tag in animeNow.tags" :key="tag" class="tag">{{tag}}</span>
@@ -90,10 +96,13 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, Ref, ref, shallowRef, watch} from "vue";
 import AnimeCaption from "../../domain/anime/AnimeCaption";
 import Anime from "../../domain/anime/Anime";
+import NotificationButton from "../../domain/notification/NotificationButton.vue";
+import {sessionStore} from "../../domain/session/sessionStore";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import anissia from "../../common/anissia";
 import {ajaxStateStore} from "../../common/ajaxStateStore";
 import {decodeTheme, palette, Theme} from "./2026/palette";
+import siteTheme, {type ColorMode} from '../../common/theme';
 
 const props = withDefaults(defineProps<{embedded?: boolean, themeCode?: string}>(), {embedded: false});
 
@@ -103,7 +112,6 @@ interface Row {
   label: { main: string, sub: string },
   genres: string[],
   timed: boolean,
-  past: boolean,
   next: boolean,
 }
 
@@ -114,7 +122,8 @@ const animeList = shallowRef<Anime[]>([]);
 const animeNow = shallowRef<Anime | null>(null);
 const captionList = shallowRef<AnimeCaption[]>([]);
 const ajaxState = ajaxStateStore();
-const mode = ref('light');
+const session = sessionStore();
+const mode = ref<ColorMode>(props.embedded ? siteTheme.value : savedColorMode());
 const theme = shallowRef<Theme>(decodeTheme(props.themeCode ?? location.hash));
 const loaded = ref(false);
 const ready = ref(false);
@@ -161,11 +170,10 @@ const rows = computed(() => {
   const list: Row[] = [];
   scheduleRows.value.forEach((row, idx) => {
     if (idx == nextIdx) {
-      list.push({key: 'now', anime: null, label: {main: '', sub: ''}, genres: [], timed: false, past: false, next: false});
+      list.push({key: 'now', anime: null, label: {main: '', sub: ''}, genres: [], timed: false, next: false});
     }
     list.push({
       ...row,
-      past: isToday && (nextIdx == -1 || idx < nextIdx),
       next: idx == nextIdx,
     });
   });
@@ -222,30 +230,50 @@ function evtKeyClosePopup(event: KeyboardEvent) {
   }
 }
 
+function savedColorMode(): ColorMode {
+  try {
+    const saved = localStorage.getItem('schedule2026ColorMode');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch { return 'light'; }
+}
+
+let instantTimer = 0;
+function resumeTransitions() {
+  clearTimeout(instantTimer);
+  instantTimer = window.setTimeout(() => ready.value = true, 150);
+}
+
 function applyColorMode(value: string | null) {
-  if (value == null) {
-    try {
-      value = localStorage.getItem('schedule2026ColorMode') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    } catch (e) { value = 'light'; }
+  const next = value == null ? (props.embedded ? siteTheme.value : savedColorMode()) : value === 'dark' ? 'dark' : 'light';
+  if (mode.value !== next) {
+    // 배경까지 한 번에 다시 칠한다. 모드별 CSS 변수와 색 전환이 겹치면
+    // WebKit에서 이전 배경만 남고 글자·카드만 새 모드로 바뀔 수 있다.
+    ready.value = false;
+    mode.value = next;
+    resumeTransitions();
   }
-  mode.value = value == 'dark' ? 'dark' : 'light';
-  try { localStorage.setItem('schedule2026ColorMode', mode.value); } catch (e) { /* 저장소 없음 */ }
+  // 편집용 미리보기의 임시 모드는 독립 편성표의 저장된 설정을 바꾸지 않는다.
+  if (!props.embedded) {
+    try { localStorage.setItem('schedule2026ColorMode', mode.value); } catch { /* 저장소 없음 */ }
+  }
 }
 
 function toggleMode() {
   applyColorMode(mode.value == 'light' ? 'dark' : 'light');
 }
 
-let instantTimer = 0;
 // 미리보기에서 색을 끄는 동안은 전환 효과 없이 바로 칠한다.
 function repaint(code: string) {
   ready.value = false;
   theme.value = decodeTheme(code);
-  clearTimeout(instantTimer);
-  instantTimer = window.setTimeout(() => ready.value = true, 150);
+  resumeTransitions();
 }
 
 watch(() => props.themeCode, code => repaint(code ?? ''));
+watch(() => siteTheme.value, value => {
+  if (props.embedded) applyColorMode(value);
+});
 defineExpose({applyColorMode});
 
 let clock = 0;
@@ -253,7 +281,6 @@ let readyFrame = 0;
 let resize: ResizeObserver | null = null;
 
 onMounted(() => {
-  applyColorMode(null);
   getAnimeList(todayWeek.value);
   if (!props.embedded) {
     (window as any).colorMode = applyColorMode;
@@ -325,7 +352,7 @@ html:has(.sc2026-host:not(.embedded)) {
 #sc2026 :focus-visible { outline: 2px solid var(--hi); outline-offset: 2px }
 
 #sc2026 { transition: background-color .3s ease, color .3s ease }
-#sc2026:not(.ready) *, #sc2026:not(.ready) *::before, #sc2026:not(.ready) *::after { transition: none !important }
+#sc2026:not(.ready), #sc2026:not(.ready) *, #sc2026:not(.ready) *::before, #sc2026:not(.ready) *::after { transition: none !important }
 
 .aura {
   position: fixed;
@@ -527,9 +554,6 @@ html:has(.sc2026-host:not(.embedded)) {
   animation: sc-pulse 2.4s ease-in-out infinite;
 }
 .row.next .time-main { color: var(--hi) }
-.row.past .time-main { color: var(--ink-3); font-weight: 500 }
-.row.past .card { opacity: .78 }
-.row.past .card:hover { opacity: 1 }
 
 .now { align-items: center; margin-top: 10px }
 .now-time {
@@ -548,16 +572,29 @@ html:has(.sc2026-host:not(.embedded)) {
 }
 
 .card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin-left: 6px;
   padding: 12px 14px;
   cursor: pointer;
-  transition: transform .22s cubic-bezier(.22, 1, .36, 1), background-color .2s ease, box-shadow .22s ease, opacity .2s ease;
+  transition: transform .22s cubic-bezier(.22, 1, .36, 1), background-color .2s ease, box-shadow .22s ease;
 }
 .card:hover {
   transform: translateY(-1px);
   background: var(--surface-hover);
   box-shadow: var(--shadow-2);
 }
+.thumbnail {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  margin-top: 2px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--canvas-2);
+}
+.card-content { flex: 1; min-width: 0 }
 .subject {
   font-size: 15px;
   font-weight: 600;
@@ -673,17 +710,39 @@ a.tag:hover { color: var(--hi); background: var(--hi-soft); box-shadow: inset 0 
   color: var(--ink-3);
 }
 .close:hover { color: var(--ink); background: var(--hi-soft) }
+.sheet-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+}
 .sheet-title {
   display: block;
-  padding: 0 22px;
+  min-width: 0;
   font-size: 18px;
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: -.015em;
   color: var(--ink);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   transition: color .2s ease;
 }
 .sheet-title:hover { color: var(--hi) }
+.sheet-heading .sheet-notification {
+  flex-shrink: 0;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ink-3);
+  background: var(--line);
+}
+.sheet-heading .sheet-notification:hover:not(:disabled) { color: var(--hi); background: var(--hi-soft) }
+.sheet-heading .sheet-notification.is-enabled { color: var(--hi); background: var(--hi-soft); box-shadow: inset 0 0 0 1px var(--hi-ring) }
 .sheet-original { margin-top: 4px; font-size: 12px; color: var(--ink-3) }
 .sheet-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 12px }
 .captions {
@@ -768,7 +827,8 @@ a.caption:hover .name { color: var(--hi) }
   .wrap { padding: 0 10px 32px }
   .head { height: 52px }
   .row, .now { grid-template-columns: 44px 16px minmax(0, 1fr) }
-  .card { margin-left: 4px; padding: 10px 12px }
+  .card { margin-left: 4px; padding: 10px 12px; gap: 10px }
+  .thumbnail { width: 40px; height: 40px; border-radius: 6px }
   .time-main { font-size: 13px }
   .subject { font-size: 14px }
   .week-btn { font-size: 14px }

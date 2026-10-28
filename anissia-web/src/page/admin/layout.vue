@@ -17,13 +17,18 @@
     </nav>
   </div>
   <div>
-    <router-view />
+    <router-view v-slot="{Component, route}">
+      <KeepAlive :include="['AdminAnimeList', 'AdminSchedule', 'AdminCaption']" :max="12">
+        <component :is="Component" :key="route.fullPath"/>
+      </KeepAlive>
+    </router-view>
   </div>
 
 </template>
 
 <script setup lang="ts">
 import anissia from "../../common/anissia";
+defineOptions({name: 'AdminLayout'});
 
 const url = anissia.url
 

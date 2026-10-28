@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "애니시아",
+  "short_name": "애니시아",
+  "lang": "ko",
+  "start_url": "/notifications",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101827",
+  "theme_color": "#101827",
+  "icons": [
+    {"src": "/favicon.png", "sizes": "320x320", "type": "image/png", "purpose": "any"},
+    {"src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

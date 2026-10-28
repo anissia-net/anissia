@@ -31,6 +31,7 @@ class CaptionRecentItem(
     val updDt: String = "",
     val website: String = "",
     val name: String = "",
+    val thumbnail: String? = null,
 ) {
     constructor(animeCaption: AnimeCaption) : this(
         animeNo = animeCaption.anime?.animeNo ?: 0,
@@ -39,6 +40,7 @@ class CaptionRecentItem(
         updDt = animeCaption.updDt.format(DateFormats.CAPTION) + ":00",
         website = animeCaption.website,
         name = animeCaption.account!!.name,
+        thumbnail = animeCaption.anime?.thumbnail,
     )
 }
 

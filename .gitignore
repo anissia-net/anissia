@@ -24,3 +24,13 @@ llms/
 .github/copilot-instructions.md
 .github/instructions/
 .github/prompts/
+/docs/sql/
+
+# Local database snapshots, runtime configuration and logs
+/.local/
+
+.DS_Store
+/[Tt][Oo][Dd][Oo]/
+/scripts/
+/wiki-checkpoint-*/
+/wiki-progress-*/

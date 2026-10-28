@@ -8,7 +8,7 @@
 
     <div class="px-2">
       <router-link v-for="node in list" :key="node.animeNo"
-                   :to="`/anime?animeNo=${node.animeNo}`"
+                   :to="`/anime/${node.animeNo}`"
                    class="group flex items-center gap-3 py-2.5 -mx-2 px-2 as-row anissia-home-reduce-10">
         <span class="rank-no" :class="rankClass(node.rank)">{{node.rank}}</span>
         <span class="flex-1 min-w-0 truncate text-sm font-medium text-ink transition-colors group-hover:text-brand">{{node.subject}}</span>

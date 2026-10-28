@@ -42,6 +42,7 @@ class AnimeItem(
     val note: String = "",
     var agendaNo: Long = 0,
     val captions: List<AnimeCaptionItem> = emptyList(),
+    val thumbnail: String? = null,
 ) {
     constructor(anime: Anime, includeCaption: Boolean = false) : this(
         animeNo = anime.animeNo,
@@ -58,6 +59,7 @@ class AnimeItem(
         x = anime.x,
         note = anime.note,
         captions = if (includeCaption) anime.captions.map { AnimeCaptionItem(it) } else emptyList(),
+        thumbnail = anime.thumbnail,
     )
 }
 
@@ -74,6 +76,7 @@ class AnimeScheduleItem(
     val endDate: String,
     val website: String,
     val x: String,
+    val thumbnail: String? = null,
 ) {
     constructor(anime: Anime) : this(
         week = anime.week,
@@ -88,6 +91,7 @@ class AnimeScheduleItem(
         endDate = anime.endDate,
         website = anime.website,
         x = anime.x,
+        thumbnail = anime.thumbnail,
     )
 }
 

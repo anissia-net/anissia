@@ -1,16 +1,7 @@
 <template>
 
-  <div class="grid gap-4 cq-md:grid-cols-2">
-    <div v-for="node in list" class="as-card p-4 anissia-home-reduce-6">
-      <router-link :to="`/anime?animeNo=${node.animeNo}`" class="block font-semibold text-[0.9375rem] text-ink hover:text-brand transition-colors truncate">
-        {{node.subject}}
-      </router-link>
-      <a :href="node.website" target="_blank" class="mt-3 flex items-center gap-2.5 text-sm group">
-        <span class="as-tag-xs shrink-0"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.episodeText}}</span>
-        <span class="font-semibold text-brand truncate">{{node.name}}</span>
-        <span class="ml-auto shrink-0 text-xs text-ink-3 tabular-nums">{{node.updDtText}}</span>
-      </a>
-    </div>
+  <div class="grid items-start gap-4 cq-md:grid-cols-2">
+    <RecentCaptionCard v-for="node in list" :key="`${node.animeNo}:${node.name}`" :caption="node" class="anissia-home-reduce-6"/>
   </div>
 
 </template>
@@ -19,6 +10,7 @@
 import {Ref, ref} from "vue";
 import animeRemote from "./remote/animeRemote";
 import AnimeCaption from "./AnimeCaption";
+import RecentCaptionCard from "./RecentCaptionCard.vue";
 
 const list = ref([]) as Ref<AnimeCaption[]>;
 animeRemote.getCaptionRecent().then(data => list.value = data);

@@ -10,17 +10,8 @@
       <div class="as-meta shrink-0 pb-1">총 <b class="text-ink-2">{{list.totalElements}}</b> 작품</div>
     </div>
 
-    <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
-      <div v-for="node in list.content" class="as-card p-5">
-        <router-link :to="`/anime?animeNo=${node.animeNo}`" class="block text-md font-semibold text-ink hover:text-brand transition-colors truncate">
-          {{node.subject}}
-        </router-link>
-        <a :href="node.website" target="_blank" class="mt-3.5 flex items-center gap-2.5 text-sm">
-          <span class="as-tag-xs shrink-0"><as-icon name="cc" class="mr-1 opacity-70"/>{{node.episodeText}}</span>
-          <span class="font-semibold text-brand truncate">{{node.name}}</span>
-          <span class="ml-auto shrink-0 as-meta">{{node.updDtText}}</span>
-        </a>
-      </div>
+    <div class="grid items-start gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
+      <RecentCaptionCard v-for="node in list.content" :key="`${node.animeNo}:${node.name}`" :caption="node"/>
     </div>
 
   </div>
@@ -31,6 +22,7 @@
 
 import {nextTick, onUnmounted, Ref, ref} from "vue";
 import AnimeCaption from "../../domain/anime/AnimeCaption";
+import RecentCaptionCard from "../../domain/anime/RecentCaptionCard.vue";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import PageData from "../../common/PageData";
 import { ScrollLoader } from "raon";
