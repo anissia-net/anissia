@@ -76,13 +76,11 @@ class AnimeService(
         val found = animeSearchRepository.search(q, page)
         val hitPage = PageImpl(found.animeNos, PageRequest.of(page, 30), found.totalHits)
 
-        log.info("anime search {}: {} items", q, found.totalHits)
-
         if (found.animeNos.isEmpty()) {
             return hitPage.replaceContent(emptyList())
         }
         return hitPage.replaceContent(
-            animeRepository.findAllByAnimeNoInOrderByAnimeNoDesc(found.animeNos).map { AnimeItem(it) },
+            animeRepository.findAllById(found.animeNos).associateBy { it.animeNo }.let { byId -> found.animeNos.mapNotNull { byId[it]?.let(::AnimeItem) } },
         )
     }
 

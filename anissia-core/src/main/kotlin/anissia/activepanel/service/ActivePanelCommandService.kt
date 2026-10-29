@@ -4,9 +4,10 @@ import anissia.account.domain.AccountRole
 import anissia.account.repository.AccountRepository
 import anissia.activepanel.api.dto.ActivePanelCommandRequest
 import anissia.anime.service.AnimeCaptionService
-import anissia.anime.service.AnimeDocumentService
+import anissia.search.SearchIndexService
 import anissia.security.Actor
 import anissia.support.ApiResponse
+import anissia.support.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
@@ -14,10 +15,12 @@ import java.time.OffsetDateTime
 @Service
 class ActivePanelCommandService(
     private val accountRepository: AccountRepository,
-    private val animeDocumentService: AnimeDocumentService,
+    private val searchIndexService: SearchIndexService,
     private val animeCaptionService: AnimeCaptionService,
     private val activePanelLogService: ActivePanelLogService,
 ) {
+    private val log = logger<ActivePanelCommandService>()
+
     @Transactional
     fun doCommand(request: ActivePanelCommandRequest, actor: Actor): ApiResponse<Unit> {
         request.validate()
@@ -94,8 +97,14 @@ class ActivePanelCommandService(
 
         val action = if (drop) "초기화" else "reindex"
         activePanelLogService.addText("[${actor.name}]님이 검색엔진 $action 작업을 시작했습니다.", actor = actor)
-        animeDocumentService.reset(drop)
-        activePanelLogService.addText("검색엔진 $action 작업이 완료되었습니다.", actor = actor)
+        try {
+            val counts = searchIndexService.rebuild(drop)
+            activePanelLogService.addText("검색엔진 $action 완료: 애니 ${counts["anime"]}, 게시판 ${counts["board"]}, 템플릿 ${counts["template"]}, 이미지 ${counts["image"]}건. 대기 중 변경은 이어서 반영됩니다.", actor = actor)
+        } catch (e: Exception) {
+            log.error("search rebuild failed", e)
+            activePanelLogService.addText("검색엔진 $action 작업이 실패했습니다. 서버 로그와 인덱스 상태를 확인해 주세요.", actor = actor)
+            return ApiResponse.fail("검색엔진 갱신을 완료하지 못했습니다. 인덱스 상태를 확인한 뒤 다시 시도해 주세요.")
+        }
 
         return ApiResponse.ok()
     }

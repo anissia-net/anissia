@@ -23,6 +23,9 @@ interface BoardTopicRepository : JpaRepository<BoardTopic, Long> {
         pageable: Pageable,
     ): Page<BoardTopic>
 
+    @EntityGraph(attributePaths = ["account"])
+    fun findAllByTopicNoIn(topicNos: Collection<Long>): List<BoardTopic>
+
     fun findTop5ByTickerAndFixedOrderByTopicNoDesc(ticker: String, fixed: Boolean = false): List<BoardTopic>
 
     @Query("SELECT A.topicNo FROM BoardTopic A WHERE A.an = :an")

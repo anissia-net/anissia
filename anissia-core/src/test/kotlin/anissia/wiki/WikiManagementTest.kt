@@ -23,7 +23,7 @@ class WikiManagementTest {
     private val revisions = mock(WikiRevisionRepository::class.java)
     private val references = mock(WikiReferenceRepository::class.java)
     private val images = mock(WikiImageService::class.java)
-    private val service = WikiContentService(access, anime, documents, templates, revisions, references, images)
+    private val service = WikiContentService(access, anime, documents, templates, revisions, references, images, org.mockito.Mockito.mock(anissia.search.ContentSearchRepository::class.java), org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher::class.java))
     private val actor = Actor(an = 7)
     private val body = WikiBody(blocks = Json.readTree("[{\"w\":\"p\",\"ch\":[\"정보\"]}]"))
     private fun deleted() = WikiTemplate(templateNo = 5, title = "공통 정보", deleted = true).apply { revision = 3; this.body = Json.write(this@WikiManagementTest.body) }

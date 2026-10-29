@@ -85,7 +85,7 @@ class WikiConcurrencyMariaDbTest {
         images = mock(WikiImageService::class.java)
         service = WikiContentService(WikiAccessService(accounts), anime, documents, templates,
             repositories.getRepository(WikiRevisionRepository::class.java),
-            repositories.getRepository(WikiReferenceRepository::class.java), images)
+            repositories.getRepository(WikiReferenceRepository::class.java), images, mock(anissia.search.ContentSearchRepository::class.java), mock(org.springframework.context.ApplicationEventPublisher::class.java))
         val unique = UUID.randomUUID().toString()
         tx {
             accountNo = accounts.saveAndFlush(Account(email = "$unique@wiki.invalid", name = "wiki-${unique.take(8)}",

@@ -20,8 +20,8 @@ class BoardRemote {
             .then(topic => Topic.assign(topic));
     }
 
-    public getList(ticker: string, page: number): Promise<PageData<Topic>> {
-        return ajax.fetch(`${api}/board/list/${ticker}/${page}`)
+    public getList(ticker: string, page: number, q = ""): Promise<PageData<Topic>> {
+        return ajax.fetch(`${api}/board/list/${ticker}/${page}?q=${encodeURIComponent(q)}`)
             .then(e => e.orIgnore)
             .then(list => PageData.cast(list, e => Topic.assign(e)));
     }

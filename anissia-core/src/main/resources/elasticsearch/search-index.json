@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "analysis": {
+      "tokenizer": {"korean": {"type": "nori_tokenizer", "decompound_mode": "mixed"}},
+      "analyzer": {"search_text": {"type": "custom", "tokenizer": "korean", "filter": ["nori_part_of_speech", "nori_readingform", "lowercase"]}},
+      "normalizer": {"folded": {"type": "custom", "filter": ["lowercase"]}}
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id": {"type": "keyword"},
+      "title": {"type": "text", "analyzer": "search_text", "fields": {"partial": {"type": "keyword", "normalizer": "folded", "ignore_above": 1024}}},
+      "originalTitle": {"type": "text", "analyzer": "search_text", "fields": {"partial": {"type": "keyword", "normalizer": "folded", "ignore_above": 1024}}},
+      "info": {"type": "text", "analyzer": "search_text"},
+      "body": {"type": "text", "analyzer": "search_text"},
+      "comments": {"type": "text", "analyzer": "search_text"},
+      "status": {"type": "keyword"},
+      "ticker": {"type": "keyword"},
+      "genres": {"type": "keyword", "normalizer": "folded"},
+      "translators": {"type": "keyword", "normalizer": "folded"},
+      "endDate": {"type": "long"}
+    }
+  }
+}

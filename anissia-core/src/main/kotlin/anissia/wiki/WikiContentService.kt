@@ -2,6 +2,10 @@ package anissia.wiki
 
 import anissia.account.domain.Account
 import anissia.anime.repository.AnimeRepository
+import anissia.search.ContentSearchRepository
+import anissia.search.SearchKind
+import anissia.search.SearchChangedEvent
+import org.springframework.context.ApplicationEventPublisher
 import anissia.security.Actor
 import anissia.support.FailException
 import anissia.support.Json
@@ -50,6 +54,8 @@ class WikiContentService(
     private val revisions: WikiRevisionRepository,
     private val references: WikiReferenceRepository,
     private val images: WikiImageService,
+    private val search: ContentSearchRepository,
+    private val events: ApplicationEventPublisher,
 ) {
     @Transactional(readOnly = true)
     fun animeDocument(animeNo: Long): WikiDocument {
@@ -116,7 +122,12 @@ class WikiContentService(
     @Transactional(readOnly = true)
     fun templateList(q: String, page: Int, deleted: Boolean = false, actor: Actor = Actor()): WikiPage<WikiDocument> {
         if (deleted) access.requireOperator(actor)
-        val result = templates.findAllByDeletedAndTitleContainingOrderByTitle(deleted, q.take(100), PageRequest.of(page.coerceIn(0, 10000), 30))
+        if (q.isNotBlank()) {
+            val found = search.search(SearchKind.TEMPLATE, q, page, 30, mapOf("status" to if (deleted) "DELETED" else "READY"))
+            val byId = templates.findAllById(found.ids.map(String::toLong)).filter { it.deleted == deleted }.associateBy { it.templateNo.toString() }
+            return WikiPage(found.ids.mapNotNull { byId[it]?.let { template -> document("template", template.templateNo, template.title, template) } }, found.total, page)
+        }
+        val result = templates.findAllByDeletedAndTitleContainingOrderByTitle(deleted, "", PageRequest.of(page.coerceIn(0, 10000), 30))
         return WikiPage(result.content.map { document("template", it.templateNo, it.title, it) }, result.totalElements, result.number)
     }
 
@@ -263,6 +274,7 @@ class WikiContentService(
         references.deleteAllByOwnerKindAndOwnerNo(kind, id)
         references.saveAll(refs.templates.map { WikiReference(ownerKind = kind, ownerNo = id, targetKind = "template", targetId = it.toString()) } +
             refs.images.map { WikiReference(ownerKind = kind, ownerNo = id, targetKind = "image", targetId = it) })
+        events.publishEvent(SearchChangedEvent(if (kind == "anime") SearchKind.ANIME else SearchKind.TEMPLATE, id))
         return snapshots
     }
 

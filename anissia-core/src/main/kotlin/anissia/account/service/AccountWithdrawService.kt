@@ -7,6 +7,8 @@ import anissia.activepanel.domain.ActivePanel
 import anissia.activepanel.repository.ActivePanelRepository
 import anissia.anime.repository.AnimeCaptionRepository
 import anissia.anime.service.AnimeDocumentChangedEvent
+import anissia.search.SearchChangedEvent
+import anissia.search.SearchKind
 import anissia.board.repository.BoardPostRepository
 import anissia.board.repository.BoardTopicRepository
 import anissia.counter.DerivedCounters
@@ -73,6 +75,7 @@ class AccountWithdrawService(
         boardPostRepository.deleteAllByAn(an)
         boardTopicRepository.deleteAllByAn(an)
         derivedCounters.markTopics(otherTopicNos)
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, (ownTopicNos + otherTopicNos).map(Long::toString)))
 
         val animeNos = animeCaptionRepository.findAnimeNosByAn(an)
         if (animeNos.isNotEmpty()) {

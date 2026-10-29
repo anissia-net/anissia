@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -37,8 +38,8 @@ class BoardController(
         ApiResponse.ok(topicService.get(ticker, topicNo))
 
     @GetMapping("/list/{ticker}/{page}")
-    fun getList(@PathVariable ticker: String, @PathVariable page: Int): ApiResponse<Page<BoardTopicItem>> =
-        ApiResponse.ok(topicService.getList(ticker, page))
+    fun getList(@PathVariable ticker: String, @PathVariable page: Int, @RequestParam(defaultValue = "") q: String): ApiResponse<Page<BoardTopicItem>> =
+        ApiResponse.ok(topicService.getList(ticker, page, q))
 
     @GetMapping("/recent/home")
     fun getHomeRecent(): ApiResponse<Map<String, List<Map<String, Any>>>> =

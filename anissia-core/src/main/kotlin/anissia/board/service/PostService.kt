@@ -9,6 +9,9 @@ import anissia.board.domain.BoardPost
 import anissia.board.repository.BoardPostRepository
 import anissia.board.repository.BoardTopicRepository
 import anissia.counter.DerivedCounters
+import anissia.search.SearchChangedEvent
+import anissia.search.SearchKind
+import org.springframework.context.ApplicationEventPublisher
 import anissia.security.Actor
 import anissia.support.ApiResponse
 import org.springframework.data.repository.findByIdOrNull
@@ -23,6 +26,7 @@ class PostService(
     private val boardService: BoardService,
     private val activePanelRepository: ActivePanelRepository,
     private val accountService: AccountService,
+    private val events: ApplicationEventPublisher,
 ) {
     @Transactional
     fun add(topicNo: Long, request: NewPostRequest, actor: Actor): ApiResponse<Unit> {
@@ -38,6 +42,7 @@ class PostService(
             BoardPost.create(topicNo = topic.topicNo, content = request.content, an = actor.an),
         )
         derivedCounters.markTopic(topicNo)
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, topicNo))
 
         return ApiResponse.ok()
     }
@@ -53,6 +58,7 @@ class PostService(
 
         boardPostRepository.save(post.apply { edit(request.content) })
         derivedCounters.markTopic(post.topicNo)
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, post.topicNo))
 
         return ApiResponse.ok()
     }
@@ -82,6 +88,7 @@ class PostService(
         }
         boardPostRepository.delete(post)
         derivedCounters.markTopic(post.topicNo)
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, post.topicNo))
 
         return ApiResponse.ok()
     }

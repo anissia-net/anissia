@@ -28,7 +28,7 @@ class WikiImageServiceTest {
     private val properties = WikiUploadProperties(enabled = true, publicBaseUrl = "https://file.anissia.net/file")
     private val operations = mock(WikiImageFileOperations::class.java)
     private val logs = mock(ActivePanelLogService::class.java)
-    private val service = WikiImageService(repository, storage, access, properties, operations, logs)
+    private val service = WikiImageService(repository, storage, access, properties, operations, logs, org.mockito.Mockito.mock(anissia.search.ContentSearchRepository::class.java))
     private val id = "a".repeat(32)
     private val actor = Actor(an = 7)
     private val url = "${properties.publicBaseUrl}/wiki/$id.avif"

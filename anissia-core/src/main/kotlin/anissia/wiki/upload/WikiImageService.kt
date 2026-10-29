@@ -1,6 +1,8 @@
 package anissia.wiki.upload
 
 import anissia.activepanel.service.ActivePanelLogService
+import anissia.search.ContentSearchRepository
+import anissia.search.SearchKind
 import anissia.security.Actor
 import anissia.support.FailException
 import anissia.wiki.WikiAccessService
@@ -22,6 +24,7 @@ class WikiImageService(
     private val properties: WikiUploadProperties,
     private val fileOperations: WikiImageFileOperations,
     private val logs: ActivePanelLogService,
+    private val search: ContentSearchRepository,
 ) {
     private val receiving = Semaphore(2)
 
@@ -59,7 +62,14 @@ class WikiImageService(
     fun list(page: Int, query: String, deleted: Boolean = false, actor: Actor = Actor()): WikiImagePage {
         if (deleted) access.requireOperator(actor)
         require(page in 0..100_000 && query.length <= 100) { "잘못된 이미지 검색 요청입니다." }
-        val (images, count) = repository.list(page, query.trim(), deleted)
+        if (query.isNotBlank()) {
+            val states = if (deleted) PRIVATE_STATES else setOf(WikiImageStatus.READY)
+            val found = search.search(SearchKind.IMAGE, query, page, 24, mapOf("status" to states.map { it.name }))
+            val byId = repository.findAll(found.ids).filter { it.status in states }.associateBy { it.id }
+            val images = found.ids.mapNotNull(byId::get)
+            return WikiImagePage(images.map(::dto), found.total, page)
+        }
+        val (images, count) = repository.list(page, "", deleted)
         return WikiImagePage(images.map(::dto), count, page)
     }
 

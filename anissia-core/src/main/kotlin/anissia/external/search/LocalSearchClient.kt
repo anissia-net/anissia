@@ -11,7 +11,7 @@ class LocalSearchClient : SearchClient {
     private val log = logger<LocalSearchClient>()
 
     override fun request(method: String, endpoint: String, body: String?): SearchResponse {
-        log.info("Local Mock Elasticsearch: {} {}{}", method, endpoint, body?.let { "\n$it" } ?: "")
+        log.debug("Local Mock Elasticsearch: {} {}", method, endpoint)
         return SearchResponse(status = 200, body = EMPTY_SEARCH_RESULT)
     }
 

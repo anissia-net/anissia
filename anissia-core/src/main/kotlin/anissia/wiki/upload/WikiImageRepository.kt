@@ -1,5 +1,8 @@
 package anissia.wiki.upload
 
+import anissia.search.SearchChangedEvent
+import anissia.search.SearchKind
+import org.springframework.context.ApplicationEventPublisher
 import anissia.support.FailException
 import anissia.wiki.media.ConvertedImage
 import org.springframework.jdbc.core.JdbcTemplate
@@ -15,7 +18,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Repository
-class WikiImageRepository(private val jdbc: JdbcTemplate) {
+class WikiImageRepository(private val jdbc: JdbcTemplate, private val events: ApplicationEventPublisher) {
     private fun lockQueue() {
         check(jdbc.queryForObject("SELECT id FROM wiki_upload_queue WHERE id = 1 FOR UPDATE", Int::class.java) == 1)
     }
@@ -40,6 +43,10 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
 
     fun find(id: String): WikiImage? = jdbc.query("SELECT $IMAGE_COLUMNS FROM wiki_image WHERE id = ?", ::map, id).firstOrNull()
 
+    fun findAll(ids: List<String>): List<WikiImage> = if (ids.isEmpty()) emptyList() else jdbc.query(
+        "SELECT $IMAGE_COLUMNS FROM wiki_image WHERE id IN (${ids.joinToString { "?" }})", ::map, *ids.toTypedArray(),
+    )
+
     @Transactional(propagation = Propagation.MANDATORY)
     fun lock(id: String): WikiImage? = jdbc.query("SELECT $IMAGE_COLUMNS FROM wiki_image WHERE id = ? FOR UPDATE", ::map, id).firstOrNull()
 
@@ -61,6 +68,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
         jdbc.update("UPDATE wiki_image SET description = ?, source_url = ?, revision = revision + 1, updated_by = ?, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?",
             description, sourceUrl, author, id)
         audit()
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
         return requireNotNull(find(id))
     }
 
@@ -76,6 +84,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
         }
         beginFileOperation(id, "DELETING", author)
         audit()
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
         return requireNotNull(find(id))
     }
 
@@ -87,6 +96,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
         if (current.status != WikiImageStatus.DELETED) throw FailException("삭제 처리가 완료된 이미지만 복구할 수 있습니다.")
         beginFileOperation(id, "RESTORING", author)
         audit()
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
         return requireNotNull(find(id))
     }
 
@@ -108,6 +118,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
         move(current)
         jdbc.update("UPDATE wiki_image SET status = ?, error = NULL, file_operation_next_at = NULL, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?",
             if (current.status == WikiImageStatus.DELETING) "DELETED" else "READY", id)
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
     }
 
     fun fileOperationFailed(id: String) {
@@ -180,6 +191,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate) {
                 bytes = ?, animated = ?, thumbnail_bytes = ?, error = NULL, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?""",
             image.width, image.height, image.frames, image.bytes, image.animated, thumbnailBytes, id,
         )
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
         return true
     }
 

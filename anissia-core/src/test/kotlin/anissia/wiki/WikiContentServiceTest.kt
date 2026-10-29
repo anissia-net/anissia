@@ -34,7 +34,7 @@ class WikiContentServiceTest {
     private val revisions = mock(WikiRevisionRepository::class.java)
     private val references = mock(WikiReferenceRepository::class.java)
     private val images = mock(WikiImageService::class.java)
-    private val service = WikiContentService(access, anime, documents, templates, revisions, references, images)
+    private val service = WikiContentService(access, anime, documents, templates, revisions, references, images, org.mockito.Mockito.mock(anissia.search.ContentSearchRepository::class.java), org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher::class.java))
     private val actor = Actor(an = 7)
     private val account = Account(an = 7, name = "기여자")
     private val source = Anime(animeNo = 11, subject = "현재 애니 제목")

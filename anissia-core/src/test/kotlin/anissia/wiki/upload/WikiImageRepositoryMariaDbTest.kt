@@ -41,7 +41,7 @@ class WikiImageRepositoryMariaDbTest {
         jdbc.queryForObject("SELECT id FROM wiki_upload_queue WHERE id = 1 FOR UPDATE", Int::class.java)
         assumeTrue(jdbc.queryForObject("SELECT COUNT(*) FROM wiki_image WHERE status IN ('WAITING', 'PROCESSING')", Long::class.java) == 0L,
             "Active uploads must finish before running the rollback-only queue tests")
-        repository = WikiImageRepository(jdbc)
+        repository = WikiImageRepository(jdbc, org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher::class.java))
         val unique = UUID.randomUUID().toString()
         jdbc.update("INSERT INTO account (email, password, name, reg_dt, last_login_dt) VALUES (?, 'unused', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             "$unique@wiki.invalid", "wiki-${unique.take(8)}")

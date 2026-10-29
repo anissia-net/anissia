@@ -10,10 +10,15 @@ import anissia.board.domain.BoardPost
 import anissia.board.domain.BoardTopic
 import anissia.board.repository.BoardPostRepository
 import anissia.board.repository.BoardTopicRepository
+import anissia.search.SearchChangedEvent
+import anissia.search.SearchKind
+import org.springframework.context.ApplicationEventPublisher
 import anissia.security.Actor
 import anissia.support.ApiResponse
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.PageImpl
+import anissia.search.ContentSearchRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -25,6 +30,8 @@ class TopicService(
     private val boardService: BoardService,
     private val activePanelRepository: ActivePanelRepository,
     private val accountService: AccountService,
+    private val events: ApplicationEventPublisher,
+    private val search: ContentSearchRepository,
 ) {
     @Transactional(readOnly = true)
     fun get(ticker: String, topicNo: Long): BoardTopicItem =
@@ -34,10 +41,13 @@ class TopicService(
             ?: BoardTopicItem()
 
     @Transactional(readOnly = true)
-    fun getList(ticker: String, page: Int): Page<BoardTopicItem> =
-        boardTopicRepository
-            .findAllWithAccountByTickerOrderByTickerAscFixedDescTopicNoDesc(ticker, PageRequest.of(page, 20))
-            .map { BoardTopicItem(it) }
+    fun getList(ticker: String, page: Int, q: String = ""): Page<BoardTopicItem> {
+        val pageable = PageRequest.of(page, 20)
+        if (q.isBlank()) return boardTopicRepository.findAllWithAccountByTickerOrderByTickerAscFixedDescTopicNoDesc(ticker, pageable).map { BoardTopicItem(it) }
+        val found = search.search(SearchKind.BOARD, q, page, 20, mapOf("ticker" to ticker))
+        val byId = boardTopicRepository.findAllByTopicNoIn(found.ids.map(String::toLong)).filter { it.ticker == ticker }.associateBy { it.topicNo.toString() }
+        return PageImpl(found.ids.mapNotNull { byId[it]?.let(::BoardTopicItem) }, pageable, found.total)
+    }
 
     @Transactional(readOnly = true)
     fun getMainRecent(): Map<String, List<Map<String, Any>>> =
@@ -70,6 +80,7 @@ class TopicService(
         boardPostRepository.saveAndFlush(
             BoardPost.createRootPost(topicNo = topic.topicNo, content = request.content, an = actor.an),
         )
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, topic.topicNo))
         return ApiResponse.ok(topic.topicNo)
     }
 
@@ -86,6 +97,7 @@ class TopicService(
             ?.also { boardPostRepository.save(it.apply { edit(request.content) }) }
         boardTopicRepository.save(topic.apply { edit(request.topic) })
 
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, topicNo))
         return ApiResponse.ok()
     }
 
@@ -117,6 +129,7 @@ class TopicService(
         boardPostRepository.deleteAllByTopicNo(topicNo)
         boardTopicRepository.delete(topic)
 
+        events.publishEvent(SearchChangedEvent(SearchKind.BOARD, topicNo))
         return ApiResponse.ok()
     }
 }
