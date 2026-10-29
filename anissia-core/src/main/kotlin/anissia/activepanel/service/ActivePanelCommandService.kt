@@ -5,6 +5,7 @@ import anissia.account.repository.AccountRepository
 import anissia.activepanel.api.dto.ActivePanelCommandRequest
 import anissia.anime.service.AnimeCaptionService
 import anissia.search.SearchIndexService
+import anissia.search.SearchKind
 import anissia.security.Actor
 import anissia.support.ApiResponse
 import anissia.support.logger
@@ -95,14 +96,19 @@ class ActivePanelCommandService(
     private fun reindex(actor: Actor, drop: Boolean): ApiResponse<Unit> {
         actor.validateRoot()
 
-        val action = if (drop) "초기화" else "reindex"
-        activePanelLogService.addText("[${actor.name}]님이 검색엔진 $action 작업을 시작했습니다.", actor = actor)
+        val action = if (drop) "초기화" else "전체갱신"
+        val started = System.nanoTime()
+        activePanelLogService.addSearchProgress("[${actor.name}]님이 검색엔진 $action 작업을 시작했습니다.", actor)
         try {
-            val counts = searchIndexService.rebuild(drop)
-            activePanelLogService.addText("검색엔진 $action 완료: 애니 ${counts["anime"]}, 게시판 ${counts["board"]}, 템플릿 ${counts["template"]}, 이미지 ${counts["image"]}건. 대기 중 변경은 이어서 반영됩니다.", actor = actor)
+            val counts = searchIndexService.rebuild(drop) { kind, count ->
+                val name = when (kind) { SearchKind.ANIME -> "애니·위키"; SearchKind.BOARD -> "게시판"; SearchKind.TEMPLATE -> "템플릿"; SearchKind.IMAGE -> "이미지" }
+                activePanelLogService.addSearchProgress("검색엔진 $action 진행: $name ${count}건 색인 완료.", actor)
+            }
+            val seconds = (System.nanoTime() - started) / 1_000_000_000
+            activePanelLogService.addSearchProgress("검색엔진 $action 완료 (${seconds}초): 애니 ${counts["anime"]}, 게시판 ${counts["board"]}, 템플릿 ${counts["template"]}, 이미지 ${counts["image"]}건. 대기 중 변경은 이어서 반영됩니다.", actor)
         } catch (e: Exception) {
             log.error("search rebuild failed", e)
-            activePanelLogService.addText("검색엔진 $action 작업이 실패했습니다. 서버 로그와 인덱스 상태를 확인해 주세요.", actor = actor)
+            activePanelLogService.addSearchProgress("검색엔진 $action 작업이 실패했습니다. 서버 로그와 인덱스 상태를 확인해 주세요.", actor)
             return ApiResponse.fail("검색엔진 갱신을 완료하지 못했습니다. 인덱스 상태를 확인한 뒤 다시 시도해 주세요.")
         }
 

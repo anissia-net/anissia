@@ -3,6 +3,13 @@ package anissia.search
 import anissia.external.search.SearchClient
 import anissia.external.search.SearchResponse
 import anissia.support.Json
+import anissia.activepanel.domain.ActivePanel
+import anissia.activepanel.repository.ActivePanelRepository
+import anissia.activepanel.service.ActivePanelLogService
+import anissia.security.Actor
+import org.springframework.aop.framework.ProxyFactory
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
+import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -10,6 +17,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doAnswer
+import org.mockito.ArgumentMatchers.any
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.jdbc.datasource.DriverManagerDataSource
@@ -93,6 +103,16 @@ class SearchSyncMariaDbTest {
             val service = service(fake)
             assertEquals(SearchKind.entries.map { it.key }.toSet(), service.rebuild(reset).keys)
             assertEquals(4, fake.created.size)
+            assertEquals(4, fake.restored.size)
+            fake.created.values.forEach { definition ->
+                assertEquals("-1", Json.readTree(definition).path("settings").path("refresh_interval").asString())
+                assertEquals(0, Json.readTree(definition).path("settings").path("number_of_replicas").asInt())
+            }
+            fake.restored.values.forEach { restored ->
+                val settings = Json.readTree(restored).path("index")
+                if (reset) assertTrue(settings.path("refresh_interval").isNull)
+                else { assertEquals("30s", settings.path("refresh_interval").asString()); assertEquals(2, settings.path("number_of_replicas").asInt()) }
+            }
             assertEquals(8, Json.readTree(requireNotNull(fake.switched)).path("actions").size())
             if (!reset) fake.created.values.forEach { assertTrue(it.contains("previous_analyzer")) }
             else fake.created.values.forEach { assertTrue(it.contains("nori_tokenizer")) }
@@ -102,20 +122,63 @@ class SearchSyncMariaDbTest {
         assertNull(broken.switched)
     }
 
-    private fun service(client: SearchClient) = SearchIndexService(client, mock(SearchDocuments::class.java), ContentSearchRepository(client), queue, SearchWorkLock(source), false)
+    @Test
+    fun `bulk item failure leaves existing aliases untouched`() {
+        val documents = mock(SearchDocuments::class.java)
+        `when`(documents.ids(SearchKind.ANIME, "0", 100)).thenReturn(listOf("1"))
+        `when`(documents.loadBatch(SearchKind.ANIME, listOf("1"))).thenReturn(mapOf("1" to mapOf("title" to "작품")))
+        val client = IndexClient(failBulk = true)
+        assertThrows<IllegalStateException> { service(client, documents).rebuild(false) }
+        assertNull(client.switched)
+    }
+
+    @Test
+    fun `search progress commits before the surrounding command finishes`() {
+        val repository = mock(ActivePanelRepository::class.java)
+        doAnswer { invocation ->
+            val row = invocation.getArgument<ActivePanel>(0)
+            jdbc.update("INSERT INTO active_panel(published,code,status,an,data1,reg_dt) VALUES(false,'TEXT','',0,?,CURRENT_TIMESTAMP)", row.data1)
+            row
+        }.`when`(repository).save(any(ActivePanel::class.java))
+        val proxy = ProxyFactory(ActivePanelLogService(repository)).apply {
+            addAdvice(TransactionInterceptor(manager, AnnotationTransactionAttributeSource()))
+        }.proxy as ActivePanelLogService
+        val marker = "search-progress-$id"
+        try {
+            proxy.addSearchProgress(marker, Actor())
+            source.connection.use { connection ->
+                connection.prepareStatement("SELECT COUNT(*) FROM active_panel WHERE data1 = ?").use { statement ->
+                    statement.setString(1, marker)
+                    statement.executeQuery().use { result -> result.next(); assertEquals(1, result.getInt(1)) }
+                }
+            }
+            manager.rollback(tx)
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM active_panel WHERE data1 = ?", Int::class.java, marker))
+        } finally {
+            source.connection.use { connection -> connection.prepareStatement("DELETE FROM active_panel WHERE data1 = ?").use { statement -> statement.setString(1, marker); statement.executeUpdate() } }
+        }
+    }
+
+    private fun service(client: SearchClient, documents: SearchDocuments = mock(SearchDocuments::class.java)) = SearchIndexService(client, documents, ContentSearchRepository(client), queue, SearchWorkLock(source), false)
     private fun count() = jdbc.queryForObject("SELECT COUNT(*) FROM search_sync_task WHERE kind='image' AND entity_id=?", Long::class.java, id)
 
-    private class IndexClient(val failCreation: Boolean = false) : SearchClient {
+    private class IndexClient(val failCreation: Boolean = false, val failBulk: Boolean = false) : SearchClient {
         val created = linkedMapOf<String, String>()
+        val restored = linkedMapOf<String, String>()
         var switched: String? = null
         override fun request(method: String, endpoint: String, body: String?): SearchResponse {
             if (endpoint.startsWith("/_alias/")) return SearchResponse(200, """{"old_${endpoint.substringAfterLast('/')}":{}}""")
             if (endpoint == "/_aliases") { switched = body; return SearchResponse(200, """{"acknowledged":true}""") }
+            if (endpoint.endsWith("/_bulk") && failBulk) return SearchResponse(200, """{"errors":true,"items":[{"index":{"status":400}}]}""")
+            if (method == "PUT" && endpoint.endsWith("/_settings")) {
+                restored[endpoint] = requireNotNull(body)
+                return SearchResponse(200, "{}")
+            }
             if (method == "PUT") {
                 if (failCreation && created.isNotEmpty()) return SearchResponse(400, "{}")
                 created[endpoint] = requireNotNull(body)
             }
-            if (method == "GET" && !endpoint.endsWith("/_count")) return SearchResponse(200, """{"previous":{"settings":{"index":{"analysis":{"analyzer":{"previous_analyzer":{"type":"standard"}}}}},"mappings":{"properties":{}}}}""")
+            if (method == "GET" && !endpoint.endsWith("/_count")) return SearchResponse(200, """{"previous":{"settings":{"index":{"refresh_interval":"30s","number_of_replicas":"2","analysis":{"analyzer":{"previous_analyzer":{"type":"standard"}}}}},"mappings":{"properties":{}}}}""")
             return SearchResponse(200, if (endpoint.endsWith("/_count")) """{"count":0}""" else "{}")
         }
     }

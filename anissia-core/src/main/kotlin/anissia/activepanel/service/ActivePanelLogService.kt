@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Propagation
 
 @Service
 class ActivePanelLogService(
@@ -36,6 +37,11 @@ class ActivePanelLogService(
                 data1 = text,
             ),
         )
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun addSearchProgress(text: String, actor: Actor) {
+        addText(text, actor = actor)
     }
 
     @Transactional

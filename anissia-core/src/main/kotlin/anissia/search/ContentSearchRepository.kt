@@ -92,6 +92,34 @@ class ContentSearchRepository(private val client: SearchClient) {
         check(response.status in 200..299 || document == null && response.status == 404) { "Search write failed: ${kind.key}/$id status=${response.status}" }
     }
 
+    fun writeBatch(kind: SearchKind, documents: Map<String, Map<String, Any>>, target: String) {
+        val body = StringBuilder()
+        var bytes = 0
+        var count = 0
+        fun flush() {
+            if (count == 0) return
+            val response = client.request("POST", "/$target/_bulk", body.toString())
+            check(response.status in 200..299) { "Search bulk failed: ${kind.key} status=${response.status}" }
+            val result = Json.readTree(response.body)
+            val items = result.path("items")
+            check(items.size() == count && !result.path("errors").asBoolean(true) && items.all {
+                it.path("index").path("status").asInt() in 200..299
+            }) { "Search bulk contained failed or missing documents: ${kind.key}" }
+            body.setLength(0)
+            bytes = 0
+            count = 0
+        }
+        documents.forEach { (id, document) ->
+            val entry = Json.write(mapOf("index" to mapOf("_id" to id))) + "\n" + Json.write(document) + "\n"
+            val length = entry.toByteArray().size
+            if (bytes + length > 8 * 1024 * 1024) flush()
+            body.append(entry)
+            bytes += length
+            count++
+        }
+        flush()
+    }
+
     companion object {
         val MAPPING: String = requireNotNull(ContentSearchRepository::class.java.getResource("/elasticsearch/search-index.json")).readText()
     }

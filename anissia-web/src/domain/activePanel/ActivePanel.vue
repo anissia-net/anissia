@@ -10,8 +10,9 @@
 
       <div class="as-input-with-icon mb-5">
         <as-icon name="terminal"/>
-        <input type="text" name="query" v-model="query" @keyup.enter="doQuery" autocomplete="off" aria-label="운영기록 작성 및 명령어" placeholder="운영기록작성  /도움말" class="pr-4 py-3 as-input-text">
+        <input type="text" name="query" v-model="query" :disabled="running" @keyup.enter="doQuery" autocomplete="off" aria-label="운영기록 작성 및 명령어" placeholder="운영기록작성  /도움말" class="pr-4 py-3 as-input-text">
       </div>
+      <p v-if="running" role="status" class="as-meta mb-4">명령을 처리 중입니다. 진행 기록이 자동으로 갱신됩니다.</p>
 
       <div v-if="openHelp" class="p-5 mb-5 text-sm leading-[2] as-box">
         <div class="as-sub-title mb-3">명령어 도움말</div>
@@ -105,6 +106,10 @@ const query = ref('');
 const openHelp = ref(false);
 const translatorApplyCount = ref(0);
 const isAdminMode = ref(false);
+const running = ref(false);
+let active = true;
+let loadGeneration = 0;
+let progressTimer: ReturnType<typeof setInterval> | undefined;
 
 function loadTranslatorApplyCount() {
   translatorRemote.getAdminTranslatorApplyCount().then(count => translatorApplyCount.value = count);
@@ -112,18 +117,21 @@ function loadTranslatorApplyCount() {
 
 function load() {
   const isFirstPage = page.value == 0;
+  const generation = ++loadGeneration;
 
   activePanelRemote.getList(page.value, props.mode!!).then(pageData => {
+    if (!active || generation != loadGeneration) return;
     if (isFirstPage) {
       list.value = pageData;
     } else {
       list.value = list.value.merge(pageData);
     }
-    nextTick(() => sl.watch(pageData.next))
+    nextTick(() => { if (active && generation == loadGeneration) sl.watch(!running.value && pageData.next); });
   });
 }
 
-function doQuery() {
+async function doQuery() {
+  if (running.value) return;
   const line: string = query.value;
   query.value = '';
 
@@ -135,14 +143,21 @@ function doQuery() {
   }
 
   if (line.startsWith('/') || confirm('내용을 작성하시겠습니까?')) {
-    activePanelRemote.doCommand(line).then(result => {
-      if (result.code == 'ok') {
-        page.value = 0;
-        load();
-      } else {
-        toast.error(result.message);
-      }
-    });
+    running.value = true;
+    if (line.trim().startsWith('/검색엔진 ')) {
+      progressTimer = setInterval(() => { page.value = 0; load(); }, 2000);
+    }
+    try {
+      const result = await activePanelRemote.doCommand(line);
+      if (!result) throw new Error('명령 응답을 받지 못했습니다.');
+      if (result.code != 'ok') toast.error(result.message);
+    } catch {
+      toast.error('명령 응답을 받지 못했습니다. 서버에서 계속 처리 중일 수 있으니 운영기록을 확인해 주세요.');
+    } finally {
+      clearInterval(progressTimer);
+      running.value = false;
+      if (active) { page.value = 0; load(); }
+    }
   }
 }
 
@@ -157,6 +172,8 @@ if (isAdminMode.value) {
 load();
 
 onUnmounted(() => {
+  active = false;
+  clearInterval(progressTimer);
   sl.destroy();
 });
 
