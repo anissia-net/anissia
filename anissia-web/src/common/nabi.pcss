@@ -25,6 +25,9 @@
 
 .nabi.nabi.nabi,
 .nabi-scrim.nabi-scrim.nabi-scrim,
+.nabi-diff.nabi-diff.nabi-diff,
+.nabi-diff-screen.nabi-diff-screen.nabi-diff-screen,
+.nabi-merge.nabi-merge.nabi-merge,
 .nabi-content.nabi-content.nabi-content {
     /*
      * `--nabi-bg` 는 편집 자리의 바탕이 아니라 **떠 있는 것들**(단추 줄, 판, 알림, 미리보기 상자,
@@ -78,12 +81,18 @@
 /* 편집기의 강조 면은 진한 로즈색이므로 밝은 글자를 쓴다. */
 html.light .nabi.nabi.nabi,
 html.light .nabi-scrim.nabi-scrim.nabi-scrim,
+html.light .nabi-diff.nabi-diff.nabi-diff,
+html.light .nabi-diff-screen.nabi-diff-screen.nabi-diff-screen,
+html.light .nabi-merge.nabi-merge.nabi-merge,
 html.light .nabi-content.nabi-content.nabi-content {
     --nabi-on-accent: #fffcf7;
 }
 
 /* 어둠에서 흰 종이는 눈을 찌른다 — 읽는 글(`.as-post`)과 같은 한 단 밝은 면을 쓴다. */
 html.dark .nabi.nabi.nabi,
+html.dark .nabi-diff.nabi-diff.nabi-diff,
+html.dark .nabi-diff-screen.nabi-diff-screen.nabi-diff-screen,
+html.dark .nabi-merge.nabi-merge.nabi-merge,
 html.dark .nabi-content.nabi-content.nabi-content {
     --nabi-bg: var(--as-canvas-2);
 }
@@ -234,4 +243,81 @@ html.dark .nabi-content.nabi-content.nabi-content {
 /* 단추 줄은 종이 폭을 꽉 채운다 — 양옆 여백 없이 테두리(1px) 바로 안쪽까지. */
 .nabi .nabi-toolbar > .nabi-toolbar-row {
     padding-inline: 0.0625rem;
+}
+
+/* 1.6 handles live under body and copy tokens only when selection changes.
+ * Read site tokens directly so switching themes also updates an already visible handle. */
+.nabi-move-handle.nabi-move-handle {
+    color: var(--as-brand);
+    background: var(--as-glass-strong);
+    border-color: var(--as-line-2);
+    box-shadow: var(--as-shadow-2);
+    transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.nabi-move-handle.nabi-move-handle:is(:hover, :focus-visible) {
+    color: var(--as-brand-2);
+    background: var(--as-choice-bg);
+    border-color: var(--as-brand);
+    box-shadow: var(--as-ring), var(--as-shadow-2);
+    transform: translateY(-2px);
+}
+.nabi-move-handle.nabi-move-handle:active { transform: translateY(1px); cursor: grabbing; }
+.nabi-move-handle.nabi-move-handle:focus-visible { outline-color: var(--as-brand); }
+
+.nabi-diff .nabi-diff-btn {
+    color: var(--as-ink-2);
+    border-color: var(--as-line-2);
+    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.nabi-diff .nabi-diff-btn[aria-pressed="false"]:is(:hover, :focus-visible):not(:disabled) {
+    color: var(--as-brand);
+    background: var(--as-choice-bg);
+}
+.nabi-diff .nabi-diff-btn[aria-pressed="true"]:not(:disabled) {
+    color: var(--nabi-on-accent);
+    background: var(--as-brand);
+    border-color: var(--as-brand);
+    box-shadow: var(--as-shadow-brand);
+}
+.nabi-diff .nabi-diff-btn [data-nabi-icon="diff-fold"] {
+    background-image: none;
+    background-color: currentColor;
+    mask: var(--nabi-default-icon-diff-fold) center / contain no-repeat;
+    transition: transform 180ms ease;
+}
+.nabi-diff .nabi-diff-btn[aria-pressed="true"] [data-nabi-icon="diff-fold"] {
+    background-image: none;
+    transform: scaleY(.72);
+}
+.nabi-diff .nabi-diff-btn:focus-visible { outline: 2px solid var(--as-brand); outline-offset: 2px; }
+.nabi-diff .nabi-diff-btn:active:not(:disabled) { transform: translateY(2px); }
+.nabi-diff .nabi-diff-gap { border-block: 1px solid var(--as-line-2); }
+.nabi-diff.nabi-diff .nabi-diff-gap::before { color: var(--as-brand); font-weight: 700; }
+
+/* The gutter remains visible through >> until hover or keyboard focus. */
+.nabi-diff .nabi-diff-merge-action,
+.nabi-merge.nabi-merge button.nabi-merge-line-action {
+    background: transparent;
+    border: 0;
+    color: var(--as-ink-2);
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+.nabi-diff .nabi-diff-merge-action:is(:hover, :focus-visible):not(:disabled),
+.nabi-merge.nabi-merge button.nabi-merge-line-action:is(:hover, :focus-visible):not(:disabled) {
+    color: var(--as-brand-2);
+    background: var(--as-choice-bg);
+    box-shadow: inset 0 0 0 1px var(--as-brand);
+}
+.nabi-diff .nabi-diff-merge-action svg { transition: translate 160ms ease; }
+.nabi-diff .nabi-diff-merge-action:is(:hover, :focus-visible):not(:disabled) svg { translate: 2px 0; }
+.nabi-diff .nabi-diff-merge-action:dir(rtl):is(:hover, :focus-visible):not(:disabled) svg { translate: -2px 0; }
+html.light .nabi-merge.nabi-merge { --nabi-merge-base: #98602f; --nabi-merge-incoming: #387456; --nabi-merge-conflict: #ac465b; }
+html.dark .nabi-merge.nabi-merge { --nabi-merge-base: #e6bb8e; --nabi-merge-incoming: #75d7ac; --nabi-merge-conflict: #f49c9c; }
+
+@media (prefers-reduced-motion: reduce) {
+    .nabi-move-handle.nabi-move-handle,
+    .nabi-diff .nabi-diff-btn,
+    .nabi-diff .nabi-diff-btn [data-nabi-icon],
+    .nabi-diff .nabi-diff-merge-action svg,
+    .nabi-merge.nabi-merge button.nabi-merge-line-action { transition: none; }
 }

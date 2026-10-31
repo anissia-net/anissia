@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import 'nabi-note/nabi.css';
 import '../../common/nabi.pcss';
+import {resolveNoteLink} from '../../common/noteLink';
 import './wiki.pcss';
 import {nextTick, onBeforeUnmount, onMounted, ref} from 'vue';
 import {onBeforeRouteLeave, onBeforeRouteUpdate} from 'vue-router';
@@ -99,7 +100,7 @@ onMounted(() => {
   nabi.setJson(props.modelValue.blocks);
   cleanBody = JSON.stringify(props.savedBody ? normalizeWikiBlocks(props.savedBody, knownTemplates, props.allowTemplates !== false) : nabi.getJson());
   const registry = built.registry, content = surface.value!;
-  const editor = mountSurface({nabi, registry, root: content, locale: 'ko', placeholder: props.allowTemplates === false ? '공유할 템플릿 내용을 작성해 주세요.' : '이 작품의 위키를 함께 작성해 주세요.'});
+  const editor = mountSurface({nabi, registry, root: content, locale: 'ko', onPasteUrl: resolveNoteLink, placeholder: props.allowTemplates === false ? '공유할 템플릿 내용을 작성해 주세요.' : '이 작품의 위키를 함께 작성해 주세요.'});
   const settle = watchSettle(document, {surface: content});
   const shared = {nabi, registry, surface: content, settle, locale: 'ko'};
   const tools = mountToolbar({...shared, root: toolbar.value!, onHost: wing => { if (wing === 'img') void openImages(); if (wing === 'exTemplateInclude') void openTemplates(); }});

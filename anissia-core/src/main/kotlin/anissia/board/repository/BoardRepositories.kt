@@ -14,6 +14,9 @@ interface BoardTickerRepository : JpaRepository<BoardTicker, String>
 
 interface BoardTopicRepository : JpaRepository<BoardTopic, Long> {
 
+    @Query("select t.topic from BoardTopic t where t.ticker = :ticker and t.topicNo = :topicNo")
+    fun findTitleByTickerAndTopicNo(ticker: String, topicNo: Long): String?
+
     @EntityGraph(attributePaths = ["account"])
     fun findWithAccountByTickerAndTopicNo(ticker: String, topicNo: Long): BoardTopic?
 

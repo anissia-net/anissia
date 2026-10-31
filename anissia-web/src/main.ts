@@ -6,6 +6,7 @@ import {createPinia} from "pinia";
 import {vChoice} from "./common/choice";
 import {installEdgeLight} from "./common/edgeLight";
 import AsIcon from "./common/icon/AsIcon.vue";
+import {installNoteMotion} from './common/noteMotion';
 
 const __origin = location.origin;
 const __server_list = ['https://anissia.net', 'https://test.anissia.net', 'http://localhost', 'http://192.', 'http://172.', 'http://10.'];
@@ -24,4 +25,5 @@ createApp(App)
 installEdgeLight(router);
 installPrefetch();
 installNoteNavigation();
+installNoteMotion();
 installAnalytics();

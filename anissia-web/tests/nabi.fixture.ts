@@ -1,0 +1,27 @@
+import '../src/common/style.pcss';
+import 'nabi-note/nabi.css';
+import '../src/common/nabi.pcss';
+import '../src/domain/wiki/wiki.pcss';
+import {createNabiWith, mountSurface} from 'nabi-note';
+import {mountDiff} from 'nabi-note/diff';
+import {mountMerge} from 'nabi-note/merge';
+import {wikiWings} from '../src/domain/wiki/wikiNote';
+import {resolveNoteLink} from '../src/common/noteLink';
+import {installNoteMotion} from '../src/common/noteMotion';
+
+document.body.style.cssText = 'padding:40px;max-width:1100px;margin:auto';
+document.body.innerHTML = '<div class="nabi" id="editor"><div class="nabi-content" contenteditable="true"></div></div><div id="diff"></div><div id="merge"></div>';
+const p = (text: string) => ({w: 'p', ch: [text]});
+const template = {templateNo: 17, title: '이동할 템플릿', revision: 1, body: {schemaVersion: 1, blocks: [p('템플릿 본문입니다.')]}};
+const wings = wikiWings(() => [template]);
+const {nabi, registry} = createNabiWith(wings, {locale: 'ko'});
+const blocks = [p('첫 문단'), {w: 'p', ch: [{w: 'exTemplateInclude', a: {exTemplateNo: '17'}, ch: []}]}, p('이동 목적지'), p('마지막 문단')];
+nabi.setJson(blocks);
+const surface = document.querySelector<HTMLElement>('#editor .nabi-content')!;
+const editor = mountSurface({nabi, registry, root: surface, locale: 'ko', onPasteUrl: resolveNoteLink});
+installNoteMotion();
+const before = Array.from({length: 18}, (_, i) => p(`문단 ${i + 1}`));
+const after = before.map((block, i) => i === 8 ? p('변경된 문단') : block);
+const diff = mountDiff({root: document.querySelector('#diff')!, registry, before, after, locale: 'ko', onMerge() {}});
+const merge = mountMerge({root: document.querySelector('#merge')!, base: before, local: after, incoming: before.map((block, i) => i === 8 ? p('다른 사용자의 문단') : block), wings, locale: 'ko', onConfirm() {}});
+(window as any).fixture = {nabi, editor, diff, merge, blocks, surface};

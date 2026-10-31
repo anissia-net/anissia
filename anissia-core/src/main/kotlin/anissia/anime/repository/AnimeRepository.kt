@@ -6,8 +6,12 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 
 interface AnimeRepository : JpaRepository<Anime, Long> {
+
+    @Query("select a.subject from Anime a where a.animeNo = :animeNo")
+    fun findSubjectByAnimeNo(animeNo: Long): String?
 
     fun findAllByStatusNotAndWeek(status: AnimeStatus, week: String): List<Anime>
 

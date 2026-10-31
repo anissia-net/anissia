@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import "nabi-note/nabi.css";
 import "../../common/nabi.pcss";
+import {resolveNoteLink} from '../../common/noteLink';
 import {computed, onBeforeUnmount, onMounted, Ref, ref, watch} from "vue";
 import {Post} from "./Post";
 import {useRouter} from "vue-router";
@@ -224,7 +225,7 @@ onMounted(() => {
   // 화면에 붙기 전에 글을 넣는다 — mountSurface 가 그때의 문서를 한 번에 그리므로 두 번 그리지 않는다.
   nabi.setHtml(content.value);
 
-  const editSurface = mountSurface({nabi, registry, root: surface, locale: 'ko', placeholder: placeholderText.value});
+  const editSurface = mountSurface({nabi, registry, root: surface, locale: 'ko', placeholder: placeholderText.value, onPasteUrl: resolveNoteLink});
   const settle = watchSettle(document, {surface});
   const shared = {nabi, registry, surface, settle, locale: 'ko'};
 

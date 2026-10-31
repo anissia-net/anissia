@@ -1,6 +1,6 @@
 import {wikiLocation} from './wikiLocation';
 
-export function mountWikiTemplateMenu(surface: HTMLElement, exists: (templateNo: string) => boolean) {
+export function mountWikiTemplateMenu(surface: HTMLElement, exists: (templateNo: string) => boolean, onSelect?: (target: HTMLElement) => void) {
   const owner = surface.ownerDocument, view = owner.defaultView!;
   let dismiss: (() => void) | undefined;
   const close = () => { dismiss?.(); dismiss = undefined; };
@@ -9,6 +9,7 @@ export function mountWikiTemplateMenu(surface: HTMLElement, exists: (templateNo:
 
   function open(target: HTMLElement) {
     close();
+    onSelect?.(target);
     const templateNo = target.dataset.templateNo;
     if (!templateNo || !exists(templateNo)) return;
     const panel = owner.createElement('div');

@@ -12,6 +12,8 @@
 .nabi [data-template-editor] { cursor: pointer; user-select: none; -webkit-user-select: none; }
 .nabi [data-template-editor] * { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
 .nabi [data-template-editor]:is(.is-template-selected, :focus-visible) { border-style: solid; border-color: var(--as-brand); outline: none; }
+.as-wiki-template-move[hidden], .as-wiki-template-drop[hidden] { display: none; }
+.as-wiki-template-drop { position: fixed; height: 3px; z-index: 1200; pointer-events: none; background: var(--as-brand); box-shadow: var(--as-ring); }
 .as-wiki-template-menu {
   display: flex;
   position: fixed;

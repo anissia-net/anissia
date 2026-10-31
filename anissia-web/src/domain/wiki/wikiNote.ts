@@ -2,6 +2,7 @@ import {createNabiWith, insertLump, makeRegistry, renderStoredHtml, type Wing} f
 import {noteWings} from '../../common/note';
 import type {WikiBody, WikiTemplate} from './wikiRemote';
 import {mountWikiTemplateMenu} from './wikiTemplateMenu';
+import {mountWikiTemplateMove, moveWikiTemplate} from './wikiTemplateMove';
 
 export function wikiWings(templates: () => WikiTemplate[] = () => [], allowTemplates = true): readonly Wing[] {
   const base = noteWings().filter(wing => !['diff', 'localHistory'].includes(wing.w)).map(wing =>
@@ -12,7 +13,7 @@ export function wikiWings(templates: () => WikiTemplate[] = () => [], allowTempl
     w: 'exTemplateInclude', place: 'void', noAlign: true, attrs: ['exTemplateNo'],
     repair: node => ({...node, ch: []}),
     button: {group: 'media', icon: 'table-grid', label: {ko: '템플릿 추가'}, action: {kind: 'host'}},
-    commands: {insertWikiTemplate(doc, selection, args, env) {
+    commands: {moveWikiTemplate, insertWikiTemplate(doc, selection, args, env) {
       const item = templates().find(item => String(item.templateNo) === String(args.templateNo));
       if (!item) return null;
       const result = insertLump(doc, selection.focus, {w: 'exTemplateInclude', a: {exTemplateNo: String(item.templateNo)}, ch: []}, env);
@@ -27,7 +28,11 @@ export function wikiWings(templates: () => WikiTemplate[] = () => [], allowTempl
         ...(context.keys ? {'data-template-editor': 'true', contenteditable: 'false', draggable: 'false', tabindex: '0', role: 'button', 'aria-label': `${item?.title ?? '템플릿'} 템플릿 수정`} : {}),
       });
     },
-    attach: host => mountWikiTemplateMenu(host.root, templateNo => templates().some(item => String(item.templateNo) === templateNo)),
+    attach: host => {
+      const move = mountWikiTemplateMove(host);
+      const menu = mountWikiTemplateMenu(host.root, templateNo => templates().some(item => String(item.templateNo) === templateNo), move.select);
+      return () => { menu(); move.unmount(); };
+    },
   };
   return [...base.map(wing => ({...wing,
     ...(wing.w === 'float' ? {scopedCommands: [...(wing.scopedCommands ?? []), 'insertWikiTemplate']} : {}),
