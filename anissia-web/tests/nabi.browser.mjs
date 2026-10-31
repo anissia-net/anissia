@@ -1,10 +1,13 @@
 // Run against Vite: PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/nabi.browser.mjs
 import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({headless: true, ...(process.env.CHROME_PATH ? {executablePath: process.env.CHROME_PATH} : {})});
 const page = await browser.newPage({viewport: {width: 1280, height: 1000}});
 const errors = [], requests = [];
-page.on('pageerror', error => errors.push(error.message));
+// The app's HTML plugin replaces every entry script; serve this isolated fixture unchanged.
+await page.route('**/tests/nabi.fixture.html', route => route.fulfill({path: fileURLToPath(new URL('./nabi.fixture.html', import.meta.url)), contentType: 'text/html'}));
+page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
 await page.route('**/link/title?**', async route => {
   requests.push(route.request().url());
   await route.fulfill({json: {code: 'ok', data: {title: '조회한 실제 제목 <안전한 텍스트>'}}});
@@ -13,7 +16,7 @@ try {
   await page.goto((process.env.TEST_BASE_URL || 'http://localhost:5186') + '/tests/nabi.fixture.html');
   await page.waitForFunction(() => !!window.fixture);
   const template = page.locator('#editor [data-template-editor]');
-  const handle = page.locator('.as-wiki-template-move');
+  const handle = page.locator('.as-wiki-template-move').first();
   const button = page.locator('#diff [aria-pressed]');
   const arrow = page.locator('#diff .nabi-diff-merge-action').first();
   const states = [];
