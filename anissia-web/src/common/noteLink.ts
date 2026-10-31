@@ -33,6 +33,7 @@ export function createNoteLinkResolver(options: {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 1500);
     const entry = {expires: Infinity, promise: Promise.resolve<string | null>(null)};
+    cache.set(key, entry);
     entry.promise = (async () => {
       try {
         // No page HTML, authentication preflight or global loading/error UI for optional labels.
@@ -50,7 +51,6 @@ export function createNoteLinkResolver(options: {
         return null;
       } finally { clearTimeout(timeout); }
     })();
-    cache.set(key, entry);
     if (cache.size > 64) cache.delete(cache.keys().next().value!);
     return entry.promise;
   };

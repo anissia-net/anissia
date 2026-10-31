@@ -24,6 +24,13 @@ test('moving out of the last nested slot leaves a valid empty paragraph', () => 
   assert.deepEqual(result.doc[0].ch[0].ch, [{w: 'p', ch: []}]);
   assert.equal(result.doc[2].ch[0].a.exTemplateNo, '17');
 });
+test('dropping next to the source container moves the reference without duplicating it', () => {
+  const doc = [{w: 'p', _id: 'quote', ch: [{w: 'quote', ch: [template('t')]}]}, paragraph('a')];
+  const result = moveWikiTemplate(doc, selection, {sourceKey: 't', targetKey: 'quote', after: true}, env);
+  assert.deepEqual(result.doc[0].ch[0].ch, [{w: 'p', ch: []}]);
+  assert.equal(result.doc[1].ch[0].a.exTemplateNo, '17');
+  assert.equal(JSON.stringify(result.doc).match(/exTemplateInclude/g).length, 1);
+});
 test('Nabi records template movement as one undoable edit', () => {
   const {nabi} = createNabiWith([...wings().allBasic().build(), {
     w: 'exTemplateInclude', place: 'void', attrs: ['exTemplateNo'], commands: {moveWikiTemplate},

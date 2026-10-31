@@ -9,6 +9,8 @@
 .as-wiki-dialog::backdrop { background: #0007; }
 .nabi [data-template-no][contenteditable="false"] { border: .125rem dotted var(--as-line-2); padding: .5rem; }
 .as-wiki-template-caption { display: block; font-size: .75rem; text-align: right; color: var(--as-ink-3); }
+.nabi [data-template-editor] > .as-wiki-template-caption { min-height: 2rem; padding-inline-start: 3rem; }
+@media (pointer: coarse) { .nabi [data-template-editor] > .as-wiki-template-caption { min-height: 3rem; } }
 .nabi [data-template-editor] { cursor: pointer; user-select: none; -webkit-user-select: none; }
 .nabi [data-template-editor] * { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
 .nabi [data-template-editor]:is(.is-template-selected, :focus-visible) { border-style: solid; border-color: var(--as-brand); outline: none; }

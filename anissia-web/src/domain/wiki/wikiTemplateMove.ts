@@ -36,7 +36,10 @@ export const moveWikiTemplate: Command = (doc, _selection, args, env) => {
   const removed = replace(doc, source, parent?.ch.length === 1 ? [{w: 'p', ch: []}] : []) as ElementNode[];
   const shiftedTarget = findPath(removed, String(args.targetKey));
   if (!shiftedTarget) return null;
-  const result = replace(removed, shiftedTarget, after ? [destination, block] : [block, destination]) as ElementNode[];
+  // The destination may wrap the source (moving out of a quote/table/float).
+  // Read it after removal so the old template is not reinserted inside that wrapper.
+  const remainingTarget = at(removed, shiftedTarget)!;
+  const result = replace(removed, shiftedTarget, after ? [remainingTarget, block] : [block, remainingTarget]) as ElementNode[];
   const path = [...shiftedTarget];
   if (after) path[path.length - 1]! += 1;
   return {doc: result, selection: {anchor: {path, offset: 0}, focus: {path, offset: 1}}};
@@ -65,8 +68,10 @@ export function mountWikiTemplateMove(host: AttachHost) {
     if (handle.hidden || !template) return;
     const rect = template.getBoundingClientRect(), bounds = root.getBoundingClientRect();
     handle.hidden = rect.top < Math.max(0, bounds.top) || rect.top >= Math.min(view.innerHeight, bounds.bottom);
-    handle.style.left = `${Math.max(bounds.left, Math.min(rect.left + rect.width / 2 - 22, bounds.right - 44))}px`;
-    handle.style.top = `${Math.max(0, rect.top - (handle.offsetHeight || 28) + 4)}px`;
+    // Use the template's caption row; an enclosing table/quote already has its
+    // own handle above the block, and overlapping it would drag the parent.
+    handle.style.left = `${Math.max(bounds.left, Math.min(rect.left + 6, bounds.right - 44))}px`;
+    handle.style.top = `${Math.max(0, rect.top + 4)}px`;
   };
   const schedule = () => { if (!disposed && !frame && !gesture) frame = view.requestAnimationFrame(position); };
   const cancel = () => {

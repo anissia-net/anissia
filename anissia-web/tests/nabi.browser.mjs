@@ -22,9 +22,15 @@ try {
   const states = [];
   for (const theme of ['light', 'dark']) {
     await page.evaluate(theme => document.documentElement.className = theme, theme);
+    await page.waitForTimeout(200);
     await template.click();
     await handle.waitFor({state: 'visible'});
     const grip = await handle.evaluate(el => ({color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor}));
+    assert.ok(await page.evaluate(() => [...document.querySelectorAll('#editor, #diff, .nabi-merge-shell')].every(el => {
+      const style = getComputedStyle(el);
+      return style.getPropertyValue('--nabi-accent').trim() === style.getPropertyValue('--as-brand').trim()
+        && style.getPropertyValue('--nabi-fg').trim() === style.getPropertyValue('--as-ink-2').trim();
+    })), 'runtime sheets must not replace site theme tokens');
     const active = await button.evaluate(el => ({background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color}));
     const plain = await arrow.evaluate(el => getComputedStyle(el).backgroundColor);
     assert.equal(plain, 'rgba(0, 0, 0, 0)');
@@ -49,11 +55,12 @@ try {
   assert.notEqual(states[0].active.background, states[1].active.background);
   console.log('PASS themed handles, fold states and movement, transparent/hover arrows', states);
 
-  await template.click(); await handle.focus(); await page.keyboard.press('Alt+ArrowDown');
+  await template.click(); await handle.waitFor({state: 'visible'}); await handle.focus(); await page.keyboard.press('Alt+ArrowDown');
   assert.equal(await page.evaluate(() => window.fixture.nabi.getJson()[2].ch[0].w), 'exTemplateInclude');
   await page.evaluate(() => window.fixture.nabi.undo());
   assert.equal(await page.evaluate(() => window.fixture.nabi.getJson()[1].ch[0].w), 'exTemplateInclude');
   await template.click();
+  await handle.waitFor({state: 'visible'});
   const grip = await handle.boundingBox();
   const destination = await page.locator('#editor .nabi-content > [data-key]').last().boundingBox();
   await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2); await page.mouse.down();
@@ -65,6 +72,21 @@ try {
   await page.evaluate(() => window.fixture.nabi.undo());
   assert.equal(await page.evaluate(() => window.fixture.nabi.getJson()[1].ch[0].w), 'exTemplateInclude');
   console.log('PASS keyboard + pointer template movement and undo');
+
+  // Moving from a table cell to beside the containing table must not leave a second reference.
+  await page.evaluate(() => window.fixture.nabi.setJson([
+    {w: 'p', ch: [{w: 'table', ch: [{w: 'tr', ch: [{w: 'td', ch: [{w: 'p', ch: [{w: 'exTemplateInclude', a: {exTemplateNo: '17'}, ch: []}]}]}]}]}]},
+    {w: 'p', ch: ['표 밖 목적지']},
+  ]));
+  await template.click(); await handle.waitFor({state: 'visible'});
+  const cellGrip = await handle.boundingBox(), outside = await page.locator('#editor .nabi-content > p').last().boundingBox();
+  await page.mouse.move(cellGrip.x + cellGrip.width / 2, cellGrip.y + cellGrip.height / 2); await page.mouse.down();
+  await page.mouse.move(outside.x + 90, outside.y + outside.height - 2, {steps: 10}); await page.mouse.up();
+  assert.equal(await page.evaluate(() => window.fixture.nabi.getJson().at(-1).ch[0].w), 'exTemplateInclude');
+  assert.equal(await template.count(), 1);
+  await page.evaluate(() => window.fixture.nabi.undo());
+  assert.equal(await page.locator('#editor td [data-template-editor]').count(), 1);
+  console.log('PASS moving a template out of a table and undo');
 
   await page.evaluate(() => {
     const {nabi, surface} = window.fixture;
@@ -85,4 +107,18 @@ try {
     return document.querySelector('#diff').getAnimations({subtree: true}).filter(a => a.effect?.getTiming().duration === 240).length;
   }), 0);
   assert.deepEqual(errors, []);
+
+  const touch = await browser.newPage({viewport: {width: 430, height: 850}, hasTouch: true, isMobile: true});
+  await touch.route('**/tests/nabi.fixture.html', route => route.fulfill({path: fileURLToPath(new URL('./nabi.fixture.html', import.meta.url)), contentType: 'text/html'}));
+  await touch.goto(page.url()); await touch.waitForFunction(() => !!window.fixture);
+  await touch.locator('#editor [data-template-editor]').tap();
+  const touchHandle = touch.locator('.as-wiki-template-move').first(); await touchHandle.waitFor({state: 'visible'});
+  const start = await touchHandle.boundingBox(), end = await touch.locator('#editor .nabi-content > p').last().boundingBox();
+  const cdp = await touch.context().newCDPSession(touch);
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x: start.x + start.width / 2, y: start.y + start.height / 2}]});
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: end.x + 70, y: end.y + end.height - 2}]});
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
+  assert.equal(await touch.evaluate(() => window.fixture.nabi.getJson().at(-1).ch[0].w), 'exTemplateInclude');
+  await touch.close();
+  console.log('PASS touch template drag');
 } finally { await browser.close(); }

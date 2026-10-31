@@ -2,8 +2,8 @@
  * nabi-note 를 사이트 토큰에 맞춘다.
  *
  * 글꼴은 코어가 선언하지 않고 읽기만 하는 값이라 `:root` 한 줄이면 상속으로 닿는다.
- * 색·모양은 코어가 `.nabi` 자리에 직접 선언하므로 상속으로는 이길 수 없다 — 클래스를 셋 겹쳐
- * (0,3,0) 을 만들어야 코어의 밝음/어둠 규칙보다 확실히 위에 선다.
+ * 코어는 마운트할 때 테마 규칙(0,3,0)을 다시 삽입한다. 네 겹(0,4,0)으로
+ * 편집기·비교·병합의 사이트 토큰이 스타일 삽입 순서와 관계없이 우선하게 한다.
  * 세 자리에 다 건다: 편집기 뿌리, 덮개(미리보기·라이트박스 — body 의 자식이라 상속이 안 닿는다),
  * 홀로 선 보기 뿌리(글만 그리는 자리).
  */
@@ -23,12 +23,12 @@
     --nabi-sticky-top: 0rem;
 }
 
-.nabi.nabi.nabi,
-.nabi-scrim.nabi-scrim.nabi-scrim,
-.nabi-diff.nabi-diff.nabi-diff,
-.nabi-diff-screen.nabi-diff-screen.nabi-diff-screen,
-.nabi-merge.nabi-merge.nabi-merge,
-.nabi-content.nabi-content.nabi-content {
+.nabi.nabi.nabi.nabi,
+.nabi-scrim.nabi-scrim.nabi-scrim.nabi-scrim,
+.nabi-diff.nabi-diff.nabi-diff.nabi-diff,
+.nabi-diff-screen.nabi-diff-screen.nabi-diff-screen.nabi-diff-screen,
+.nabi-merge.nabi-merge.nabi-merge.nabi-merge,
+.nabi-content.nabi-content.nabi-content.nabi-content {
     /*
      * `--nabi-bg` 는 편집 자리의 바탕이 아니라 **떠 있는 것들**(단추 줄, 판, 알림, 미리보기 상자,
      * 전체화면)의 바탕이다. 투명으로 두면 판과 알림이 글 위로 비쳐 읽을 수 없게 된다.
@@ -98,7 +98,7 @@ html.dark .nabi-content.nabi-content.nabi-content {
 }
 
 /* 덮개는 유리로 뜬다 — 뒤가 살짝 비친다. 종이색을 물려받으면 안 되므로 뒤에 적는다. */
-.nabi-scrim.nabi-scrim.nabi-scrim {
+.nabi-scrim.nabi-scrim.nabi-scrim.nabi-scrim {
     --nabi-bg: var(--as-glass-strong);
 }
 
@@ -285,7 +285,7 @@ html.dark .nabi-content.nabi-content.nabi-content {
     mask: var(--nabi-default-icon-diff-fold) center / contain no-repeat;
     transition: transform 180ms ease;
 }
-.nabi-diff .nabi-diff-btn[aria-pressed="true"] [data-nabi-icon="diff-fold"] {
+.nabi-diff .nabi-diff-btn[aria-pressed="true"]:not(:disabled) [data-nabi-icon="diff-fold"] {
     background-image: none;
     transform: scaleY(.72);
 }
@@ -319,5 +319,5 @@ html.dark .nabi-merge.nabi-merge { --nabi-merge-base: #e6bb8e; --nabi-merge-inco
     .nabi-diff .nabi-diff-btn,
     .nabi-diff .nabi-diff-btn [data-nabi-icon],
     .nabi-diff .nabi-diff-merge-action svg,
-    .nabi-merge.nabi-merge button.nabi-merge-line-action { transition: none; }
+    .nabi-merge.nabi-merge button.nabi-merge-line-action { transition: none !important; }
 }
