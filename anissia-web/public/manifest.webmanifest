@@ -3,7 +3,6 @@
   "name": "애니시아",
   "short_name": "애니시아",
   "lang": "ko",
-  "start_url": "/notifications",
   "scope": "/",
   "display": "standalone",
   "background_color": "#101827",
