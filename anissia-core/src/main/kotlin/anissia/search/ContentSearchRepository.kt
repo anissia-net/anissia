@@ -61,8 +61,15 @@ class ContentSearchRepository(private val client: SearchClient) {
         if (ended) constraints.add(mapOf("term" to mapOf("status" to "END")))
         val bool = mutableMapOf<String, Any>("filter" to constraints)
         if (words.isNotEmpty()) bool["must"] = listOf(textQuery(words, kind, analyzed?.partialWords ?: words))
-        val sort = if (ended && words.isEmpty()) listOf(mapOf("endDate" to "desc"), mapOf("id" to "asc"))
-            else listOf(mapOf("_score" to "desc")) + (if (ended) listOf(mapOf("endDate" to "desc")) else emptyList()) + listOf(mapOf("id" to "asc"))
+        val sort = buildList<Map<String, Any>> {
+            if (!ended || words.isNotEmpty()) add(mapOf("_score" to "desc"))
+            if (kind == SearchKind.ANIME && words.isNotEmpty()) {
+                add(mapOf("startDateSort" to mapOf("order" to "desc", "missing" to "_last", "unmapped_type" to "long")))
+            } else if (ended) {
+                add(mapOf("endDate" to "desc"))
+            }
+            add(mapOf("id" to "asc"))
+        }
         val response = try {
             client.request("POST", "/${index.name}/_search", Json.write(mapOf(
                 "_source" to if (withDetails) listOf("title", "originalTitle") else false, "track_total_hits" to true, "query" to mapOf("bool" to bool),
@@ -95,28 +102,36 @@ class ContentSearchRepository(private val client: SearchClient) {
         fun combined(fields: List<String>) = mapOf("combined_fields" to mapOf("query" to text, "fields" to fields, "operator" to "and"))
         fun either(queries: List<Map<String, Any>>) = mapOf("bool" to mapOf("minimum_should_match" to 1, "should" to queries))
         val titles = listOf("title", "originalTitle")
-        val partial = mapOf("bool" to mapOf("must" to partialWords.map { word ->
-            val escaped = word.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?")
-            either(titles.map { mapOf("wildcard" to mapOf("$it.partial" to mapOf("value" to "*$escaped*"))) })
-        }))
+        fun titleContains(literal: String): Map<String, Any> {
+            val escaped = literal.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?")
+            return either(titles.map { mapOf("wildcard" to mapOf("$it.partial" to mapOf("value" to "*$escaped*"))) })
+        }
+        val literalText = partialWords.joinToString(" ")
+        val prioritizeLiteral = kind == SearchKind.ANIME && partialWords.isNotEmpty()
+        // A single literal word is already handled by the fixed-score title group.
+        val partial = if (partialWords.isNotEmpty() && !(prioritizeLiteral && partialWords.size == 1))
+            mapOf("bool" to mapOf("must" to partialWords.map(::titleContains))) else null
         val titleMatch = combined(listOf("title^8", "originalTitle^6"))
         val phrase = either(titles.map { mapOf("match_phrase" to mapOf(it to mapOf("query" to text))) })
         val analyzedMatch = combined(listOf("title^8", "originalTitle^6", "info^3", "body", "comments"))
-        val all = if (partialWords.isNotEmpty()) either(listOf(analyzedMatch, partial)) else analyzedMatch
+        val all = if (partial != null) either(listOf(analyzedMatch, partial)) else analyzedMatch
         val tiers = mutableListOf<Map<String, Any>>(
             mapOf("filter" to phrase, "weight" to 400),
             mapOf("filter" to titleMatch, "weight" to 300),
         )
-        if (partialWords.isNotEmpty()) {
-            tiers.add(mapOf("filter" to either(titles.map { mapOf("term" to mapOf("$it.partial" to partialWords.joinToString(" "))) }), "weight" to 500))
-            tiers.add(mapOf("filter" to partial, "weight" to 250))
-        }
+        if (partialWords.isNotEmpty() && !prioritizeLiteral)
+            tiers.add(mapOf("filter" to either(titles.map { mapOf("term" to mapOf("$it.partial" to literalText)) }), "weight" to 500))
+        if (partial != null) tiers.add(mapOf("filter" to partial, "weight" to 250))
         if (kind == SearchKind.ANIME) tiers.add(mapOf("filter" to combined(listOf("title", "originalTitle", "info")), "weight" to 200))
         tiers.add(mapOf("filter" to mapOf("match_all" to emptyMap<String, Any>()), "weight" to 100))
-        return mapOf("function_score" to mapOf(
+        val relevance = mapOf("function_score" to mapOf(
             "query" to mapOf("script_score" to mapOf("query" to all, "script" to mapOf("source" to "_score / (1.0 + _score)"))),
             "functions" to tiers, "score_mode" to "max", "boost_mode" to "sum",
         ))
+        if (!prioritizeLiteral) return relevance
+        // All literal title hits tie above the relevance tiers (maximum 500 plus a fraction).
+        val literal = mapOf("constant_score" to mapOf("filter" to titleContains(literalText), "boost" to 1000))
+        return mapOf("dis_max" to mapOf("queries" to listOf(literal, relevance), "tie_breaker" to 0))
     }
 
     fun write(kind: SearchKind, id: String, document: Map<String, Any>?, target: String = kind.alias) {

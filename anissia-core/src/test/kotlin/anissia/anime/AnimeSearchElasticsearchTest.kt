@@ -48,14 +48,28 @@ class AnimeSearchElasticsearchTest {
     private fun find(q: String) = repository.search(SearchKind.ANIME, q, 0, 30).ids
 
     @Test
-    fun `exact title then phrase then partial title then anime info then wiki regardless of frequency`() {
-        save(1, "바다", body = "짧은 본문")
-        save(2, "바다 여행")
-        save(3, "바다코끼리")
-        save(4, "우주 여행", info = "바다")
-        save(5, "학교 이야기", body = "바다 ".repeat(1000))
+    fun `literal titles and originals sort by premiere followed by info and wiki relevance`() {
+        save(1, "바다", extra = mapOf("startDateSort" to 20100101))
+        save(2, "바다코끼리", extra = mapOf("startDateSort" to 20250101))
+        save(3, "다른 제목", original = "푸른 바다 여행", extra = mapOf("startDateSort" to 20250101))
+        save(4, "바다 모험")
+        save(5, "우주 여행", info = "바다", extra = mapOf("startDateSort" to 20170101))
+        save(6, "학교 이야기", body = "바다 ".repeat(1000), extra = mapOf("startDateSort" to 20290101))
         refresh()
-        assertEquals(listOf("1", "2", "3", "4", "5"), find("바다"))
+        assertEquals(listOf("2", "3", "1", "4", "5", "6"), find("바다"))
+        assertEquals("1", repository.search(SearchKind.BOARD, "바다", 0, 10).ids.first())
+    }
+
+    @Test
+    fun `a multiword literal must occur contiguously in one title`() {
+        save(1, "하늘 여행", original = "the BLUE SKY", extra = mapOf("startDateSort" to 20100101))
+        save(2, "Blue distant sky", extra = mapOf("startDateSort" to 20280101))
+        save(3, "blue", original = "sky", extra = mapOf("startDateSort" to 20290101))
+        save(4, "The blue sky returns", extra = mapOf("startDateSort" to 20260101))
+        refresh()
+        val hits = find("Blue sky")
+        assertEquals(listOf("4", "1"), hits.take(2))
+        assertEquals(setOf("2", "3"), hits.drop(2).toSet())
     }
 
     @Test
@@ -87,8 +101,8 @@ class AnimeSearchElasticsearchTest {
         assertTrue(client.deleteIndex(index))
         val created = client.request("PUT", "/$index", DictionaryAnalysis.definition(rules))
         assertEquals(200, created.status, created.body)
-        save(1, "애니시아")
-        save(2, "Anissia")
+        save(1, "애니시아", extra = mapOf("startDateSort" to 20100101))
+        save(2, "Anissia", extra = mapOf("startDateSort" to 20290101))
         save(3, "틀린 이름")
         save(4, "마법")
         save(5, "Cowboy Bebop")
@@ -127,23 +141,25 @@ class AnimeSearchElasticsearchTest {
 
     @Test
     fun `completed keyword search prioritizes title while filter-only search orders by end date`() {
-        save(1, "바다", extra = mapOf("status" to "END", "endDate" to 20260101))
+        save(1, "바다", extra = mapOf("status" to "END", "startDateSort" to 20100101, "endDate" to 20260101))
         save(2, "우주", body = "바다", extra = mapOf("status" to "END", "endDate" to 20261231))
+        save(3, "바다 여행", extra = mapOf("status" to "END", "startDateSort" to 20200101, "endDate" to 20220101))
         refresh()
-        assertEquals(listOf("1", "2"), find("바다 /완결"))
-        assertEquals(listOf("2", "1"), find("/완결"))
+        assertEquals(listOf("3", "1", "2"), find("바다 /완결"))
+        assertEquals(listOf("2", "1", "3"), find("/완결"))
     }
 
     @Test
     fun `pagination reports total and a stable remainder`() {
-        for (id in 1..35) save(id, "페이지 $id")
+        for (id in 1..31) save(id, "페이지 $id", extra = mapOf("startDateSort" to 20260100 + id))
+        for (id in 32..35) save(id, "여행", body = "페이지", extra = mapOf("startDateSort" to 20290101))
         refresh()
         val first = repository.search(SearchKind.ANIME, "페이지", 0, 30)
         val second = repository.search(SearchKind.ANIME, "페이지", 1, 30)
         assertEquals(35L, first.total)
-        assertEquals(30, first.ids.size)
-        assertEquals(5, second.ids.size)
-        assertEquals(35, (first.ids + second.ids).toSet().size)
+        assertEquals(35L, second.total)
+        assertEquals((31 downTo 2).map(Int::toString), first.ids)
+        assertEquals(listOf("1", "32", "33", "34", "35"), second.ids)
     }
 
     @Test

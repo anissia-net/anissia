@@ -19,7 +19,8 @@
       "ticker": {"type": "keyword"},
       "genres": {"type": "keyword", "normalizer": "folded"},
       "translators": {"type": "keyword", "normalizer": "folded"},
-      "endDate": {"type": "long"}
+      "endDate": {"type": "long"},
+      "startDateSort": {"type": "long", "index": false}
     }
   }
 }

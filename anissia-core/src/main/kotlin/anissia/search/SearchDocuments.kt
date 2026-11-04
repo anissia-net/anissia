@@ -1,6 +1,7 @@
 package anissia.search
 
 import anissia.support.Json
+import anissia.support.Texts
 import anissia.wiki.WikiBody
 import anissia.wiki.WikiBodyValidator
 import anissia.wiki.WikiTemplateSnapshot
@@ -8,6 +9,11 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+
+internal fun animeStartDateSort(startDate: String): Long? {
+    if (startDate.isEmpty() || !Texts.isAnimeDate(startDate)) return null
+    return startDate.replace("-99", "-00").replace("-", "").toLong()
+}
 
 @Service
 class SearchDocuments(private val jdbc: JdbcTemplate) {
@@ -64,10 +70,12 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
                 doc["originalTitle"] = row.text("original_subject")
                 doc["status"] = row.text("status")
                 doc["genres"] = row.text("genres").split(',').map { it.trim() }.filter { it.isNotEmpty() }
+                val startDate = row.text("start_date")
+                animeStartDateSort(startDate)?.let { doc["startDateSort"] = it }
                 doc["endDate"] = row.text("end_date").replace("-", "").toLongOrNull() ?: 0L
                 doc["translators"] = translators
                 val week = listOf("일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "기타", "신작").getOrNull(row.text("week").toIntOrNull() ?: -1).orEmpty()
-                doc["info"] = listOf(week, row.text("time"), row.text("genres"), row.text("note"), row.text("start_date"), row.text("end_date"), row.text("website"), row.text("x"),
+                doc["info"] = listOf(week, row.text("time"), row.text("genres"), row.text("note"), startDate, row.text("end_date"), row.text("website"), row.text("x"),
                     when (row.text("status")) { "END" -> "완결"; "ON" -> if (row.text("week") in listOf("7", "8")) "신작 기타" else "방영중"; else -> "결방" },
                     (doc["translators"] as List<*>).joinToString(" ")).joinToString(" ")
                 doc["body"] = SearchText.wiki(wiki, included)
