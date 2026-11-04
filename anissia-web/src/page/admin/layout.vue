@@ -14,12 +14,15 @@
       <router-link to="/admin/caption" :class="{'is-on': url('/admin/caption')}">
         <img src="./layout/tab-caption.svg" alt=""/><span>자막</span>
       </router-link>
+      <router-link to="/admin/search" aria-label="검색" :class="{'is-on': url('/admin/search')}">
+        <img src="./layout/tab-search.svg" alt=""/><span>검색</span>
+      </router-link>
     </nav>
   </div>
   <div>
     <router-view v-slot="{Component, route}">
       <KeepAlive :include="['AdminAnimeList', 'AdminSchedule', 'AdminCaption']" :max="12">
-        <component :is="Component" :key="route.fullPath"/>
+        <component :is="Component" :key="route.name === 'admin-search' ? 'admin-search' : route.fullPath"/>
       </KeepAlive>
     </router-view>
   </div>
@@ -39,7 +42,7 @@ const url = anissia.url
 
 .as-segment.admin-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 
   > a {
     @apply flex flex-col items-center justify-center gap-2 w-full aspect-square max-h-[5.75rem] p-0 text-xs font-semibold;

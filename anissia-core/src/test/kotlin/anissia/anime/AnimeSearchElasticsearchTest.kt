@@ -5,6 +5,9 @@ import anissia.external.search.SearchClient
 import anissia.external.search.SearchResponse
 import anissia.search.ContentSearchRepository
 import anissia.search.SearchKind
+import anissia.search.DictionaryAnalysis
+import anissia.search.DictionaryInspector
+import anissia.search.DictionaryRule
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +28,7 @@ class AnimeSearchElasticsearchTest {
         assertEquals(200, response.status, response.body)
         repository = ContentSearchRepository(object : SearchClient {
             override fun request(method: String, endpoint: String, body: String?): SearchResponse {
-                val prefix = SearchKind.entries.map { "/${it.alias}" }.first { endpoint.startsWith("$it/") }
+                val prefix = SearchKind.entries.map { "/${it.alias}" }.firstOrNull { endpoint.startsWith("$it/") } ?: "/$index"
                 val result = client.request(method, "/$index" + endpoint.removePrefix(prefix), body)
                 assertTrue(result.status in 200..299, result.body)
                 return result
@@ -71,6 +74,35 @@ class AnimeSearchElasticsearchTest {
         refresh()
         assertEquals(listOf("1"), find("학교로 친구에게"))
         assertEquals(listOf("1"), find("한국 어 형태 소"))
+    }
+
+    @Test
+    fun `published index applies all four dictionaries to actual tokens and title searches`() {
+        val rules = listOf(
+            DictionaryRule("1", "user-dictionary", "애니시아", ""),
+            DictionaryRule("2", "synonyms", "애니시아", "anissia"),
+            DictionaryRule("3", "corrections", "틀린 이름", "애니시아"),
+            DictionaryRule("4", "stopwords", "마법", ""),
+        )
+        assertTrue(client.deleteIndex(index))
+        val created = client.request("PUT", "/$index", DictionaryAnalysis.definition(rules))
+        assertEquals(200, created.status, created.body)
+        save(1, "애니시아")
+        save(2, "Anissia")
+        save(3, "틀린 이름")
+        save(4, "마법")
+        save(5, "Cowboy Bebop")
+        refresh()
+        val tested = DictionaryInspector(repository).inspect(SearchKind.ANIME, SearchKind.ANIME.alias, "틀린 이름")
+        assertEquals("애니시아", tested.analysis.corrected)
+        assertEquals(listOf("애니시아"), tested.analysis.raw)
+        assertEquals(setOf("애니시아", "anissia"), tested.analysis.tokens.toSet())
+        assertEquals(listOf("1", "2"), find("틀린 이름"))
+        assertEquals(find("틀린 이름"), tested.results.map { it.id })
+        assertEquals(listOf("애니시아", "Anissia"), tested.results.map { it.title })
+        assertTrue(find("마법").isEmpty(), "A removed term must not reappear via title wildcard")
+        assertEquals(setOf("1", "2"), find("마법 애니시아").toSet())
+        assertEquals(listOf("5"), find("마법 bop"))
     }
 
     @Test

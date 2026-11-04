@@ -12,6 +12,10 @@ class LocalSearchClient : SearchClient {
 
     override fun request(method: String, endpoint: String, body: String?): SearchResponse {
         log.debug("Local Mock Elasticsearch: {} {}", method, endpoint)
+        if (endpoint.contains("/_mapping?")) {
+            val index = endpoint.removePrefix("/").substringBefore('/')
+            return SearchResponse(200, """{"$index":{"mappings":{"dynamic":"strict"}}}""")
+        }
         return SearchResponse(status = 200, body = EMPTY_SEARCH_RESULT)
     }
 

@@ -16,30 +16,56 @@ enum class SearchKind(val key: String, val table: String, val idColumn: String) 
 
 data class ContentSearchResult(val ids: List<String>, val total: Long)
 
+internal data class SearchTerms(val words: List<String>, val genres: List<String>, val translators: List<String>, val ended: Boolean)
+
+internal fun searchTerms(kind: SearchKind, query: String): SearchTerms {
+    val terms = query.trim().lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotBlank() }
+    val genres = if (kind == SearchKind.ANIME) terms.filter { it.startsWith('#') && it.length > 1 }.map { it.drop(1) } else emptyList()
+    val translators = if (kind == SearchKind.ANIME) terms.filter { it.startsWith('@') && it.length > 1 }.map { it.drop(1) } else emptyList()
+    val ended = kind == SearchKind.ANIME && "/완결" in terms
+    val words = if (kind == SearchKind.ANIME) terms.filterNot { it == "/완결" || it.length > 1 && (it.startsWith('#') || it.startsWith('@')) } else terms
+    return SearchTerms(words, genres, translators, ended)
+}
+
 @Repository
 class ContentSearchRepository(private val client: SearchClient) {
     private val log = logger<ContentSearchRepository>()
 
+    internal val analyzer = SearchAnalyzer(client)
+
     fun search(kind: SearchKind, query: String, page: Int, size: Int, filters: Map<String, Any> = emptyMap()): ContentSearchResult {
+        val result = execute(kind, kind.alias, query, page, size, filters, withDetails = false)
+        return ContentSearchResult(result.hits.map { it.id }, result.total)
+    }
+
+    internal fun inspect(kind: SearchKind, target: String, query: String): SearchInspection {
+        val filters = if (kind == SearchKind.TEMPLATE || kind == SearchKind.IMAGE) mapOf("status" to "READY") else emptyMap()
+        val result = execute(kind, target, query, 0, 10, filters, withDetails = true)
+        return SearchInspection(requireNotNull(result.analysis), result.hits, result.total)
+    }
+
+    private data class Result(val hits: List<DictionaryHit>, val total: Long, val analysis: DictionaryTokens?)
+
+    private fun execute(kind: SearchKind, target: String, query: String, page: Int, size: Int, filters: Map<String, Any>, withDetails: Boolean): Result {
         require(query.length <= 300 && page >= 0 && size in 1..100 && (page.toLong() + 1) * size <= 10_000) {
             "검색어는 300자 이내이며 최대 10,000번째 결과까지 조회할 수 있습니다."
         }
-        val terms = query.trim().lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotBlank() }
-        val genres = if (kind == SearchKind.ANIME) terms.filter { it.startsWith('#') && it.length > 1 }.map { it.drop(1) } else emptyList()
-        val translators = if (kind == SearchKind.ANIME) terms.filter { it.startsWith('@') && it.length > 1 }.map { it.drop(1) } else emptyList()
-        val ended = kind == SearchKind.ANIME && "/완결" in terms
-        val words = if (kind == SearchKind.ANIME) terms.filterNot { it == "/완결" || it.length > 1 && (it.startsWith('#') || it.startsWith('@')) } else terms
+        val index = analyzer.resolve(target)
+        val (originalWords, genres, translators, ended) = searchTerms(kind, query)
+        val corrected = index.correct(originalWords.joinToString(" "))
+        val words = if (corrected.isEmpty()) emptyList() else corrected.split(' ')
+        val analyzed = if (withDetails || index.stopwords.isNotEmpty() && words.isNotEmpty()) analyzer.analyze(index, query, corrected) else null
         val constraints = filters.map { (key, value) -> if (value is Collection<*>) mapOf("terms" to mapOf(key to value)) else mapOf("term" to mapOf(key to value)) }.toMutableList()
         genres.forEach { constraints.add(mapOf("term" to mapOf("genres" to it))) }
         if (translators.isNotEmpty()) constraints.add(mapOf("terms" to mapOf("translators" to translators)))
         if (ended) constraints.add(mapOf("term" to mapOf("status" to "END")))
         val bool = mutableMapOf<String, Any>("filter" to constraints)
-        if (words.isNotEmpty()) bool["must"] = listOf(textQuery(words, kind))
+        if (words.isNotEmpty()) bool["must"] = listOf(textQuery(words, kind, analyzed?.partialWords ?: words))
         val sort = if (ended && words.isEmpty()) listOf(mapOf("endDate" to "desc"), mapOf("id" to "asc"))
             else listOf(mapOf("_score" to "desc")) + (if (ended) listOf(mapOf("endDate" to "desc")) else emptyList()) + listOf(mapOf("id" to "asc"))
         val response = try {
-            client.request("POST", "/${kind.alias}/_search", Json.write(mapOf(
-                "_source" to false, "track_total_hits" to true, "query" to mapOf("bool" to bool),
+            client.request("POST", "/${index.name}/_search", Json.write(mapOf(
+                "_source" to if (withDetails) listOf("title", "originalTitle") else false, "track_total_hits" to true, "query" to mapOf("bool" to bool),
                 "sort" to sort, "from" to page * size, "size" to size,
             )))
         } catch (e: java.io.IOException) {
@@ -55,29 +81,36 @@ class ContentSearchRepository(private val client: SearchClient) {
             throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "검색을 완료하지 못했습니다. 다시 시도해 주세요.")
         }
         val hits = result.path("hits")
-        val found = ContentSearchResult(hits.path("hits").valueStream().map { it.path("_id").asString() }.toList(), hits.path("total").path("value").asLong())
+        val found = Result(hits.path("hits").toList().map {
+            val id = it.path("_id").asString()
+            val source = it.path("_source")
+            DictionaryHit(id, source.path("title").asString("").ifBlank { source.path("originalTitle").asString(id) })
+        }, hits.path("total").path("value").asLong(), analyzed?.analysis)
         log.info("search type={} query={} results={}", kind.key, Json.write(query), found.total)
         return found
     }
 
-    private fun textQuery(words: List<String>, kind: SearchKind): Map<String, Any> {
+    private fun textQuery(words: List<String>, kind: SearchKind, partialWords: List<String>): Map<String, Any> {
         val text = words.joinToString(" ")
         fun combined(fields: List<String>) = mapOf("combined_fields" to mapOf("query" to text, "fields" to fields, "operator" to "and"))
         fun either(queries: List<Map<String, Any>>) = mapOf("bool" to mapOf("minimum_should_match" to 1, "should" to queries))
         val titles = listOf("title", "originalTitle")
-        val partial = mapOf("bool" to mapOf("must" to words.map { word ->
+        val partial = mapOf("bool" to mapOf("must" to partialWords.map { word ->
             val escaped = word.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?")
             either(titles.map { mapOf("wildcard" to mapOf("$it.partial" to mapOf("value" to "*$escaped*"))) })
         }))
         val titleMatch = combined(listOf("title^8", "originalTitle^6"))
         val phrase = either(titles.map { mapOf("match_phrase" to mapOf(it to mapOf("query" to text))) })
-        val all = either(listOf(combined(listOf("title^8", "originalTitle^6", "info^3", "body", "comments")), partial))
+        val analyzedMatch = combined(listOf("title^8", "originalTitle^6", "info^3", "body", "comments"))
+        val all = if (partialWords.isNotEmpty()) either(listOf(analyzedMatch, partial)) else analyzedMatch
         val tiers = mutableListOf<Map<String, Any>>(
-            mapOf("filter" to either(titles.map { mapOf("term" to mapOf("$it.partial" to text)) }), "weight" to 500),
             mapOf("filter" to phrase, "weight" to 400),
             mapOf("filter" to titleMatch, "weight" to 300),
-            mapOf("filter" to partial, "weight" to 250),
         )
+        if (partialWords.isNotEmpty()) {
+            tiers.add(mapOf("filter" to either(titles.map { mapOf("term" to mapOf("$it.partial" to partialWords.joinToString(" "))) }), "weight" to 500))
+            tiers.add(mapOf("filter" to partial, "weight" to 250))
+        }
         if (kind == SearchKind.ANIME) tiers.add(mapOf("filter" to combined(listOf("title", "originalTitle", "info")), "weight" to 200))
         tiers.add(mapOf("filter" to mapOf("match_all" to emptyMap<String, Any>()), "weight" to 100))
         return mapOf("function_score" to mapOf(

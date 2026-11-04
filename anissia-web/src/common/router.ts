@@ -42,6 +42,7 @@ const adminAnime = () => import('../page/admin/anime.vue')
 const adminAnimeDetail = () => import('../page/admin/animeDetail.vue')
 const adminSchedule = () => import('../page/admin/schedule.vue')
 const adminCaption = () => import('../page/admin/caption.vue')
+const adminSearch = () => import('../page/admin/search.vue')
 
 const defaultTitle = import.meta.env.VITE_TITLE;
 const trackingId = import.meta.env.VITE_GA_TRACKING_ID;
@@ -99,6 +100,8 @@ const router = createRouter({
             { path: '/admin/anime/:animeNo([1-9]\\d*)', component: adminAnimeDetail, meta: { title: '애니메이션편집 - 애니시아' } },
             { path: '/admin/schedule', component: adminSchedule, meta: { title: '애니편성표 관리 - 애니시아' } },
             { path: '/admin/caption', component: adminCaption, meta: { title: '자막 관리 - 애니시아' } },
+            { path: '/admin/search', redirect: to => ({path: '/admin/search/user-dictionary', query: to.query}) },
+            { path: '/admin/search/:category(user-dictionary|synonyms|corrections|stopwords)', name: 'admin-search', component: adminSearch, meta: { title: '검색 관리 - 애니시아' } },
           ]
         },
         { path: '/anitime/:path(.*)', component: p301, meta: { title: '주소이전 - 애니시아' } },
