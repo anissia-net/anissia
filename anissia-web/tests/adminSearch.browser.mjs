@@ -30,7 +30,7 @@ await context.route('**/api/**', async route => {
       } else if (req.method() === 'POST') {
         const {term, value, revision} = req.postDataJSON();
         assert.equal(revision, state.revision);
-        entries[cat].push({id: 'added', term, value});
+        entries[cat].push({id: 'added-' + state.revision, term, value});
         state.revision++;
         state.candidate = null;
       } else if (req.method() === 'DELETE') {
@@ -69,6 +69,19 @@ try {
   await page.waitForURL('**/admin/search/user-dictionary');
   await page.getByText('초전자포', {exact: true}).waitFor();
   assert.ok(await page.getByRole('navigation', {name: '사전 종류'}).isVisible());
+  await page.getByText('분해 단위 · 초 전자포', {exact: true}).waitFor();
+  await page.getByRole('button', {name: '단어 추가'}).click();
+  assert.equal(await page.getByRole('textbox', {name: '분해 단위'}).count(), 0);
+  await page.getByLabel('등록할 단어').fill('이세계');
+  await page.getByRole('button', {name: '초안에 추가'}).click();
+  await page.getByRole('button', {name: '이세계 삭제'}).waitFor();
+  assert.equal(entries['user-dictionary'].find(rule => rule.term === '이세계').value, '');
+  await page.getByRole('button', {name: '단어 추가'}).click();
+  await page.getByLabel('등록할 단어').fill('초능력자');
+  await page.getByRole('checkbox', {name: '복합어 분해 직접 지정'}).check();
+  await page.getByLabel('분해 단위', {exact: true}).fill('초능력 자');
+  await page.getByRole('button', {name: '초안에 추가'}).click();
+  await page.getByText('분해 단위 · 초능력 자', {exact: true}).waitFor();
   await page.getByRole('searchbox', {name: '검색어'}).fill('초전자포');
   await page.waitForFunction(() => new URL(location.href).searchParams.get('q') === '초전자포');
   await page.getByText('Nori 토크나이저 분해').waitFor();

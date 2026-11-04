@@ -39,20 +39,28 @@
         <div class="flex items-center justify-between gap-3">
           <h3 class="font-semibold">{{ info.label }} <span v-if="rules" class="as-meta">{{ rules.total }}건</span></h3>
           <button class="as-input-btn py-1.5" type="button" :disabled="locked" :aria-expanded="adding" @click="toggleAdd">
-            {{ adding ? '닫기' : '규칙 추가' }}
+            {{ adding ? '닫기' : isUserDictionary ? '단어 추가' : '규칙 추가' }}
           </button>
         </div>
+        <p v-if="isUserDictionary" class="as-desc mt-2">{{ info.hint }}</p>
         <form v-if="adding" class="grid gap-3 py-4" @submit.prevent="addRule">
-          <div class="grid gap-3 cq-md:grid-cols-2">
+          <div class="grid gap-3" :class="{'cq-md:grid-cols-2': info.value && !isUserDictionary}">
             <label class="grid gap-1 text-sm">{{ info.term }}
               <input ref="termInput" v-model="term" class="as-input-text p-2" maxlength="100" required autocomplete="off"/>
             </label>
-            <label v-if="info.value" class="grid gap-1 text-sm">{{ info.value }}
-              <input v-model="value" class="as-input-text p-2" :maxlength="category === 'corrections' ? 100 : 500"
-                     :required="category !== 'user-dictionary'" autocomplete="off"/>
+            <label v-if="info.value && !isUserDictionary" class="grid gap-1 text-sm">{{ info.value }}
+              <input v-model="value" class="as-input-text p-2" :maxlength="category === 'corrections' ? 100 : 500" required autocomplete="off"/>
             </label>
           </div>
-          <p class="as-meta">{{ info.hint }}</p>
+          <div v-if="isUserDictionary" class="text-sm">
+            <label class="inline-flex items-center gap-2">
+              <input v-model="useSegmentation" type="checkbox"/> 복합어 분해 직접 지정
+            </label>
+            <label v-if="useSegmentation" class="grid gap-1 mt-2">{{ info.value }}
+              <input v-model="value" class="as-input-text p-2" placeholder="공백으로 구분해 입력하세요" maxlength="500" required autocomplete="off"/>
+            </label>
+          </div>
+          <p v-else class="as-meta">{{ info.hint }}</p>
           <button class="as-btn-primary py-2 justify-self-start" type="submit" :disabled="locked || !term.trim()">초안에 추가</button>
         </form>
 
@@ -97,6 +105,7 @@ import toast from '../../common/toast';
 
 const route = useRoute(), router = useRouter();
 const category = computed(() => route.params.category as Category);
+const isUserDictionary = computed(() => category.value === 'user-dictionary');
 const info = computed(() => categories[category.value]);
 const query = computed(() => typeof route.query.q === 'string' ? route.query.q.trim() : '');
 const input = ref(query.value);
@@ -107,6 +116,7 @@ const analysis = ref<Analysis | null>(null);
 const stateError = ref(''), rulesError = ref(''), analysisError = ref(''), actionError = ref('');
 const pending = ref(false), adding = ref(false);
 const term = ref(''), value = ref(''), termInput = ref<HTMLInputElement>();
+const useSegmentation = ref(false);
 let formRevision = 0;
 const locked = computed(() => !state.value || !!stateError.value || pending.value || state.value.busy);
 let searchTimer: ReturnType<typeof setTimeout>;
@@ -184,6 +194,7 @@ function toggleAdd() {
     formRevision = state.value!.revision;
     term.value = input.value.trim();
     value.value = '';
+    useSegmentation.value = false;
     void nextTick(() => termInput.value?.focus());
   }
 }
@@ -211,7 +222,8 @@ async function mutate(action: () => Promise<unknown>, success: string, done?: ()
 function addRule() {
   if (!state.value) return;
   const selected = category.value, revision = formRevision;
-  void mutate(() => searchAdmin.add(selected, term.value.trim(), value.value.trim(), revision), '규칙을 초안에 추가했습니다.', () => { adding.value = false; });
+  const ruleValue = isUserDictionary.value && !useSegmentation.value ? '' : value.value.trim();
+  void mutate(() => searchAdmin.add(selected, term.value.trim(), ruleValue, revision), '초안에 추가했습니다.', () => { adding.value = false; });
 }
 function removeRule(rule: SearchRule) {
   if (!state.value || !confirm(`초안에서 ‘${rule.term}’ 규칙을 삭제할까요?`)) return;

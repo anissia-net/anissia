@@ -1,7 +1,7 @@
 import sessionService from '../session/remote/sessionService';
 
 export const categories = {
-  'user-dictionary': {label: '사용자 사전', term: '표제어', value: '분해할 단어', hint: '나눌 단어를 공백으로 구분하세요. 한 단어로 유지하려면 비워 두세요.'},
+  'user-dictionary': {label: '사용자 사전', term: '등록할 단어', value: '분해 단위', hint: '‘이세계’를 한 단어로 검색하려면 ‘이세계’만 입력하세요.'},
   synonyms: {label: '동의어', term: '기준 표현', value: '동의 표현', hint: '같은 뜻으로 검색할 표현을 쉼표로 구분하세요.'},
   corrections: {label: '교정어', term: '입력 표현', value: '교정할 표현', hint: '입력 표현을 검색 전에 어떤 표현으로 바꿀지 지정하세요.'},
   stopwords: {label: '불용어', term: '제외할 단어', value: '', hint: '검색 분석에서 제외할 토큰을 입력하세요.'},
