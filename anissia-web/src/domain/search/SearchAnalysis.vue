@@ -20,7 +20,7 @@ import type {Analysis} from './adminSearch';
 
 const props = defineProps<{analysis: Analysis}>();
 const rows = computed(() => [
-  {label: 'Nori 토크나이저 분해', tokens: props.analysis.raw},
+  {label: '토크나이저 분해', tokens: props.analysis.raw},
   {label: '검색에 사용하는 최종 토큰', tokens: props.analysis.tokens},
 ]);
 </script>

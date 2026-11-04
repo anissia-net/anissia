@@ -1,6 +1,7 @@
 package anissia.wiki
 
 import anissia.account.domain.Account
+import anissia.account.domain.AccountRole
 import anissia.account.repository.AccountRepository
 import anissia.anime.domain.Anime
 import anissia.anime.repository.AnimeRepository
@@ -89,7 +90,8 @@ class WikiConcurrencyMariaDbTest {
         val unique = UUID.randomUUID().toString()
         tx {
             accountNo = accounts.saveAndFlush(Account(email = "$unique@wiki.invalid", name = "wiki-${unique.take(8)}",
-                password = "not-a-login-password", regDt = OffsetDateTime.now().minusDays(30))).an
+                password = "not-a-login-password", regDt = OffsetDateTime.now().minusDays(30),
+                roles = mutableSetOf(AccountRole.ROOT))).an
             animeNo = anime.saveAndFlush(Anime(subject = "wiki-concurrency-$unique")).animeNo
         }
     }
@@ -217,7 +219,6 @@ class WikiConcurrencyMariaDbTest {
     @Test
     fun `template delete sees newly committed usage after waiting for its lock`() {
         val templateNo = createTemplate()
-        tx { jdbc.update("INSERT INTO account_role (an, role) VALUES (?, 'TRANSLATOR')", accountNo) }
         val edited = CountDownLatch(1)
         val snapshot = CountDownLatch(1)
         val release = CountDownLatch(1)

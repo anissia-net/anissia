@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onUnmounted, ref, watch} from 'vue';
+import {computed, nextTick, onActivated, onUnmounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import PageData from '../../common/PageData';
 import {useListScroll} from '../../common/useListScroll';
@@ -48,15 +48,19 @@ const boardInfo = ref(new BoardInfo());
 const list = ref(PageData.empty<Topic>().notLoaded());
 const user = computed(() => sessionStore().user);
 const route = useRoute(), router = useRouter();
-const submittedQuery = computed(() => typeof route.query.q === 'string' ? route.query.q.trim() : '');
-const query = ref(''), error = ref(''), loading = ref(false), composing = ref(false);
+// Each full URL has its own cached list; hidden entries must keep their own search.
+const submittedQuery = typeof route.query.q === 'string' ? route.query.q.trim() : '';
+const query = ref(submittedQuery), error = ref(''), loading = ref(false), composing = ref(false);
 let page = 0, active = true, generation = 0;
 const sl = useListScroll(() => { if (!loading.value && !error.value) { page++; void loadList(); } });
-watch(submittedQuery, value => { query.value = value; }, {immediate: true});
+onActivated(() => {
+  query.value = submittedQuery;
+  composing.value = false;
+});
 function search() {
   if (composing.value) return;
   const q = query.value.trim();
-  if (q === submittedQuery.value) { page = 0; void loadList(); }
+  if (q === submittedQuery) { page = 0; void loadList(); }
   else void router.push({path: route.path, query: {...route.query, q: q || undefined}});
 }
 
@@ -67,7 +71,7 @@ async function loadList() {
   loading.value = true; error.value = ''; sl.watch(false);
   if (first) list.value = PageData.empty<Topic>();
   try {
-    const data = await boardRemote.getList(props.ticker, page, submittedQuery.value);
+    const data = await boardRemote.getList(props.ticker, page, submittedQuery);
     if (!active || expected !== generation) return;
     list.value = first ? data : list.value.merge(data);
     await nextTick();
@@ -88,6 +92,6 @@ topicUpdates.subscribe((id, changes) => {
 });
 
 boardRemote.getTicker(props.ticker).then(info => { if (active) boardInfo.value = info; });
-watch([submittedQuery, () => props.ticker], () => { page = 0; void loadList(); }, {immediate: true});
+watch(() => props.ticker, () => { page = 0; void loadList(); }, {immediate: true});
 onUnmounted(() => { active = false; ++generation; });
 </script>

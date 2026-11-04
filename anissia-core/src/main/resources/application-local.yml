@@ -2,7 +2,7 @@ env: local
 host: http://localhost:5173
 
 spring.datasource:
-  url: jdbc:mariadb://localhost:3306/anissia
+  url: jdbc:mariadb://127.0.0.1:3306/anissia_rocks
   username: anissia
   password: anissia
 
@@ -14,9 +14,6 @@ elasticsearch:
 spring:
   config:
     import: optional:file:../.local/anissia.properties,optional:file:./.local/anissia.properties
-  jpa:
-    hibernate:
-      ddl-auto: update
 
 anissia.wiki.upload:
   enabled: ${ANISSIA_WIKI_UPLOAD_ENABLED:true}

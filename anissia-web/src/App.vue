@@ -11,6 +11,7 @@ import {onBeforeMount, onUnmounted, watch} from "vue";
 import {syncPushOwner} from './domain/push/pushDevice';
 import Session from './domain/session/Session';
 import toast from './common/toast';
+import {onSaveShortcut} from './common/saveShortcut';
 
 const router = useRouter();
 const session = sessionStore();
@@ -52,7 +53,12 @@ const onFocus = () => { void sync(); };
 onBeforeMount(() => {
   timer = setInterval(onFocus, 60000);
   window.addEventListener('focus', onFocus);
+  document.addEventListener('keydown', onSaveShortcut);
   void sync();
 });
-onUnmounted(() => { clearInterval(timer); window.removeEventListener('focus', onFocus); });
+onUnmounted(() => {
+  clearInterval(timer);
+  window.removeEventListener('focus', onFocus);
+  document.removeEventListener('keydown', onSaveShortcut);
+});
 </script>

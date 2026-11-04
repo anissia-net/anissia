@@ -53,19 +53,6 @@
       </div>
       <p v-else-if="!state.busy" class="as-meta mt-3">{{ state.active === state.revision ? '변경한 규칙이 없습니다.' : '준비된 테스트 버전이 없습니다.' }}</p>
     </div>
-
-    <details v-if="state.history.length" class="as-box p-4 mt-3">
-      <summary class="cursor-pointer font-semibold">버전 이력</summary>
-      <ul class="mt-2">
-        <li v-for="entry in state.history" :key="entry.version" class="as-row flex flex-wrap items-center gap-2 py-2 text-sm">
-          <span class="font-semibold">버전 {{ entry.version }}</span>
-          <span v-if="entry.version === state.active" class="as-tag-xs">운영</span>
-          <span class="as-meta flex-1">{{ entry.actor }} · {{ formatDate(entry.createdAt) }}</span>
-          <button v-if="session.user.isRoot && entry.version !== state.revision" type="button" class="as-input-btn py-1"
-                  :disabled="locked" @click="restore(entry.version)">초안으로 복원</button>
-        </li>
-      </ul>
-    </details>
   </section>
 </template>
 
@@ -124,14 +111,5 @@ function publish() {
   const version = props.state.candidate;
   if (version === null || !confirm(`테스트한 버전 ${version}을 운영 검색에 적용할까요?`)) return;
   emit('mutate', () => searchAdmin.publish(version), '운영 적용을 요청했습니다.');
-}
-function restore(version: number) {
-  if (!confirm(`현재 초안을 버전 ${version}의 사전으로 교체할까요? 테스트를 거친 뒤 운영에 적용할 수 있습니다.`)) return;
-  const revision = props.state.revision;
-  emit('mutate', () => searchAdmin.restore(version, revision), '해당 버전을 초안으로 복원했습니다.');
-}
-function formatDate(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ko-KR');
 }
 </script>

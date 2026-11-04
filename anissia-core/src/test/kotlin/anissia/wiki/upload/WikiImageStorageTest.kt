@@ -3,13 +3,16 @@ package anissia.wiki.upload
 import anissia.support.FailException
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
+import java.nio.file.attribute.PosixFilePermissions
 import java.io.IOException
 import java.time.Instant
 
@@ -46,6 +49,49 @@ class WikiImageStorageTest {
         assertArrayEquals(source, Files.readAllBytes(root.resolve("originals/$id.source")))
         assertFalse(Files.exists(storage.input(id)))
         assertFalse(Files.exists(root.resolve("public/$id.source")))
+    }
+
+    @Test
+    fun `private converter outputs become readable by the public web server`() {
+        assumeTrue(root.fileSystem.supportedFileAttributeViews().contains("posix"))
+        val storage = WikiImageStorage(properties())
+        storage.receive(id, byteArrayOf(1).inputStream())
+        for (path in listOf(storage.output(id, token), storage.thumbnailOutput(id, token))) {
+            Files.write(path, byteArrayOf(2))
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+        }
+        storage.publish(id, token, 1, 1)
+        for (path in listOf(storage.publicFile(id), storage.thumbnailFile(id))) {
+            assertEquals(PosixFilePermissions.fromString("rw-r--r--"), Files.getPosixFilePermissions(path))
+        }
+    }
+
+    @Test
+    fun `restoring private legacy files repairs public permissions including retries`() {
+        assumeTrue(root.fileSystem.supportedFileAttributeViews().contains("posix"))
+        val storage = WikiImageStorage(properties())
+        storage.ensureDirectories()
+        Files.write(storage.publicFile(id), byteArrayOf(1))
+        Files.write(storage.thumbnailFile(id), byteArrayOf(2))
+        storage.archive(id, 1, 1)
+        for (path in listOf(storage.archivedFile(id), storage.archivedThumbnailFile(id))) {
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+        }
+        Files.move(storage.archivedThumbnailFile(id), storage.thumbnailFile(id))
+        storage.restore(id, 1, 1)
+        storage.restore(id, 1, 1)
+        for (path in listOf(storage.publicFile(id), storage.thumbnailFile(id))) {
+            assertEquals(PosixFilePermissions.fromString("rw-r--r--"), Files.getPosixFilePermissions(path))
+        }
+    }
+
+    @Test
+    fun `public directory is searchable even when created with a restrictive umask`() {
+        assumeTrue(root.fileSystem.supportedFileAttributeViews().contains("posix"))
+        val directory = Files.createDirectories(root.resolve("public/wiki"))
+        Files.setPosixFilePermissions(directory, PosixFilePermissions.fromString("rwx------"))
+        WikiImageStorage(properties()).ensureDirectories()
+        assertEquals(PosixFilePermissions.fromString("rwxr-xr-x"), Files.getPosixFilePermissions(directory))
     }
 
     @Test

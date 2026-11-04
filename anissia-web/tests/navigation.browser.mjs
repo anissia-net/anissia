@@ -79,7 +79,51 @@ async function roundTrip(path, cards, mutate = false) {
   console.log(`PASS ${path}: ${before.count} cached items, back/forward scroll, ${mutate ? 'saved item patched' : 'no refetch'}`);
 }
 
+async function searchHistory(path, inputSelector, cards) {
+  await page.goto(baseURL + path);
+  await page.locator(cards).first().waitFor();
+  await settle();
+  const input = page.locator(inputSelector);
+  const search = async word => {
+    await input.fill(word);
+    await input.press('Enter');
+    await page.waitForURL(baseURL + path + '?q=' + word);
+    await settle();
+  };
+  const initialRequests = listRequests();
+  await search('first');
+  await search('second');
+  assert.equal(listRequests(), initialRequests + 2, 'only new searches fetch a list');
+  const loadedRequests = listRequests();
+  await page.goBack();
+  await settle();
+  assert.equal(await input.inputValue(), 'first');
+  await page.goBack();
+  await settle();
+  assert.equal(await input.inputValue(), '', 'back to unfiltered list clears the submitted draft');
+  await page.goForward();
+  await settle();
+  assert.equal(await input.inputValue(), 'first');
+  await page.goForward();
+  await settle();
+  assert.equal(await input.inputValue(), 'second');
+  assert.equal(listRequests(), loadedRequests, 'back/forward reuses each search list');
+  await input.fill('unsent');
+  const card = page.locator(cards).first();
+  const detailLink = card.locator('a').first();
+  await (await detailLink.count() ? detailLink : card).click();
+  await settle();
+  await page.goBack();
+  await settle();
+  assert.equal(await input.inputValue(), 'second', 'return from detail restores the submitted query');
+  assert.equal(listRequests(), loadedRequests, 'detail navigation keeps cached lists idle');
+  console.log(`PASS ${path}: search input and cached results follow back/forward history`);
+}
+
 try {
+  await searchHistory('/anime', '#default-search', '.anime-list .as-card');
+  await searchHistory('/inquiry', 'input[aria-label="게시판 검색"]', 'main a.as-card');
+  await searchHistory('/notice', 'input[aria-label="게시판 검색"]', 'main a.as-card');
   await roundTrip('/anime?q=test', '.anime-list .as-card');
   // Searching creates a separate cached list; browser back restores the earlier query and pages.
   const count = await page.locator('.anime-list .as-card').count();
@@ -92,6 +136,7 @@ try {
   await settle();
   assert.equal(await page.locator('.anime-list .as-card').count(), count);
   assert.equal(listRequests(), before + 1);
+  assert.equal(await page.locator('#default-search').inputValue(), 'test');
   console.log('PASS separate search caches');
   await roundTrip('/inquiry', 'main a.as-card');
   await roundTrip('/notice', 'main a.as-card');
@@ -109,6 +154,7 @@ try {
 
   const dat = `${Math.floor(Date.now() / 1000) + 86400}.test.${Buffer.from('2\x1etest@example.test\x1eTester\x1eROOT').toString('base64url')}.test.signature`;
   await context.addCookies([{name: 'dat', value: dat, url: baseURL}]);
+  await searchHistory('/admin/anime', '#default-search', 'main .as-card');
   await roundTrip('/admin/anime?q=test', 'main .as-card', true);
   await page.goto(baseURL + '/admin/anime?animeNo=0');
   await page.waitForURL(baseURL + '/admin/anime/new');

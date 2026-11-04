@@ -4,7 +4,7 @@
     읽는 글과 같은 짜임 위에 선다 — 고쳐 쓸 때 글이 다른 자리로 옮겨간 것처럼 보이면 안 된다.
     읽는 쪽이 [작성자 줄] + [본문] 두 장이므로 여기도 [주제] + [본문] 두 장이고, 여백도 같은 값이다.
   -->
-  <div>
+  <div :data-save-scope="post.isNewTopic ? 'page' : ''">
     <!-- 종이가 이미 테두리를 두르므로 입력칸은 제 테두리를 벗는다 — 상자 안의 상자는 한 겹이 낫다. -->
     <div v-if="post.root" class="as-post as-post-head mb-2">
       <input type="text" v-model="topic" placeholder="주제" class="as-input-bare font-medium">
@@ -24,7 +24,7 @@
         속성 줄은 고른 대상에 속성이 있을 때만 단추 줄 밑에 펼쳐진다 (1.3).
         보기 도구(미리보기·전체화면) 자리는 툴바 자리와 따로 두고 **앞**에 세운다 — 시트가 오른쪽으로 띄운다(float).
       -->
-      <div ref="rootElement" class="nabi">
+      <div ref="rootElement" v-save-surface class="nabi">
         <div ref="chromeElement" class="nabi-toolbar">
           <div class="nabi-toolbar-row">
             <span ref="toolsElement"></span>
@@ -38,7 +38,7 @@
       <!-- 종이가 여백을 안 두르므로 단추 줄은 제 여백을 스스로 챙긴다. -->
       <div class="as-post-editor-actions flex items-center justify-end gap-2">
         <input v-if="!post.isNewPost" type="button" value="취소" @click="doCancel" class="as-input-btn py-2"/>
-        <input type="button" value="작성완료" @click="doSave" class="as-btn-primary py-2"/>
+        <input type="button" value="작성완료" data-save-button :disabled="saving" @click="doSave" class="as-btn-primary py-2"/>
       </div>
     </div>
   </div>
@@ -49,6 +49,7 @@
 import "nabi-note/nabi.css";
 import "../../common/nabi.pcss";
 import {resolveNoteLink} from '../../common/noteLink';
+import {vSaveSurface} from '../../common/saveShortcut';
 import {computed, onBeforeUnmount, onMounted, Ref, ref, watch} from "vue";
 import {Post} from "./Post";
 import {useRouter} from "vue-router";
@@ -85,6 +86,7 @@ const props = defineProps({
 const post = computed(() => props.post) as Ref<Post>;
 const topic = ref('');
 const content = ref('');
+const saving = ref(false);
 const router = useRouter();
 
 const rootElement = ref<HTMLElement>();
@@ -134,29 +136,33 @@ function validate(root: boolean): boolean {
   return true;
 }
 
-function doSave() {
+async function doSave() {
   const p = post.value;
-  if (!validate(p.root)) {
+  if (saving.value || !validate(p.root)) {
     return;
   }
-  if (p.root) {
-    doSaveTopic(p);
-  } else {
-    doSavePost(p);
+  saving.value = true;
+  try {
+    if (p.root) await doSaveTopic(p);
+    else await doSavePost(p);
+  } catch {
+    toast.error('글을 저장하지 못했습니다.');
+  } finally {
+    saving.value = false;
   }
 }
 
 function doSaveTopic(post: Post) {
   if (post.isNew) {
-    boardRemote.createTopic(props.ticker!!, topic.value, content.value).then(result => {
+    return boardRemote.createTopic(props.ticker!!, topic.value, content.value).then(result => {
       if (result.success) {
-        router.replace(`/${props.ticker}/${result.data}`);
+        return router.replace(`/${props.ticker}/${result.data}`);
       } else {
         toast.error(result.messageNotNull);
       }
     });
   } else {
-    boardRemote.updateTopic(post.topicNo, topic.value, content.value).then(result => {
+    return boardRemote.updateTopic(post.topicNo, topic.value, content.value).then(result => {
       if (result.success) {
         topicUpdates.publish(post.topicNo, {topic: topic.value});
         post.topic = topic.value;
@@ -171,7 +177,7 @@ function doSaveTopic(post: Post) {
 
 function doSavePost(post: Post) {
   if (post.isNew) {
-    boardRemote.createPost(post.topicNo, content.value).then(result => {
+    return boardRemote.createPost(post.topicNo, content.value).then(result => {
       if (result.success) {
         (props.reload!!)();
         nabi?.setHtml('');
@@ -179,9 +185,9 @@ function doSavePost(post: Post) {
       } else {
         toast.error(result.messageNotNull);
       }
-    })
+    });
   } else {
-    boardRemote.updatePost(post.postNo, content.value).then(result => {
+    return boardRemote.updatePost(post.postNo, content.value).then(result => {
       if (result.success) {
         post.content = content.value;
         post.isEditMode = false;
@@ -270,6 +276,7 @@ onMounted(() => {
   const picked = mountPickedMark({nabi, surface});
 
   const offChange = nabi.onChange(() => content.value = nabi!!.getHtml());
+  if (!post.value.isNew) surface.focus({preventScroll: true});
 
   /** 지역 기록의 `body` 는 `getJson()` 을 문자열로 굳힌 것이다. 손으로 고칠 수 있는 자리라 깨진 값도 받는다. */
   function renderRecord(record: {body: string}): string {

@@ -8,11 +8,11 @@
       <div v-else class="as-box p-5 mb-4 as-desc">{{statusLabel}}<template v-if="item.status === 'DELETED'"> · 복구하면 이미지를 다시 사용할 수 있습니다.</template></div>
       <p v-if="item.error" class="text-sm text-red-600 mb-4" role="alert">{{item.error}}</p>
       <p v-if="transitioning" class="as-desc mb-4" role="status">파일 처리가 끝나면 상태가 자동으로 갱신됩니다.</p>
-      <form v-if="editing" @submit.prevent.stop="saveMetadata" class="space-y-3">
+      <form v-if="editing" data-save-scope="page" @submit.prevent.stop="saveMetadata" class="space-y-3">
         <fieldset :disabled="busy" class="space-y-3">
           <label class="block"><span class="as-meta">이미지 설명</span><textarea v-model="description" class="as-input-text px-3 py-2 w-full mt-1" maxlength="500" rows="3"></textarea></label>
           <label class="block"><span class="as-meta">출처</span><input v-model="sourceUrl" class="as-input-text px-3 py-2 w-full mt-1" type="url" maxlength="1024" placeholder="https://"/></label>
-          <div class="flex justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" class="as-btn-primary py-2">{{busy ? '저장 중…' : '정보 저장'}}</button></div>
+          <div class="flex justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" data-save-button class="as-btn-primary py-2">{{busy ? '저장 중…' : '정보 저장'}}</button></div>
         </fieldset>
       </form>
       <template v-else>

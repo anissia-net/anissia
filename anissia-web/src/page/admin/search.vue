@@ -1,22 +1,16 @@
 <template>
-  <div v-if="info" class="as-page search-admin">
-    <header class="as-page-head">
-      <h1 class="as-page-title">검색 관리</h1>
-      <p class="as-desc">검색어의 형태소를 확인하고 사전 규칙을 관리합니다.</p>
-    </header>
-
+  <div class="as-page search-admin">
     <form role="search" class="flex gap-2" @submit.prevent="submitSearch">
       <div class="as-input-with-icon flex-1 min-w-0">
         <as-icon name="search"/>
-        <input v-model="input" type="search" class="as-input-text py-3 pr-3" aria-label="검색어"
-               placeholder="검색어를 입력하세요" maxlength="300" autocomplete="off"
+        <input v-model="input" type="search" class="as-input-text py-3 pr-3" aria-label="검색어 테스트"
+               placeholder="검색어 테스트" maxlength="300" autocomplete="off"
                @input="scheduleSearch" @compositionstart="clearTimer" @compositionend="scheduleSearch"/>
       </div>
       <button class="as-input-btn" type="submit">검색</button>
     </form>
 
-    <section v-if="query" class="as-box mt-3 p-4" aria-label="운영 검색어 분석" aria-live="polite">
-      <h2 class="font-semibold mb-3">운영 검색어 분석</h2>
+    <section v-if="query" class="as-box mt-3 p-4" aria-label="검색어 테스트 결과" aria-live="polite">
       <p v-if="analysisError" role="alert" class="text-sm text-danger">{{ analysisError }}</p>
       <search-analysis v-else-if="analysis" :analysis="analysis"/>
       <p v-else class="as-meta">형태소를 분석하고 있습니다.</p>
@@ -28,14 +22,14 @@
         <span v-if="state" class="as-meta pb-2">초안 {{ state.revision }}</span>
       </div>
       <nav v-choice class="as-segment" aria-label="사전 종류">
-        <router-link v-for="(metadata, key) in categories" :key="key"
+        <router-link v-for="(metadata, key) in tabs" :key="key"
                      :to="{name: 'admin-search', params: {category: key}, query: input.trim() ? {q: input.trim()} : {}}"
-                     :class="{'is-on': category === key}" :aria-current="category === key ? 'page' : undefined">
+                     :class="{'is-on': tab === key}" :aria-current="tab === key ? 'page' : undefined">
           {{ metadata.label }}
         </router-link>
       </nav>
 
-      <div class="as-box p-4 mt-3">
+      <div v-if="info" class="as-box p-4 mt-3">
         <div class="flex items-center justify-between gap-3">
           <h3 class="font-semibold">{{ info.label }} <span v-if="rules" class="as-meta">{{ rules.total }}건</span></h3>
           <button class="as-input-btn py-1.5" type="button" :disabled="locked" :aria-expanded="adding" @click="toggleAdd">
@@ -84,6 +78,18 @@
           </div>
         </template>
       </div>
+      <div v-else class="as-box p-4 mt-3">
+        <h3 class="font-semibold">버전 이력</h3>
+        <ul v-if="state?.history.length" class="mt-2">
+          <li v-for="entry in state.history" :key="entry.version" class="as-row flex flex-wrap items-center gap-2 py-2 text-sm">
+            <span class="font-semibold">버전 {{ entry.version }}</span>
+            <span v-if="entry.version === state.active" class="as-tag-xs">운영</span>
+            <span class="as-meta">{{ entry.actor }} · {{ formatDate(entry.createdAt) }}</span>
+          </li>
+        </ul>
+        <p v-else-if="state" class="as-meta py-4">버전 이력이 없습니다.</p>
+        <p v-else-if="!stateError" class="as-meta py-4">버전 이력을 불러오고 있습니다.</p>
+      </div>
     </section>
 
     <p v-if="stateError" class="mt-4 text-danger text-sm" role="alert">{{ stateError }}
@@ -104,9 +110,11 @@ import SearchRelease from '../../domain/search/SearchRelease.vue';
 import toast from '../../common/toast';
 
 const route = useRoute(), router = useRouter();
-const category = computed(() => route.params.category as Category);
+const tabs = {...categories, history: {label: '버전 이력'}};
+const tab = computed(() => route.params.category as Category | 'history');
+const category = computed(() => tab.value === 'history' ? null : tab.value);
 const isUserDictionary = computed(() => category.value === 'user-dictionary');
-const info = computed(() => categories[category.value]);
+const info = computed(() => category.value ? categories[category.value] : null);
 const query = computed(() => typeof route.query.q === 'string' ? route.query.q.trim() : '');
 const input = ref(query.value);
 const page = ref(0);
@@ -123,6 +131,11 @@ let searchTimer: ReturnType<typeof setTimeout>;
 let pollTimer: ReturnType<typeof setTimeout>;
 let stateRequest = 0, rulesRequest = 0, analysisRequest = 0;
 let alive = true;
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ko-KR');
+}
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : '요청을 완료하지 못했습니다.';
@@ -165,7 +178,7 @@ async function loadRules() {
   const request = ++rulesRequest;
   rules.value = null;
   rulesError.value = '';
-  if (!info.value || !alive) return;
+  if (!category.value || !alive) return;
   try {
     const result = await searchAdmin.rules(category.value, query.value, page.value);
     if (!alive || request !== rulesRequest) return;
@@ -179,7 +192,7 @@ async function loadAnalysis() {
   const request = ++analysisRequest;
   analysis.value = null;
   analysisError.value = '';
-  if (!query.value || !info.value || !alive) return;
+  if (!query.value || !alive) return;
   try {
     const result = await searchAdmin.analyze(query.value);
     if (alive && request === analysisRequest) analysis.value = result;
@@ -220,13 +233,13 @@ async function mutate(action: () => Promise<unknown>, success: string, done?: ()
 }
 
 function addRule() {
-  if (!state.value) return;
+  if (!category.value || !state.value) return;
   const selected = category.value, revision = formRevision;
   const ruleValue = isUserDictionary.value && !useSegmentation.value ? '' : value.value.trim();
   void mutate(() => searchAdmin.add(selected, term.value.trim(), ruleValue, revision), '초안에 추가했습니다.', () => { adding.value = false; });
 }
 function removeRule(rule: SearchRule) {
-  if (!state.value || !confirm(`초안에서 ‘${rule.term}’ 규칙을 삭제할까요?`)) return;
+  if (!category.value || !state.value || !confirm(`초안에서 ‘${rule.term}’ 규칙을 삭제할까요?`)) return;
   const selected = category.value, revision = state.value.revision;
   void mutate(() => searchAdmin.remove(selected, rule.id, revision), '초안에서 규칙을 삭제했습니다.');
 }
@@ -252,6 +265,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.search-admin .as-segment > a { padding-inline: .375rem; }
 .search-admin :disabled { opacity: .5; cursor: default; }
 .search-admin .as-tag-xs { overflow-wrap: anywhere; }
 </style>

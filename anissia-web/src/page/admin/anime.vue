@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 
-import {nextTick, onDeactivated, onUnmounted, Ref, ref} from "vue";
+import {nextTick, onActivated, onDeactivated, onUnmounted, Ref, ref} from "vue";
 import PageData from "../../common/PageData";
 import Anime from "../../domain/anime/Anime";
 import animeRemote from "../../domain/anime/remote/animeRemote";
@@ -247,6 +247,8 @@ function doRecover(anime: Anime) {
 clear(new Locate());
 load();
 
+// Restore the submitted search when this cached history entry is shown again.
+onActivated(() => { query.value = listQuery; });
 onDeactivated(clearAutocorrect);
 
 onUnmounted(() => {

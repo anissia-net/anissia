@@ -4,7 +4,7 @@ const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const base = process.env.TEST_BASE_URL || 'http://localhost:5173';
 const browser = await chromium.launch({headless: true, ...(process.env.CHROME_PATH && {executablePath: process.env.CHROME_PATH})});
 const context = await browser.newContext({viewport: {width: 390, height: 844}, serviceWorkers: 'block'});
-const errors = [], calls = [];
+const errors = [];
 let state = {revision: 2, active: 1, candidate: null, tested: false, busy: false, error: null,
   history: [{version: 1, actor: '관리자', createdAt: '2026-11-04T12:00:00+09:00'}]};
 const entries = {'user-dictionary': [{id: 'existing', term: '초전자포', value: '초 전자포'}], synonyms: [], corrections: [], stopwords: []};
@@ -18,7 +18,6 @@ await context.route('**/api/**', async route => {
   const req = route.request(), url = new URL(req.url()), path = url.pathname.replace(/^.*\/admin\/search/, '');
   let data = null;
   if (url.pathname.includes('/admin/search/')) {
-    calls.push([req.method(), path, url.search, req.postData()]);
     assert.ok(req.headers().dat);
     if (path === '/state') data = state;
     else if (path === '/analyze') data = analysis(url.searchParams.get('q'));
@@ -51,7 +50,6 @@ await context.route('**/api/**', async route => {
       }
     }
     else if (path === '/publish') { assert.equal(req.postDataJSON().version, state.candidate); assert.ok(state.tested); state.active = state.candidate; state.candidate = null; }
-    else if (path === '/restore') { assert.equal(req.postDataJSON().version, 1); state.revision++; }
     else throw new Error('Unknown search request ' + path);
   } else if (url.pathname.includes('notification')) data = {};
   await route.fulfill({json: {code: 'ok', data}});
@@ -68,7 +66,11 @@ try {
   await page.goto(base + '/admin/search');
   await page.waitForURL('**/admin/search/user-dictionary');
   await page.getByText('초전자포', {exact: true}).waitFor();
-  assert.ok(await page.getByRole('navigation', {name: '사전 종류'}).isVisible());
+  const categoryNav = page.getByRole('navigation', {name: '사전 종류'});
+  assert.deepEqual((await categoryNav.getByRole('link').allTextContents()).slice(-2).map(label => label.trim()), ['불용어', '버전 이력']);
+  const history = categoryNav.getByRole('link', {name: '버전 이력', exact: true});
+  assert.equal(await page.getByRole('heading', {name: '검색 관리', exact: true}).count(), 0);
+  assert.equal(await page.getByText('검색어의 형태소를 확인하고 사전 규칙을 관리합니다.', {exact: true}).count(), 0);
   await page.getByText('분해 단위 · 초 전자포', {exact: true}).waitFor();
   await page.getByRole('button', {name: '단어 추가'}).click();
   assert.equal(await page.getByRole('textbox', {name: '분해 단위'}).count(), 0);
@@ -82,9 +84,10 @@ try {
   await page.getByLabel('분해 단위', {exact: true}).fill('초능력 자');
   await page.getByRole('button', {name: '초안에 추가'}).click();
   await page.getByText('분해 단위 · 초능력 자', {exact: true}).waitFor();
-  await page.getByRole('searchbox', {name: '검색어'}).fill('초전자포');
+  await page.getByPlaceholder('검색어 테스트', {exact: true}).fill('초전자포');
   await page.waitForFunction(() => new URL(location.href).searchParams.get('q') === '초전자포');
-  await page.getByText('Nori 토크나이저 분해').waitFor();
+  await page.getByText('토크나이저 분해', {exact: true}).waitFor();
+  assert.equal(await page.getByText('운영 검색어 분석', {exact: true}).count(), 0);
   await page.getByRole('link', {name: '동의어', exact: true}).click();
   await page.waitForURL('**/admin/search/synonyms?**');
   assert.equal(await page.getByRole('searchbox').inputValue(), '초전자포');
@@ -108,8 +111,6 @@ try {
   await publish.click();
   await page.getByText('변경한 규칙이 없습니다.').waitFor();
   assert.ok(await page.getByRole('button', {name: '테스트 버전 준비'}).isDisabled());
-  await page.getByText('버전 이력').click();
-  await page.getByRole('button', {name: '초안으로 복원'}).click();
   await page.getByRole('button', {name: '초전자포 삭제'}).click();
   await page.getByText('검색어와 일치하는 규칙이 없습니다.').waitFor();
   for (const [cat, label] of [['corrections', '교정어'], ['stopwords', '불용어']]) {
@@ -117,6 +118,11 @@ try {
     await page.waitForURL('**/admin/search/' + cat + '?**');
     await page.getByRole('heading', {name: label + ' 0건'}).waitFor();
   }
+  await history.click();
+  await page.getByText('버전 1', {exact: true}).waitFor();
+  assert.equal(await page.getByRole('button', {name: '초안으로 복원'}).count(), 0);
+  await page.goBack();
+  await page.waitForURL('**/admin/search/stopwords?**');
   await page.goBack();
   await page.waitForURL('**/admin/search/corrections?**');
   assert.equal(await page.getByRole('searchbox').inputValue(), '초전자포');
@@ -128,11 +134,11 @@ try {
   await page.reload();
   await page.getByRole('button', {name: '비교 테스트'}).waitFor();
   assert.equal(await page.getByRole('button', {name: '운영에 직접 적용'}).count(), 0);
-  await page.getByText('버전 이력').click();
+  await history.click();
+  await page.getByText('버전 1', {exact: true}).waitFor();
   assert.equal(await page.getByRole('button', {name: '초안으로 복원'}).count(), 0);
   assert.deepEqual(errors, []);
-  assert.ok(calls.some(([, path]) => path === '/restore'));
-  console.log('PASS mobile admin search: query and category URLs, rule edits, analysis, comparison, publish, restore and permissions.');
+  console.log('PASS mobile admin search: query and category URLs, rule edits, analysis, comparison, publish, version history and permissions.');
 } finally {
   await browser.close();
 }

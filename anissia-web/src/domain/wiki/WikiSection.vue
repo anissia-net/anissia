@@ -15,12 +15,12 @@
       <router-link v-if="newTemplate && access && !session.user.isLogin" to="/login?path=%2Fwiki%2Ftemplates%3Fnew%3D1" class="as-input-btn inline-block py-2">로그인</router-link>
       <div v-if="item.deleted" class="as-box p-4 mb-4 flex flex-wrap items-center justify-between gap-3"><p class="as-desc">삭제된 템플릿입니다. 운영자만 이 내용과 이력을 볼 수 있습니다.</p><button v-if="access?.isOperator" type="button" class="as-btn-primary py-2" :disabled="saving" @click="recover">템플릿 복구</button></div>
       <div v-if="availableDraft && !editing && !item.deleted && access?.canContribute" class="as-box p-4 mb-4 flex flex-wrap items-center gap-3 text-sm"><span>이 탭에 저장한 초안이 있습니다. {{wikiDate(availableDraft.savedAt)}}</span><button type="button" class="as-link" @click="resumeDraft">이어서 작성</button><button type="button" class="as-link" @click="discardDraft">초안 버리기</button></div>
-      <form v-if="editing" @submit.prevent="save" class="space-y-3">
+      <form v-if="editing" data-save-scope="page" @submit.prevent="save" class="space-y-3">
         <fieldset :disabled="saving" :inert="saving || !!conflict" class="space-y-3">
           <label v-if="isTemplate" class="block"><span class="as-meta">템플릿 이름</span><input v-model="title" maxlength="100" class="as-input-text px-3 py-2 w-full mt-1" required/></label>
           <WikiEditor :key="editorVersion" ref="editor" v-model="body" v-model:templates="templates" :saved-body="baseline?.body" :additional-dirty="title !== baseline?.title || !!summary.trim()" :allow-templates="!isTemplate"/>
           <label class="block"><span class="as-meta">수정 요약</span><input v-model="summary" class="as-input-text px-3 py-2 w-full mt-1" maxlength="300" placeholder="어떤 내용을 바꾸었나요?"/></label>
-          <div class="flex flex-wrap justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" class="as-btn-primary py-2">{{saving ? '저장 중…' : '저장'}}</button></div>
+          <div class="flex flex-wrap justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" data-save-button class="as-btn-primary py-2">{{saving ? '저장 중…' : '저장'}}</button></div>
         </fieldset>
         <p v-if="draftStatus" class="as-meta" role="status">{{draftStatus}}</p>
         <p v-if="saveError" class="text-sm text-red-600 whitespace-pre-line" role="alert">{{saveError}}</p>

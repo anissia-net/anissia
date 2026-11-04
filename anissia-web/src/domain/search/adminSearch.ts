@@ -54,5 +54,4 @@ export const searchAdmin = {
   prepare: (revision: number) => request<void>('/prepare', 'POST', {revision}),
   test: (q: string, kind: SearchKind, version: number) => request<Comparison>('/test', 'POST', {q, kind, version}),
   publish: (version: number) => request<void>('/publish', 'POST', {version}),
-  restore: (version: number, revision: number) => request<void>('/restore', 'POST', {version, revision}),
 };

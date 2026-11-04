@@ -13,7 +13,7 @@
 
     <div class="mt-5">
       <div class="grid gap-4 cq-md:grid-cols-2 cq-xl:grid-cols-3">
-        <div v-for="node in list.content" :key="node.animeNo" class="p-5 as-card">
+        <div v-for="node in list.content" :key="node.animeNo" data-save-scope class="p-5 as-card">
           <div class="flex items-start gap-2 text-lg pt-1 px-1">
             <span class="flex-1 min-w-0">{{node.subject}}</span>
             <button type="button" @click="doDelete(node)" class="caption-end" :aria-label="`${node.subject} 자막 종료`" title="자막 종료">
@@ -31,7 +31,7 @@
           </div>
           <div class="mt-4 flex">
             <input type="text" name="website" v-model="node.website" placeholder="https://example.com" class="p-2.5 as-input-text">
-            <input type="button" value="저장" @click="doSave(node)" class="w-[3.75rem] ml-2 as-input-btn" />
+            <input type="button" value="저장" data-save-button :disabled="saving.has(node.animeNo)" @click="doSave(node)" class="w-[3.75rem] ml-2 as-input-btn" />
           </div>
 
         </div>
@@ -59,6 +59,7 @@ defineOptions({name: 'AdminCaption'});
 const page = ref(0);
 const state = ref(0);
 const list = ref(PageData.empty().notLoaded()) as Ref<PageData<AnimeCaption>>;
+const saving = ref(new Set<number>());
 
 let active = true;
 const sl = useListScroll(() => {
@@ -99,8 +100,14 @@ function setNow(caption: AnimeCaption) {
   caption.updDt = new DateFormat().format("yyyy-MM-ddTHH:mm");
 }
 
-function doSave(caption: AnimeCaption) {
-  animeRemote.updateAdminCaption(caption).then(result => toast.result(result));
+async function doSave(caption: AnimeCaption) {
+  if (saving.value.has(caption.animeNo)) return;
+  saving.value.add(caption.animeNo);
+  try {
+    toast.result(await animeRemote.updateAdminCaption(caption));
+  } finally {
+    saving.value.delete(caption.animeNo);
+  }
 }
 
 function doDelete(caption: AnimeCaption) {

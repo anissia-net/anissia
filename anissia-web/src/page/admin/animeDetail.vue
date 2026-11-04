@@ -3,7 +3,7 @@
     <p v-if="loading" class="as-empty" role="status">애니메이션을 불러오는 중입니다.</p>
     <div v-else-if="error" class="as-empty" role="alert">{{error}} <button class="as-link" @click="loadAnime()">다시 시도</button></div>
     <div v-if="anime" class="mb-10">
-      <div v-if="anime.animeNo > 0 || (anime.animeNo == 0 && animeNo == 0)">
+      <div v-if="anime.animeNo > 0 || (anime.animeNo == 0 && animeNo == 0)" data-save-scope="page">
 
         <table class="as-table as-table-kv">
           <thead>
@@ -155,7 +155,7 @@
         </table>
         <div class="mt-4 flex justify-between gap-2">
           <input type="button" value="삭제" @click="doDelete()" class="as-input-btn py-2 hover:text-danger!" />
-          <input type="button" value="저장" @click="doSave()" class="as-btn-primary py-2" />
+          <input type="button" value="저장" data-save-button :disabled="saving" @click="doSave()" class="as-btn-primary py-2" />
         </div>
 
 
@@ -188,7 +188,7 @@ const anime = ref<Anime | null>(null);
 const genres = ref<string[]>([]);
 const weekList = ['日', '月', '火', '水', '木', '金', '土', '外', '新'];
 const dateTypeList = ['YMD', 'YM', 'Y', 'N/A'];
-const loading = ref(false), error = ref('');
+const loading = ref(false), saving = ref(false), error = ref('');
 const {returnToList} = useListReturn('/admin/anime', ['/admin/anime', '/admin/schedule']);
 let active = true;
 
@@ -251,39 +251,35 @@ function doDelete() {
   }
 }
 
-function doSave() {
-  const ani = (anime.value!!).applyEdit();
+async function doSave() {
+  if (saving.value || !anime.value) return;
+  const ani = anime.value.applyEdit();
   const isNew = ani.animeNo == 0;
-  if (confirm(`${ani.subject}을(를) ${isNew ? '추가' : '수정'} 하시겠습니까?\n임의조작시 권한박탈의 사유가됩니다.`)) {
+  if (!confirm(`${ani.subject}을(를) ${isNew ? '추가' : '수정'} 하시겠습니까?\n임의조작시 권한박탈의 사유가됩니다.`)) return;
 
-    if (!anissia.checkAnimeDate(ani.editStartDateType, ani.startDate)) {
-      toast.error('시작일을 입력해주세요.');
-      return;
-    }
-    if (!anissia.checkAnimeDate(ani.editEndDateType, ani.endDate)) {
-      toast.error('종료일을 입력해주세요.');
-      return;
-    }
+  if (!anissia.checkAnimeDate(ani.editStartDateType, ani.startDate)) {
+    toast.error('시작일을 입력해주세요.');
+    return;
+  }
+  if (!anissia.checkAnimeDate(ani.editEndDateType, ani.endDate)) {
+    toast.error('종료일을 입력해주세요.');
+    return;
+  }
 
-    if (isNew) {
-      animeRemote.addAdminAnime(ani).then(result => {
-        if (result.code == 'ok') {
-          router.replace(`/admin/anime/${result.data}`)
-          toast.success('애니메이션이 추가되었습니다.');
-        } else if (result.message) {
-          toast.error(result.message);
-        }
-      });
+  saving.value = true;
+  try {
+    const result = isNew ? await animeRemote.addAdminAnime(ani) : await animeRemote.updateAdminAnime(ani);
+    if (result.code !== 'ok') {
+      if (result.message) toast.error(result.message);
+    } else if (isNew) {
+      await router.replace(`/admin/anime/${result.data}`);
+      toast.success('애니메이션이 추가되었습니다.');
     } else {
-      animeRemote.updateAdminAnime(ani).then(result => {
-        if (result.code == 'ok') {
-          void loadAnime(true);
-          toast.success('애니메이션이 수정되었습니다.');
-        } else if (result.message) {
-          toast.error(result.message);
-        }
-      });
+      await loadAnime(true);
+      toast.success('애니메이션이 수정되었습니다.');
     }
+  } finally {
+    saving.value = false;
   }
 }
 

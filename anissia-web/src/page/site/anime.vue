@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onDeactivated, onUnmounted, Ref, ref} from "vue";
+import {nextTick, onActivated, onDeactivated, onUnmounted, Ref, ref} from "vue";
 import PageData from "../../common/PageData";
 import Anime from "../../domain/anime/Anime";
 import WikiNavigation from "../../domain/wiki/WikiNavigation.vue";
@@ -273,6 +273,8 @@ function getNowSearchedQuery() {
 
 load();
 
+// Restore the submitted search when this cached history entry is shown again.
+onActivated(() => { query.value = searchedQuery.value; });
 onDeactivated(clearAutocorrect);
 
 onUnmounted(() => {

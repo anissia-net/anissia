@@ -7,7 +7,7 @@
     </div>
     <p class="as-meta mt-2">썸네일이 없으면 위키 저장 시 본문의 첫 업로드 이미지가 자동으로 지정됩니다.</p>
     <Teleport to="body">
-      <dialog ref="dialog" class="as-wiki-dialog as-box" :aria-labelledby="headingId" @cancel="cancel" @close="closed">
+      <dialog ref="dialog" data-save-scope class="as-wiki-dialog as-box" :aria-labelledby="headingId" @cancel="cancel" @close="closed">
         <div class="flex justify-between items-center gap-3 mb-3">
           <h2 :id="headingId" class="as-section-title">위키 이미지에서 썸네일 선택</h2>
           <button type="button" class="as-input-btn px-3 py-1" :disabled="saving" @click="close">닫기</button>
@@ -46,7 +46,7 @@
           <p v-if="saveError" class="text-sm text-red-600 mt-3" role="alert">{{saveError}}</p>
           <div class="flex justify-end gap-2 mt-5">
             <button type="button" class="as-input-btn py-2" :disabled="saving" @click="close">취소</button>
-            <button type="button" class="as-btn-primary py-2" :disabled="saving || !changed" @click="save">{{saving ? '저장 중…' : '썸네일 저장'}}</button>
+            <button type="button" data-save-button class="as-btn-primary py-2" :disabled="saving || !changed" @click="save">{{saving ? '저장 중…' : '썸네일 저장'}}</button>
           </div>
         </template>
       </dialog>

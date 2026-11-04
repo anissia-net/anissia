@@ -11,6 +11,8 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.StandardOpenOption.CREATE_NEW
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFilePermissions
 import java.time.Instant
 import java.util.Comparator
 
@@ -27,12 +29,13 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         require(publicUri.scheme in setOf("http", "https") && !publicUri.host.isNullOrBlank() &&
             publicUri.query == null && publicUri.fragment == null && publicUri.userInfo == null)
         Files.createDirectories(tempRoot)
-        Files.createDirectories(publicRoot.resolve("wiki"))
+        val wikiRoot = Files.createDirectories(publicRoot.resolve("wiki"))
         Files.createDirectories(originalRoot)
         val roots = listOf(tempRoot, publicRoot, originalRoot).map { it.toRealPath() }
         require(roots.toSet().size == 3 && roots.none { a -> roots.any { b -> a != b && a.startsWith(b) } }) {
             "업로드 임시·공개·원본 디렉터리는 서로 분리해야 합니다."
         }
+        publicPermissions(wikiRoot, directory = true)
     }
 
     fun input(id: String): Path = jobDirectory(id).resolve("source")
@@ -54,11 +57,11 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
 
     fun restore(id: String, expectedBytes: Long, thumbnailBytes: Long? = null) {
         ensureDirectories()
-        thumbnailBytes?.let { moveComplete(archivedThumbnailFile(id), thumbnailFile(id), it) }
-        moveComplete(archivedFile(id), publicFile(id), expectedBytes)
+        thumbnailBytes?.let { moveComplete(archivedThumbnailFile(id), thumbnailFile(id), it, publish = true) }
+        moveComplete(archivedFile(id), publicFile(id), expectedBytes, publish = true)
     }
 
-    private fun moveComplete(source: Path, target: Path, expectedBytes: Long) {
+    private fun moveComplete(source: Path, target: Path, expectedBytes: Long, publish: Boolean = false) {
         if (expectedBytes <= 0) throw IOException("missing image size")
         val hasSource = Files.exists(source, NOFOLLOW_LINKS)
         val hasTarget = Files.exists(target, NOFOLLOW_LINKS)
@@ -67,6 +70,7 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         if (!Files.isRegularFile(existing, NOFOLLOW_LINKS) || Files.size(existing) != expectedBytes) {
             throw IOException("complete image file is unavailable")
         }
+        if (publish) publicPermissions(existing)
         if (hasSource) Files.move(source, target, ATOMIC_MOVE)
     }
 
@@ -97,6 +101,8 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         check(Files.isRegularFile(converted, NOFOLLOW_LINKS) && expectedBytes > 0 && Files.size(converted) == expectedBytes)
         val thumbnail = thumbnailOutput(id, token)
         check(Files.isRegularFile(thumbnail, NOFOLLOW_LINKS) && thumbnailBytes > 0 && Files.size(thumbnail) == thumbnailBytes)
+        publicPermissions(converted)
+        publicPermissions(thumbnail)
         if (properties.retainOriginals) {
             val staged = originalRoot.resolve("${validId(id)}.${validId(token)}.tmp")
             try {
@@ -109,6 +115,11 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         // Cross-filesystem configurations fail here instead of exposing a partially copied image.
         Files.move(thumbnail, thumbnailFile(id), ATOMIC_MOVE, REPLACE_EXISTING)
         Files.move(converted, publicFile(id), ATOMIC_MOVE, REPLACE_EXISTING)
+    }
+
+    private fun publicPermissions(path: Path, directory: Boolean = false) {
+        Files.getFileAttributeView(path, PosixFileAttributeView::class.java, NOFOLLOW_LINKS)
+            ?.setPermissions(PosixFilePermissions.fromString(if (directory) "rwxr-xr-x" else "rw-r--r--"))
     }
 
     fun removeTemporary(id: String) = removeTree(jobDirectory(id))

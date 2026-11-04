@@ -1,6 +1,6 @@
 <template>
   <div class="as-post as-post-editor">
-    <div ref="root" class="nabi">
+    <div ref="root" v-save-surface class="nabi">
       <div ref="chrome" class="nabi-toolbar">
         <div class="nabi-toolbar-row"><span ref="viewTools"></span><div ref="toolbar"></div></div>
         <div ref="context" class="nabi-context" hidden></div>
@@ -30,6 +30,7 @@
 import 'nabi-note/nabi.css';
 import '../../common/nabi.pcss';
 import {resolveNoteLink} from '../../common/noteLink';
+import {vSaveSurface} from '../../common/saveShortcut';
 import './wiki.pcss';
 import {nextTick, onBeforeUnmount, onMounted, ref} from 'vue';
 import {onBeforeRouteLeave, onBeforeRouteUpdate} from 'vue-router';
