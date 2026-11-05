@@ -1,5 +1,7 @@
 package anissia.search
 
+import anissia.activepanel.service.ActivePanelLogService
+import anissia.security.Actor
 import anissia.support.FailException
 import anissia.support.logger
 import org.springframework.scheduling.annotation.Scheduled
@@ -9,7 +11,7 @@ import java.util.UUID
 
 data class DictionaryState(
     val revision: Long, val active: Long, val candidate: Long?, val tested: Boolean,
-    val history: List<DictionaryVersion>, val busy: Boolean, val error: String?,
+    val busy: Boolean, val error: String?,
 )
 
 data class DictionaryPage(val items: List<DictionaryRule>, val total: Int)
@@ -20,6 +22,7 @@ class SearchDictionaryService(
     private val indexes: SearchIndexService,
     private val inspector: DictionaryInspector,
     private val workLock: SearchWorkLock,
+    private val activity: ActivePanelLogService,
 ) {
     private val log = logger<SearchDictionaryService>()
     private val categories = setOf("user-dictionary", "synonyms", "corrections", "stopwords")
@@ -28,7 +31,7 @@ class SearchDictionaryService(
     fun state(): DictionaryState {
         val draft = store.draft()
         return DictionaryState(draft.revision, draft.active, draft.candidate?.takeIf { it == draft.revision }, draft.testQuery != null,
-            store.history(), draft.job != null, draft.error)
+            draft.job != null, draft.error)
     }
 
     fun rules(category: String, q: String, page: Int): DictionaryPage {
@@ -40,36 +43,31 @@ class SearchDictionaryService(
     }
 
     @Transactional
-    fun add(category: String, term: String, value: String, revision: Long) {
+    fun add(category: String, term: String, value: String, revision: Long, actor: Actor) {
         val rule = DictionaryRule(UUID.randomUUID().toString(), category, term.trim(), value.trim())
         DictionaryAnalysis.validate(rule)
         val draft = editable(revision)
         require(draft.rules.size < 10_000) { "사전 항목은 10,000개까지 등록할 수 있습니다." }
         require(draft.rules.none { it.category == category && it.term.equals(rule.term, true) }) { "이미 등록된 표제어입니다." }
         store.saveDraft(draft.rules + rule)
+        activity.addText("[검색] [${actor.name}]님이 ${describe(rule)} 규칙을 초안에 추가하였습니다.", actor = actor)
     }
 
     @Transactional
-    fun delete(category: String, id: String, revision: Long) {
+    fun delete(category: String, id: String, revision: Long, actor: Actor) {
         val draft = editable(revision)
-        val remaining = draft.rules.filterNot { it.category == category && it.id == id }
-        require(remaining.size < draft.rules.size) { "삭제할 항목을 찾을 수 없습니다." }
-        store.saveDraft(remaining)
+        val rule = requireNotNull(draft.rules.find { it.category == category && it.id == id }) { "삭제할 항목을 찾을 수 없습니다." }
+        store.saveDraft(draft.rules - rule)
+        activity.addText("[검색] [${actor.name}]님이 ${describe(rule)} 규칙을 초안에서 삭제하였습니다.", actor = actor)
     }
 
     @Transactional
-    fun restore(version: Long, revision: Long) {
-        editable(revision)
-        require(store.history().any { it.version == version }) { "적용 이력에 없는 버전입니다." }
-        store.saveDraft(store.rules(version))
-    }
-
-    @Transactional
-    fun prepare(revision: Long, actor: String) {
+    fun prepare(revision: Long, actor: Actor) {
         val draft = editable(revision)
         require(draft.active != revision) { "운영 사전과 같은 버전입니다. 먼저 초안을 변경해 주세요." }
         if (draft.candidate == revision) return
-        store.enqueue("PREPARE", actor)
+        store.enqueue("PREPARE", actor.name)
+        activity.addText("[검색] [${actor.name}]님이 사전 초안 $revision 테스트 버전 준비를 요청하였습니다.", actor = actor)
     }
 
     fun targets(version: Long): Map<SearchKind, String> {
@@ -79,18 +77,31 @@ class SearchDictionaryService(
     }
 
     @Transactional
-    fun markTested(version: Long, q: String, kind: SearchKind) {
+    fun markTested(version: Long, q: String, kind: SearchKind, actor: Actor) {
         val draft = editable(version)
         require(draft.candidate == version) { "후보 버전이 변경되었습니다. 다시 테스트해 주세요." }
         store.tested(q, kind)
+        if (draft.testQuery == null) {
+            activity.addText("[검색] [${actor.name}]님이 사전 초안 $version 비교 테스트를 완료하였습니다. 검색어: [$q]", actor = actor)
+        }
     }
 
     @Transactional
-    fun publish(version: Long, actor: String) {
+    fun publish(version: Long, actor: Actor) {
         val draft = editable(version)
         require(draft.candidate == version && draft.testQuery != null && draft.active != version) { "변경한 사전을 간접 적용하고 테스트해 주세요." }
-        store.saveSnapshot(draft.copy(actor = actor))
-        store.enqueue("PUBLISH", actor)
+        store.enqueue("PUBLISH", actor.name)
+        activity.addText("[검색] [${actor.name}]님이 사전 초안 $version 운영 적용을 요청하였습니다.", actor = actor)
+    }
+
+    private fun describe(rule: DictionaryRule): String {
+        val category = when (rule.category) {
+            "user-dictionary" -> "사용자 사전"
+            "synonyms" -> "동의어"
+            "corrections" -> "교정어"
+            else -> "불용어"
+        }
+        return "$category [${rule.term}]" + if (rule.value.isBlank()) "" else " → [${rule.value}]"
     }
 
     private fun editable(revision: Long): DictionaryDraft {
@@ -149,7 +160,7 @@ class SearchDictionaryService(
         }
         store.published(version, requireNotNull(draft.actor))
         cleanupPreview(version)
-        runCatching { indexes.cleanupOldReleases(store.history().drop(2).map { it.version }) }
+        runCatching { indexes.cleanupOldReleases(setOf(version, draft.active)) }
             .onFailure { log.warn("old dictionary release cleanup failed", it) }
     }
 

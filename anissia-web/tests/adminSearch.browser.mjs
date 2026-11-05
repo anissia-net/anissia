@@ -5,8 +5,7 @@ const base = process.env.TEST_BASE_URL || 'http://localhost:5173';
 const browser = await chromium.launch({headless: true, ...(process.env.CHROME_PATH && {executablePath: process.env.CHROME_PATH})});
 const context = await browser.newContext({viewport: {width: 390, height: 844}, serviceWorkers: 'block'});
 const errors = [];
-let state = {revision: 2, active: 1, candidate: null, tested: false, busy: false, error: null,
-  history: [{version: 1, actor: '관리자', createdAt: '2026-11-04T12:00:00+09:00'}]};
+let state = {revision: 2, active: 1, candidate: null, tested: false, busy: false, error: null};
 const entries = {'user-dictionary': [{id: 'existing', term: '초전자포', value: '초 전자포'}], synonyms: [], corrections: [], stopwords: []};
 const analysis = text => ({input: text, corrected: text, raw: [text, '전자포'], tokens: [text]});
 const preview = title => ({analysis: analysis('초전자포'), total: 1, results: [{id: '1', title}]});
@@ -67,8 +66,8 @@ try {
   await page.waitForURL('**/admin/search/user-dictionary');
   await page.getByText('초전자포', {exact: true}).waitFor();
   const categoryNav = page.getByRole('navigation', {name: '사전 종류'});
-  assert.deepEqual((await categoryNav.getByRole('link').allTextContents()).slice(-2).map(label => label.trim()), ['불용어', '버전 이력']);
-  const history = categoryNav.getByRole('link', {name: '버전 이력', exact: true});
+  assert.deepEqual((await categoryNav.getByRole('link').allTextContents()).map(label => label.trim()), ['사용자 사전', '동의어', '교정어', '불용어']);
+  assert.equal(await page.getByText('버전 이력', {exact: true}).count(), 0);
   assert.equal(await page.getByRole('heading', {name: '검색 관리', exact: true}).count(), 0);
   assert.equal(await page.getByText('검색어의 형태소를 확인하고 사전 규칙을 관리합니다.', {exact: true}).count(), 0);
   await page.getByText('분해 단위 · 초 전자포', {exact: true}).waitFor();
@@ -118,27 +117,40 @@ try {
     await page.waitForURL('**/admin/search/' + cat + '?**');
     await page.getByRole('heading', {name: label + ' 0건'}).waitFor();
   }
-  await history.click();
-  await page.getByText('버전 1', {exact: true}).waitFor();
   assert.equal(await page.getByRole('button', {name: '초안으로 복원'}).count(), 0);
-  await page.goBack();
-  await page.waitForURL('**/admin/search/stopwords?**');
   await page.goBack();
   await page.waitForURL('**/admin/search/corrections?**');
   assert.equal(await page.getByRole('searchbox').inputValue(), '초전자포');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'mobile content fits viewport');
 
   await signIn('TRANSLATOR');
-  state.candidate = state.revision;
-  state.tested = true;
   await page.reload();
+  await page.getByRole('button', {name: '규칙 추가'}).click();
+  await page.getByLabel('입력 표현', {exact: true}).fill('초전자표');
+  await page.getByLabel('교정할 표현', {exact: true}).fill('초전자포');
+  await page.getByRole('button', {name: '초안에 추가'}).click();
+  await page.getByRole('searchbox').fill('');
+  await page.waitForFunction(() => !new URL(location.href).searchParams.has('q'));
+  await page.getByRole('button', {name: '초전자표 삭제'}).waitFor();
+  await page.getByRole('button', {name: '테스트 버전 준비'}).click();
   await page.getByRole('button', {name: '비교 테스트'}).waitFor();
-  assert.equal(await page.getByRole('button', {name: '운영에 직접 적용'}).count(), 0);
-  await history.click();
-  await page.getByText('버전 1', {exact: true}).waitFor();
+  assert.ok(await publish.isDisabled());
+  await page.getByLabel('테스트 검색어').fill('초전자포');
+  await page.getByRole('button', {name: '비교 테스트'}).click();
+  await page.getByText('변경된 작품', {exact: true}).waitFor();
+  await publish.click();
+  await page.getByText('변경한 규칙이 없습니다.').waitFor();
+  assert.equal(state.active, state.revision);
+  await page.getByRole('button', {name: '초전자표 삭제'}).click();
+  await page.getByText('등록된 규칙이 없습니다.').waitFor();
+  assert.equal(entries.corrections.length, 0);
+  await page.goto(base + '/admin/search/history?q=' + encodeURIComponent('초전자포'));
+  await page.waitForURL('**/admin/search/user-dictionary?**');
+  assert.equal(await page.getByRole('searchbox').inputValue(), '초전자포');
+  assert.equal(await page.getByText('버전 이력', {exact: true}).count(), 0);
   assert.equal(await page.getByRole('button', {name: '초안으로 복원'}).count(), 0);
   assert.deepEqual(errors, []);
-  console.log('PASS mobile admin search: query and category URLs, rule edits, analysis, comparison, publish, version history and permissions.');
+  console.log('PASS mobile admin search: rule edits and publishing for ROOT and TRANSLATOR, analysis, comparison, removed history and legacy redirect.');
 } finally {
   await browser.close();
 }

@@ -44,7 +44,7 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-3 mt-4">
-          <button v-if="session.user.isRoot" type="button" class="as-btn-primary py-2"
+          <button v-if="session.user.isAdmin" type="button" class="as-btn-primary py-2"
                   :disabled="locked || testing || !state.tested" @click="publish">운영에 직접 적용</button>
           <span v-if="state.tested" class="as-meta">비교 테스트 완료</span>
           <span v-else-if="emptyComparison" class="as-desc" role="status">두 버전 모두 결과가 없고 분석도 같습니다. 다른 검색어로 테스트해 주세요.</span>
