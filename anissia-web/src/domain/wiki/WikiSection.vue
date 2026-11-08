@@ -19,7 +19,7 @@
         <fieldset :disabled="saving" :inert="saving || !!conflict" class="space-y-3">
           <label v-if="isTemplate" class="block"><span class="as-meta">템플릿 이름</span><input v-model="title" maxlength="100" class="as-input-text px-3 py-2 w-full mt-1" required/></label>
           <WikiEditor :key="editorVersion" ref="editor" v-model="body" v-model:templates="templates" :saved-body="baseline?.body" :additional-dirty="title !== baseline?.title || !!summary.trim()" :allow-templates="!isTemplate"/>
-          <label class="block"><span class="as-meta">수정 요약</span><input v-model="summary" class="as-input-text px-3 py-2 w-full mt-1" maxlength="300" placeholder="어떤 내용을 바꾸었나요?"/></label>
+          <label class="block"><span class="as-meta">수정 요약</span><input v-model="summary" class="as-input-text px-3 py-2 w-full mt-1" maxlength="300" placeholder="변경 내역"/></label>
           <div class="flex flex-wrap justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" data-save-button class="as-btn-primary py-2">{{saving ? '저장 중…' : '저장'}}</button></div>
         </fieldset>
         <p v-if="draftStatus" class="as-meta" role="status">{{draftStatus}}</p>
@@ -30,7 +30,7 @@
         <div v-if="item.revision > 0" :class="embedded ? 'wiki-content' : 'as-post overflow-hidden'"><WikiBodyView :body="item.body" :templates="item.templates"/></div>
         <div v-else-if="embedded" class="wiki-empty">
           <span class="wiki-empty-icon"><as-icon name="pen"/></span>
-          <div><p>아직 작성된 위키가 없습니다.</p><p class="as-meta mt-1">작품 소개와 이야기가 이곳에 모입니다.</p></div>
+          <p>아직 작성된 위키가 없습니다.</p>
         </div>
         <div v-else class="as-box p-6 as-desc">아직 작성된 위키가 없습니다.</div>
         <div v-if="!embedded && item.updatedAt" class="flex flex-wrap justify-between items-center gap-3 mt-3 as-meta"><span>{{wikiDate(item.updatedAt)}}<template v-if="item.updatedBy"> · {{item.updatedBy}}</template> · {{item.revision}}판</span><button v-if="isTemplate && access?.isOperator && item.revision > 0 && !item.deleted" type="button" class="as-link" :disabled="saving" @click="removeTemplate">템플릿 삭제</button></div>
