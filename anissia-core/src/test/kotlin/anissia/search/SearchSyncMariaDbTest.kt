@@ -78,11 +78,11 @@ class SearchSyncMariaDbTest {
     }
 
     @Test
-    fun `a template change queues every current anime reference`() {
+    fun `a template change queues only the template even when an anime uses it`() {
         val animeId = "${System.nanoTime()}"
         jdbc.update("INSERT INTO wiki_reference(owner_kind,owner_no,target_kind,target_id) VALUES ('anime',?,'template',?)", animeId.toLong(), id)
         queue.onChange(SearchChangedEvent(SearchKind.TEMPLATE, id))
-        assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM search_sync_task WHERE kind='anime' AND entity_id=?", Long::class.java, animeId))
+        assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM search_sync_task WHERE kind='anime' AND entity_id=?", Long::class.java, animeId))
         assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM search_sync_task WHERE kind='template' AND entity_id=?", Long::class.java, id))
     }
 

@@ -1,10 +1,6 @@
 package anissia.search
 
-import anissia.support.Json
 import anissia.support.Texts
-import anissia.wiki.WikiBody
-import anissia.wiki.WikiBodyValidator
-import anissia.wiki.WikiTemplateSnapshot
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
@@ -33,28 +29,11 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
             .groupBy { it.text("anime_no") }.mapValues { (_, captions) -> captions.map { it.text("name") } } else emptyMap()
         val wikis = if (kind == SearchKind.ANIME) select("SELECT anime_no, body FROM anime_wiki WHERE anime_no IN (:ids)", ids)
             .associate { it.text("anime_no") to it.text("body") } else emptyMap()
-        val references = wikis.filterValues { it.isNotBlank() }.mapValues { (_, body) -> WikiBodyValidator.analyze(Json.read<WikiBody>(body)) }
-        val templateIds = references.values.flatMap { it.templates }.distinct()
-        val templates = select("SELECT template_no, title, body, revision FROM wiki_template WHERE template_no IN (:ids) AND deleted = false", templateIds)
-            .associate { template ->
-                val no = (template["template_no"] as Number).toLong()
-                val snapshot = WikiTemplateSnapshot(no, template.text("title"), Json.read(template.text("body")), (template["revision"] as Number).toLong())
-                no to (template.text("body") to Json.write(snapshot).toByteArray().size.toLong())
-            }
         val posts = if (kind == SearchKind.BOARD) select("SELECT topic_no, root, content FROM board_post WHERE topic_no IN (:ids) ORDER BY post_no", ids)
             .groupBy { it.text("topic_no") } else emptyMap()
         return rows.mapNotNull { row ->
             val id = row.text(kind.idColumn)
-            val wiki = wikis[id].orEmpty()
-            val included = linkedMapOf<Long, String>()
-            var bytes = wiki.toByteArray().size.toLong()
-            references[id]?.let { refs ->
-                refs.templates.sorted().forEach { no -> templates[no]?.let { (body, size) ->
-                    val length = size * refs.templateUses.getValue(no)
-                    if (bytes + length <= 4L * 1024 * 1024) { included[no] = body; bytes += length }
-                } }
-            }
-            document(kind, id, row, translators[id].orEmpty(), wiki, included, posts[id].orEmpty())?.let { id to it }
+            document(kind, id, row, translators[id].orEmpty(), wikis[id].orEmpty(), posts[id].orEmpty())?.let { id to it }
         }.toMap()
     }
 
@@ -62,7 +41,7 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
         else jdbc.queryForList(sql.replace(":ids", ids.joinToString(",") { "?" }), *ids.toTypedArray())
 
     private fun document(kind: SearchKind, id: String, row: Map<String, Any?>, translators: List<String>, wiki: String,
-        included: Map<Long, String>, posts: List<Map<String, Any?>>): Map<String, Any>? {
+        posts: List<Map<String, Any?>>): Map<String, Any>? {
         val doc = mutableMapOf<String, Any>("id" to id)
         when (kind) {
             SearchKind.ANIME -> {
@@ -78,7 +57,7 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
                 doc["info"] = listOf(week, row.text("time"), row.text("genres"), row.text("note"), startDate, row.text("end_date"), row.text("website"), row.text("x"),
                     when (row.text("status")) { "END" -> "완결"; "ON" -> if (row.text("week") in listOf("7", "8")) "신작 기타" else "방영중"; else -> "결방" },
                     (doc["translators"] as List<*>).joinToString(" ")).joinToString(" ")
-                doc["body"] = SearchText.wiki(wiki, included)
+                doc["body"] = SearchText.wiki(wiki)
             }
             SearchKind.BOARD -> {
                 doc["title"] = row.text("topic")

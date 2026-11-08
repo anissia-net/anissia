@@ -18,13 +18,7 @@ class SearchSyncQueue(private val jdbc: JdbcTemplate) {
     @Transactional
     @EventListener
     fun onChange(event: SearchChangedEvent) {
-        event.ids.sorted().forEach { id ->
-            mark(event.kind, id)
-            if (event.kind == SearchKind.TEMPLATE) {
-                jdbc.query("SELECT DISTINCT owner_no FROM wiki_reference WHERE owner_kind = 'anime' AND target_kind = 'template' AND target_id = ? ORDER BY owner_no", { r, _ -> r.getString(1) }, id)
-                    .forEach { mark(SearchKind.ANIME, it) }
-            }
-        }
+        event.ids.sorted().forEach { mark(event.kind, it) }
     }
 
     @Transactional

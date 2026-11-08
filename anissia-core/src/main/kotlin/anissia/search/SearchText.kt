@@ -10,22 +10,20 @@ import javax.swing.text.html.HTMLEditorKit
 import javax.swing.text.html.parser.ParserDelegator
 
 object SearchText {
-    fun wiki(json: String, templates: Map<Long, String> = emptyMap()): String {
+    fun wiki(json: String): String {
         if (json.isBlank()) return ""
         val body = Json.read<WikiBody>(json)
         val text = StringBuilder()
-        fun visit(node: JsonNode, include: Boolean) {
+        fun visit(node: JsonNode) {
             if (node.isString) { text.append(node.asString()).append(' '); return }
             when (node.path("w").asString("")) {
                 "fn" -> text.append(node.path("a").path("t").asString("")).append(' ')
                 "img" -> text.append(node.path("a").path("alt").asString("")).append(' ')
-                "exTemplateInclude" -> if (include) {
-                    node.path("a").path("exTemplateNo").asString("").toLongOrNull()?.let(templates::get)?.let { text.append(wiki(it)).append(' ') }
-                }
+                "exTemplateInclude" -> return
             }
-            node.path("ch").takeIf { it.isArray }?.forEach { visit(it, include) }
+            node.path("ch").takeIf { it.isArray }?.forEach(::visit)
         }
-        body.blocks.forEach { visit(it, true) }
+        body.blocks.forEach(::visit)
         return text.toString().trim()
     }
 

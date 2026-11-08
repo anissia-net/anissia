@@ -5,11 +5,14 @@ import org.junit.jupiter.api.Test
 
 class SearchTextTest {
     @Test
-    fun `wiki extracts current visible strings footnotes and template text without source URLs or markup`() {
-        val body = """{"schemaVersion":1,"blocks":[{"w":"p","ch":["친구",{"w":"a","a":{"href":"https://hidden.invalid"},"ch":["학교"]}]},{"w":"fn","a":{"t":"각주"}},{"w":"exTemplateInclude","a":{"exTemplateNo":7}}]}"""
-        val template = """{"schemaVersion":1,"blocks":[{"w":"p","ch":["우주"]}]}"""
-        assertEquals("친구 학교 각주 우주", SearchText.wiki(body, mapOf(7L to template)))
-        assertEquals("친구 학교 각주", SearchText.wiki(body))
+    fun `wiki extracts its own text and skips template nodes`() {
+        val body = """{"schemaVersion":1,"blocks":[
+            {"w":"p","ch":["친구",{"w":"exTemplateInclude","a":{"exTemplateNo":"7"}},
+                {"w":"a","a":{"href":"https://hidden.invalid"},"ch":["학교"]}]},
+            {"w":"fn","a":{"t":"각주"}},
+            {"w":"img","a":{"src":"/image.avif","alt":"이미지 설명"}}
+        ]}"""
+        assertEquals("친구 학교 각주 이미지 설명", SearchText.wiki(body))
     }
 
     @Test
