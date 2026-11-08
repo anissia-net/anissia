@@ -58,7 +58,7 @@ class SearchIndexService @Autowired constructor(
         val targets = SearchKind.entries.associateWith { "${it.alias}_$generation" }
         val previous = activeTargets()
         val defaultDefinition by lazy {
-            if (draft != null && draft.active > 0) versionDefinition(draft.active, requireNotNull(dictionaryStore).rules(draft.active))
+            if (draft != null && draft.active > 0) versionDefinition(draft.active, requireNotNull(dictionaryStore).activeRules())
             else ContentSearchRepository.MAPPING
         }
         val counts = build(targets, onProgress) { kind ->
@@ -112,14 +112,15 @@ class SearchIndexService @Autowired constructor(
         }
     }
 
-    internal fun cleanupOldReleases(versions: List<Long>) {
-        if (versions.isEmpty()) return
-        val eligible = versions.flatMap { versionTargets(it, preview = false).entries }.associate { it.value to it.key }
+    internal fun cleanupOldReleases(retainedVersions: Set<Long>) {
+        require(retainedVersions.isNotEmpty() && retainedVersions.all { it >= 0 })
         val patterns = SearchKind.entries.joinToString(",") { "${it.alias}_release_v*" }
         val existing = Json.readTree(checked("GET", "/$patterns/_alias?allow_no_indices=true&ignore_unavailable=true"))
         existing.properties().forEach { (name, definition) ->
-            val kind = eligible[name]
-            if (kind != null && definition.path("aliases").let { it.isObject && it.isEmpty }) {
+            val kind = SearchKind.entries.find { name.matches(Regex("${it.alias}_release_v[0-9]+")) }
+            val version = name.substringAfterLast("_v").toLongOrNull()
+            if (kind != null && version != null && version !in retainedVersions && version < retainedVersions.max() &&
+                definition.path("aliases").let { it.isObject && it.isEmpty }) {
                 discardDetached(mapOf(kind to name))
             }
         }

@@ -1,6 +1,6 @@
 package anissia.search
 
-import anissia.support.FailException
+import anissia.activepanel.service.ActivePanelLogService
 import anissia.support.Json
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -11,10 +11,8 @@ internal data class DictionaryDraft(
     val testQuery: String?, val testKind: String?, val job: String?, val actor: String?, val error: String?,
 )
 
-data class DictionaryVersion(val version: Long, val createdAt: String, val actor: String)
-
 @Repository
-class SearchDictionaryStore(private val jdbc: JdbcTemplate) {
+class SearchDictionaryStore(private val jdbc: JdbcTemplate, private val activity: ActivePanelLogService) {
     internal fun draft(lock: Boolean = false): DictionaryDraft = requireNotNull(jdbc.queryForObject(
         "SELECT * FROM search_dictionary_state WHERE id = 1" + if (lock) " FOR UPDATE" else "",
         { row, _ -> DictionaryDraft(row.getLong("revision"), Json.read(row.getString("draft")), row.getLong("active_version"),
@@ -24,14 +22,9 @@ class SearchDictionaryStore(private val jdbc: JdbcTemplate) {
 
     fun hasJob(): Boolean = jdbc.queryForObject("SELECT job IS NOT NULL FROM search_dictionary_state WHERE id=1", Boolean::class.java) == true
 
-    fun rules(version: Long): List<DictionaryRule> {
-        val snapshot = jdbc.query("SELECT rules FROM search_dictionary_version WHERE version=?", { row, _ -> row.getString(1) }, version).singleOrNull()
-            ?: throw FailException("사전 버전을 찾을 수 없습니다.")
-        return Json.read(snapshot)
-    }
-
-    fun history(): List<DictionaryVersion> = jdbc.query("SELECT version, published_at, actor FROM search_dictionary_version WHERE published_at IS NOT NULL ORDER BY published_at DESC, version DESC",
-        { row, _ -> DictionaryVersion(row.getLong(1), row.getTimestamp(2).toLocalDateTime().toString(), row.getString(3)) })
+    fun activeRules(): List<DictionaryRule> = Json.read(requireNotNull(
+        jdbc.queryForObject("SELECT active_rules FROM search_dictionary_state WHERE id=1", String::class.java),
+    ))
 
     internal fun saveDraft(rules: List<DictionaryRule>) {
         jdbc.update("UPDATE search_dictionary_state SET draft=?, revision=revision+1, tested_query=NULL, tested_kind=NULL, error_message=NULL WHERE id=1", Json.write(rules))
@@ -41,12 +34,11 @@ class SearchDictionaryStore(private val jdbc: JdbcTemplate) {
         jdbc.update("UPDATE search_dictionary_state SET job=?, job_actor=?, error_message=NULL WHERE id=1", job, actor)
     }
 
-    internal fun saveSnapshot(draft: DictionaryDraft) {
-        jdbc.update("INSERT INTO search_dictionary_version(version, rules, actor) VALUES (?,?,?) ON DUPLICATE KEY UPDATE version=VALUES(version)", draft.revision, Json.write(draft.rules), draft.actor.orEmpty())
-    }
-
+    @Transactional
     internal fun prepared(version: Long) {
+        val draft = draft(lock = true)
         jdbc.update("UPDATE search_dictionary_state SET candidate_version=?, tested_query=NULL, tested_kind=NULL, job=NULL, job_actor=NULL, error_message=NULL WHERE id=1", version)
+        activity.addText("[검색] [${draft.actor}]님이 요청한 사전 초안 $version 테스트 버전 준비가 완료되었습니다.")
     }
 
     internal fun tested(q: String, kind: SearchKind) {
@@ -55,11 +47,15 @@ class SearchDictionaryStore(private val jdbc: JdbcTemplate) {
 
     @Transactional
     internal fun published(version: Long, actor: String) {
-        jdbc.update("UPDATE search_dictionary_version SET published_at=CURRENT_TIMESTAMP(6), actor=? WHERE version=?", actor, version)
-        jdbc.update("UPDATE search_dictionary_state SET active_version=?, candidate_version=NULL, tested_query=NULL, tested_kind=NULL, job=NULL, job_actor=NULL, error_message=NULL WHERE id=1", version)
+        jdbc.update("UPDATE search_dictionary_state SET active_version=?, active_rules=draft, candidate_version=NULL, tested_query=NULL, tested_kind=NULL, job=NULL, job_actor=NULL, error_message=NULL WHERE id=1", version)
+        activity.addText("[검색] [$actor]님이 사전 버전 $version 운영 적용을 완료하였습니다.")
     }
 
+    @Transactional
     internal fun failed(message: String) {
+        val draft = draft(lock = true)
         jdbc.update("UPDATE search_dictionary_state SET job=NULL, job_actor=NULL, error_message=? WHERE id=1", message.take(600))
+        val task = if (draft.job == "PUBLISH") "운영 적용" else "테스트 버전 준비"
+        activity.addText("[검색] [${draft.actor}]님이 요청한 사전 초안 ${draft.revision} $task 작업에 실패하였습니다. ${message.take(600)}")
     }
 }

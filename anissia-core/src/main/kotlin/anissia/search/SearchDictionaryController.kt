@@ -9,7 +9,6 @@ data class DictionaryRule(val id: String, val category: String, val term: String
 data class RuleInput(val term: String, val value: String = "", val revision: Long)
 data class DraftInput(val revision: Long)
 data class VersionInput(val version: Long)
-data class RestoreInput(val version: Long, val revision: Long)
 data class DictionaryTestInput(val q: String, val kind: String, val version: Long)
 
 @RestController
@@ -32,14 +31,14 @@ class SearchDictionaryController(
               @RequestParam(defaultValue = "0") page: Int) = ApiResponse.ok(dictionaries.rules(category, q, page))
 
     @PostMapping("/rules/{category}")
-    fun add(@PathVariable category: String, @RequestBody input: RuleInput): ApiResponse<Unit> {
-        dictionaries.add(category, input.term, input.value, input.revision)
+    fun add(@PathVariable category: String, @RequestBody input: RuleInput, actor: Actor): ApiResponse<Unit> {
+        dictionaries.add(category, input.term, input.value, input.revision, actor)
         return ApiResponse.ok()
     }
 
     @DeleteMapping("/rules/{category}/{id}")
-    fun delete(@PathVariable category: String, @PathVariable id: String, @RequestParam revision: Long): ApiResponse<Unit> {
-        dictionaries.delete(category, id, revision)
+    fun delete(@PathVariable category: String, @PathVariable id: String, @RequestParam revision: Long, actor: Actor): ApiResponse<Unit> {
+        dictionaries.delete(category, id, revision, actor)
         return ApiResponse.ok()
     }
 
@@ -48,34 +47,26 @@ class SearchDictionaryController(
 
     @PostMapping("/prepare")
     fun prepare(@RequestBody input: DraftInput, actor: Actor): ApiResponse<Unit> {
-        dictionaries.prepare(input.revision, actor.name)
+        dictionaries.prepare(input.revision, actor)
         return ApiResponse.ok()
     }
 
     @PostMapping("/test")
-    fun test(@RequestBody input: DictionaryTestInput): ApiResponse<Map<String, SearchInspection>> {
+    fun test(@RequestBody input: DictionaryTestInput, actor: Actor): ApiResponse<Map<String, SearchInspection>> {
         val query = checkedQuery(input.q)
         val kind = requireNotNull(SearchKind.entries.find { it.key == input.kind }) { "검색 영역을 확인해 주세요." }
         val target = dictionaries.targets(input.version).getValue(kind)
         val active = inspector.inspect(kind, kind.alias, query)
         val candidate = inspector.inspect(kind, target, query)
         if (active.total > 0 || candidate.total > 0 || active.analysis != candidate.analysis) {
-            dictionaries.markTested(input.version, query, kind)
+            dictionaries.markTested(input.version, query, kind, actor)
         }
         return ApiResponse.ok(mapOf("active" to active, "candidate" to candidate))
     }
 
     @PostMapping("/publish")
     fun publish(@RequestBody input: VersionInput, actor: Actor): ApiResponse<Unit> {
-        actor.validateRoot()
-        dictionaries.publish(input.version, actor.name)
-        return ApiResponse.ok()
-    }
-
-    @PostMapping("/restore")
-    fun restore(@RequestBody input: RestoreInput, actor: Actor): ApiResponse<Unit> {
-        actor.validateRoot()
-        dictionaries.restore(input.version, input.revision)
+        dictionaries.publish(input.version, actor)
         return ApiResponse.ok()
     }
 

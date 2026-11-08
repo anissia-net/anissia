@@ -22,9 +22,9 @@
         <span v-if="state" class="as-meta pb-2">초안 {{ state.revision }}</span>
       </div>
       <nav v-choice class="as-segment" aria-label="사전 종류">
-        <router-link v-for="(metadata, key) in tabs" :key="key"
+        <router-link v-for="(metadata, key) in categories" :key="key"
                      :to="{name: 'admin-search', params: {category: key}, query: input.trim() ? {q: input.trim()} : {}}"
-                     :class="{'is-on': tab === key}" :aria-current="tab === key ? 'page' : undefined">
+                     :class="{'is-on': category === key}" :aria-current="category === key ? 'page' : undefined">
           {{ metadata.label }}
         </router-link>
       </nav>
@@ -78,18 +78,6 @@
           </div>
         </template>
       </div>
-      <div v-else class="as-box p-4 mt-3">
-        <h3 class="font-semibold">버전 이력</h3>
-        <ul v-if="state?.history.length" class="mt-2">
-          <li v-for="entry in state.history" :key="entry.version" class="as-row flex flex-wrap items-center gap-2 py-2 text-sm">
-            <span class="font-semibold">버전 {{ entry.version }}</span>
-            <span v-if="entry.version === state.active" class="as-tag-xs">운영</span>
-            <span class="as-meta">{{ entry.actor }} · {{ formatDate(entry.createdAt) }}</span>
-          </li>
-        </ul>
-        <p v-else-if="state" class="as-meta py-4">버전 이력이 없습니다.</p>
-        <p v-else-if="!stateError" class="as-meta py-4">버전 이력을 불러오고 있습니다.</p>
-      </div>
     </section>
 
     <p v-if="stateError" class="mt-4 text-danger text-sm" role="alert">{{ stateError }}
@@ -110,9 +98,7 @@ import SearchRelease from '../../domain/search/SearchRelease.vue';
 import toast from '../../common/toast';
 
 const route = useRoute(), router = useRouter();
-const tabs = {...categories, history: {label: '버전 이력'}};
-const tab = computed(() => route.params.category as Category | 'history');
-const category = computed(() => tab.value === 'history' ? null : tab.value);
+const category = computed(() => route.params.category as Category);
 const isUserDictionary = computed(() => category.value === 'user-dictionary');
 const info = computed(() => category.value ? categories[category.value] : null);
 const query = computed(() => typeof route.query.q === 'string' ? route.query.q.trim() : '');
@@ -131,11 +117,6 @@ let searchTimer: ReturnType<typeof setTimeout>;
 let pollTimer: ReturnType<typeof setTimeout>;
 let stateRequest = 0, rulesRequest = 0, analysisRequest = 0;
 let alive = true;
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ko-KR');
-}
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : '요청을 완료하지 못했습니다.';

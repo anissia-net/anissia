@@ -23,7 +23,6 @@ export interface SearchState {
   tested: boolean;
   busy: boolean;
   error: string | null;
-  history: {version: number; createdAt: string; actor: string}[];
 }
 
 const base = import.meta.env.VITE_API_PATH + '/admin/search';

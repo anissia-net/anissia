@@ -101,7 +101,8 @@ const router = createRouter({
             { path: '/admin/schedule', component: adminSchedule, meta: { title: '애니편성표 관리 - 애니시아' } },
             { path: '/admin/caption', component: adminCaption, meta: { title: '자막 관리 - 애니시아' } },
             { path: '/admin/search', redirect: to => ({path: '/admin/search/user-dictionary', query: to.query}) },
-            { path: '/admin/search/:category(user-dictionary|synonyms|corrections|stopwords|history)', name: 'admin-search', component: adminSearch, meta: { title: '검색 관리 - 애니시아' } },
+            { path: '/admin/search/history', redirect: to => ({path: '/admin/search/user-dictionary', query: to.query}) },
+            { path: '/admin/search/:category(user-dictionary|synonyms|corrections|stopwords)', name: 'admin-search', component: adminSearch, meta: { title: '검색 관리 - 애니시아' } },
           ]
         },
         { path: '/anitime/:path(.*)', component: p301, meta: { title: '주소이전 - 애니시아' } },
