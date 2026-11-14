@@ -15,3 +15,10 @@ export function wikiImageOwnerFields(owner: WikiImageOwner): Record<string, stri
 export function wikiImageOwnerLocation(owner: WikiImageOwner): string {
   return owner.documentKind === 'anime' ? `/anime/${owner.documentNo}` : `/wiki/templates?templateNo=${owner.documentNo}`;
 }
+
+export function wikiImageLocation(image: {id: string; documentKind?: unknown; documentNo?: unknown}): string | undefined {
+  const owner = wikiImageOwner(image.documentKind, image.documentNo);
+  if (!owner) return;
+  const document = wikiImageOwnerLocation(owner);
+  return `${document}${document.includes('?') ? '&' : '?'}imageId=${encodeURIComponent(image.id)}#wiki-images`;
+}

@@ -54,8 +54,11 @@ class WikiImageController(private val images: WikiImageService) {
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.list(page, q, deleted, actor, documentKind, documentNo)))
 
     @PostMapping("/images/{id}/attach")
-    fun attach(@PathVariable id: String, @RequestBody request: WikiImageAttachRequest, actor: Actor) =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.attach(id, request, actor)))
+    fun attach(): Nothing = throw ResponseStatusException(HttpStatus.GONE, "이미지 가져오기 기능이 제거되었습니다. 문서 안에서 이미지를 등록해 주세요.")
+
+    @PostMapping("/images/{id}/detach")
+    fun detach(@PathVariable id: String, @RequestBody request: WikiImageOperationRequest, actor: Actor) =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.detach(id, request, actor)))
 
     @PutMapping("/images/{id}")
     fun edit(@PathVariable id: String, @RequestBody request: WikiImageEditRequest, actor: Actor) =

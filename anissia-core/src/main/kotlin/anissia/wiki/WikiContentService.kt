@@ -272,6 +272,7 @@ class WikiContentService(
         }
         requireDocumentImages(kind, id, body, snapshots)
         if (state.revision > 0 && state.body == json && kind == "anime") throw FailException("변경사항이 없습니다.")
+        images.activateReferencedImages(refs.images, kind, id, account.name)
         state.body = json
         state.revision++
         state.updatedAt = OffsetDateTime.now()

@@ -51,6 +51,10 @@
         </div>
         <div v-if="!embedded && item.updatedAt" class="flex flex-wrap justify-between items-center gap-3 mt-3 as-meta"><span>{{wikiDate(item.updatedAt)}}<template v-if="item.updatedBy"> · {{item.updatedBy}}</template> · {{item.revision}}판</span><button v-if="isTemplate && access?.isOperator && item.revision > 0 && !item.deleted" type="button" class="as-link" :disabled="saving" @click="removeTemplate">템플릿 삭제</button><router-link v-else-if="isTemplate && access?.canContribute && item.revision > 0 && !item.deleted" :to="{path: '/wiki/requests/new', query: {kind: 'TEMPLATE_DELETE', templateNo: item.templateNo}}" class="as-link">템플릿 삭제 요청</router-link></div>
         <WikiUsageList v-if="isTemplate && !newTemplate && !item.deleted" :key="item.revision" :endpoint="`${path}/usage`"/>
+        <section v-if="selectedImageId && imageOwner" id="wiki-images" class="as-box p-5 mt-6" aria-label="문서 이미지 정보">
+          <div class="flex justify-between items-center gap-3 mb-4"><h2 class="as-section-title">이 문서의 이미지</h2><button type="button" class="as-link text-sm" @click="closeImageDetail">닫기</button></div>
+          <WikiImageDetail ref="imageDetail" :image-id="selectedImageId" :owner="imageOwner"/>
+        </section>
         <p v-if="saveError" class="text-sm text-red-600 mt-3" role="alert">{{saveError}}</p>
       </template>
     </template>
@@ -60,13 +64,15 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onBeforeUnmount, ref, watch} from 'vue';
+import {computed, nextTick, onBeforeUnmount, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {sessionStore} from '../session/sessionStore';
 import toast from '../../common/toast';
 import WikiEditor from './WikiEditor.vue';
 import WikiBodyView from './WikiBodyView.vue';
 import WikiMerge from './WikiMerge.vue';
 import WikiUsageList from './WikiUsageList.vue';
+import WikiImageDetail from './WikiImageDetail.vue';
 import {wikiRemote, WikiError, wikiDate, wikiErrorMessage, wikiHistoryLocation, type WikiAccess, type WikiDocument, type WikiBody, type WikiTemplate} from './wikiRemote';
 import {readWikiDraft, removeWikiDraft, wikiDraftKey, writeWikiDraft, type WikiDraft} from './wikiDraft';
 import {isWikiBodyEmpty} from './wikiBodyEmpty';
@@ -75,6 +81,8 @@ import {wikiImageOwner} from './wikiImageOwner';
 const props = defineProps<{animeNo?: number; templateNo?: number; newTemplate?: boolean; embedded?: boolean; editOnOpen?: boolean}>();
 const emit = defineEmits<{created: [item: WikiDocument]; deleted: []; saved: [item: WikiDocument]}>();
 const session = sessionStore();
+const route = useRoute(), router = useRouter();
+const selectedImageId = computed(() => typeof route.query.imageId === 'string' && /^[a-f0-9]{32}$/.test(route.query.imageId) ? route.query.imageId : undefined);
 const isTemplate = computed(() => props.newTemplate || !!props.templateNo);
 const imageOwner = computed(() => props.newTemplate ? undefined : wikiImageOwner(isTemplate.value ? 'template' : 'anime', isTemplate.value ? props.templateNo : props.animeNo));
 const path = computed(() => props.newTemplate ? '/templates' : isTemplate.value ? `/templates/${props.templateNo}` : `/anime/${props.animeNo}`);
@@ -91,6 +99,7 @@ const canModify = computed(() => props.newTemplate ? !!access.value?.isOperator 
 const canEdit = computed(() => !!item.value && !item.value.deleted && !editing.value && canModify.value);
 defineExpose({hasRevision, canViewHistory, canEdit, beginEdit});
 const editor = ref<InstanceType<typeof WikiEditor>>();
+const imageDetail = ref<InstanceType<typeof WikiImageDetail>>();
 const conflict = ref<WikiDocument>();
 const availableDraft = ref<WikiDraft>(), draftStatus = ref('');
 const draftKey = computed(() => wikiDraftKey(session.user.email, path.value));
@@ -99,6 +108,16 @@ let active = true, generation = 0, accessGeneration = 0;
 let draftTimer: ReturnType<typeof setTimeout> | undefined;
 let editingDraftKey: string | undefined;
 let openedForEditing = false;
+
+async function closeImageDetail() {
+  const {imageId: _imageId, ...query} = route.query;
+  await router.replace({path: route.path, query, hash: ''});
+}
+watch([selectedImageId, item, editing], async () => {
+  if (!selectedImageId.value || !item.value || editing.value) return;
+  await nextTick();
+  document.getElementById('wiki-images')?.scrollIntoView({block: 'start'});
+});
 
 watch([() => props.editOnOpen, item, access], () => {
   if (props.editOnOpen && !openedForEditing && canEdit.value) {
@@ -146,6 +165,7 @@ async function load() {
 }
 function beginEdit() {
   if (!item.value || item.value.deleted || !canModify.value) return;
+  if (imageDetail.value && !imageDetail.value.confirmLeave()) return;
   if (availableDraft.value) { resumeDraft(); return; }
   editingDraftKey = draftKey.value;
   baseline.value = JSON.parse(JSON.stringify(item.value));

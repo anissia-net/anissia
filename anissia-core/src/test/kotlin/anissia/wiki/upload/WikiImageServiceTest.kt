@@ -28,7 +28,7 @@ class WikiImageServiceTest {
     private val properties = WikiUploadProperties(enabled = true, publicBaseUrl = "https://file.anissia.net/file")
     private val operations = mock(WikiImageFileOperations::class.java)
     private val logs = mock(ActivePanelLogService::class.java)
-    private val service = WikiImageService(repository, storage, access, properties, operations, logs, org.mockito.Mockito.mock(anissia.search.ContentSearchRepository::class.java))
+    private val service = WikiImageService(repository, storage, access, properties, operations, logs)
     private val id = "a".repeat(32)
     private val actor = Actor(an = 7)
     private val url = "${properties.publicBaseUrl}/wiki/$id.avif"
@@ -100,7 +100,7 @@ class WikiImageServiceTest {
         `when`(repository.find(id)).thenReturn(record(WikiImageStatus.DELETED))
         `when`(access.requireOperator(actor)).thenThrow(FailException("운영자만 가능"))
         assertThrows<FailException> { service.get(id, actor) }
-        assertThrows<FailException> { service.list(0, "", true, actor) }
+        assertThrows<FailException> { service.list(0, "", true, actor, "anime", 11) }
     }
 
     @Test
@@ -169,9 +169,9 @@ class WikiImageServiceTest {
     }
 
     @Test
-    fun `archive list requires operator while document list is limited to its owner`() {
-        `when`(access.requireOperator(actor)).thenThrow(FailException("운영자만 가능"))
-        assertThrows<FailException> { service.list(0, "", actor = actor) }
+    fun `removed archive list returns gone while document list is limited to its owner`() {
+        assertEquals(org.springframework.http.HttpStatus.GONE,
+            assertThrows<ResponseStatusException> { service.list(0, "", actor = actor) }.statusCode)
         verifyNoInteractions(repository)
         `when`(repository.list(0, "사진", false, "anime", 11)).thenReturn(emptyList<WikiImage>() to 0L)
         assertTrue(service.list(0, "사진", actor = actor, documentKind = "anime", documentNo = 11).content.isEmpty())
@@ -201,25 +201,54 @@ class WikiImageServiceTest {
     }
 
     @Test
-    fun `reattaching archive image returns existing independent copy without copying again`() {
-        val original = record(WikiImageStatus.READY)
-        val attached = original.copy(id = "b".repeat(32), documentKind = "anime", documentNo = 11, sourceImageId = id)
-        `when`(access.requireImageUpload(actor)).thenReturn(Account(an = actor.an))
-        `when`(repository.find(id)).thenReturn(original)
-        `when`(repository.lock(id)).thenReturn(original)
-        `when`(repository.attachedCopy(id, "anime", 11)).thenReturn(attached)
-        val result = service.attach(id, WikiImageAttachRequest("anime", 11), actor)
-        assertEquals(attached.id, result.id)
-        assertEquals("anime", result.documentKind)
-        assertEquals(11L, result.documentNo)
-        assertEquals(id, result.sourceImageId)
-        verify(storage).publicUrl(attached.id)
-        org.mockito.Mockito.verifyNoMoreInteractions(storage)
-        verifyNoInteractions(logs)
-        inOrder(repository).run {
-            verify(repository).requireDocument("anime", 11, true)
-            verify(repository).find(id)
-            verify(repository).lock(id)
+    fun `attachment cancellation requires contributor before accessing records or files`() {
+        `when`(access.requireContributor(actor)).thenThrow(FailException("참여 권한 없음"))
+        assertThrows<FailException> { service.detach(id, WikiImageOperationRequest(1), actor) }
+        verifyNoInteractions(repository, storage, operations, logs)
+    }
+
+    @Test
+    fun `attachment cancellation rejects unavailable owner before touching files`() {
+        `when`(access.requireContributor(actor)).thenReturn(Account(an = actor.an))
+        `when`(repository.find(id)).thenReturn(record(WikiImageStatus.READY).copy(documentKind = "anime", documentNo = 11))
+        org.mockito.Mockito.doThrow(ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND))
+            .`when`(repository).requireDocument("anime", 11, true)
+        assertThrows<ResponseStatusException> { service.detach(id, WikiImageOperationRequest(1), actor) }
+        verifyNoInteractions(storage, operations, logs)
+    }
+
+    @Test
+    fun `detached images retain public files and historical versions`() {
+        properties.serveFiles = true
+        val detached = record(WikiImageStatus.READY).copy(documentKind = "anime", documentNo = 11, attachmentActive = false, revision = 2)
+        `when`(repository.find(id)).thenReturn(detached)
+        `when`(repository.findAll(listOf(id))).thenReturn(listOf(detached))
+        `when`(repository.lock(id)).thenReturn(detached)
+        `when`(storage.publicUrl(id)).thenReturn(url)
+        `when`(storage.publicFile(id)).thenReturn(Path.of("/tmp/$id.avif"))
+        assertFalse(service.get(id, Actor()).attachmentActive)
+        assertEquals(Path.of("/tmp/$id.avif"), service.readyFile(id))
+        assertEquals(mapOf(url to 2L), service.versionMap(setOf(url)))
+        service.requireReadyUrls(setOf(url), "anime", 11)
+        service.activateReferencedImages(setOf(url), "anime", 11, "편집자")
+        verify(repository).activateAttachment(id, "anime", 11, "편집자")
+        verifyNoInteractions(operations)
+    }
+
+    @Test
+    fun `attachment cancellation availability protects current usage and pending replacements but permits history`() {
+        val attached = record(WikiImageStatus.READY).copy(documentKind = "anime", documentNo = 11)
+        `when`(storage.publicUrl(id)).thenReturn(url)
+        `when`(access.access(actor)).thenReturn(anissia.wiki.WikiAccess(true, false, null, ""))
+        `when`(repository.find(id)).thenReturn(attached)
+        `when`(repository.usage(url, 0, true, false)).thenReturn(WikiImageUsagePage(emptyList(), 1, 0, 1, 0))
+        assertTrue(service.usage(id, 0, actor).canDetach)
+        `when`(repository.usage(url, 0, true, false)).thenReturn(WikiImageUsagePage(emptyList(), 1, 1, 0, 0))
+        assertFalse(service.usage(id, 0, actor).canDetach)
+        `when`(repository.usage(url, 0, true, false)).thenReturn(WikiImageUsagePage(emptyList(), 0, 0, 0, 0))
+        for (image in listOf(attached.copy(attachmentActive = false), attached.copy(replacementPending = true), record(WikiImageStatus.READY))) {
+            `when`(repository.find(id)).thenReturn(image)
+            assertFalse(service.usage(id, 0, actor).canDetach)
         }
     }
 

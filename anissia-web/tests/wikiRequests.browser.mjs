@@ -9,17 +9,17 @@ const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQ
 const canonicalImage = 'https://example.test/test-image.png';
 const body = {schemaVersion: 1, blocks: [{w: 'p', ch: ['등록할 내용']}, {w: 'img', a: {src: canonicalImage}, ch: []}]};
 const template = {templateNo: 12, revision: 3, title: '시리즈 틀', body, templates: [], updatedAt: now, imageVersions: {[canonicalImage]: 7}};
-const readyImage = {id: imageId, documentKind: 'template', documentNo: 12, status: 'READY', revision: 3, description: '기존 이미지', sourceUrl: 'https://example.com/old', url: '/test-image.png', createdAt: now, updatedAt: now, updatedBy: '기여자', replacementPending: false};
+const readyImage = {id: imageId, documentKind: 'template', documentNo: 12, attachmentActive: true, status: 'READY', revision: 3, description: '기존 이미지', sourceUrl: 'https://example.com/old', url: '/test-image.png', createdAt: now, updatedAt: now, updatedBy: '기여자', replacementPending: false};
 const requestBase = {id: 31, kind: 'TEMPLATE_CREATE', status: 'PENDING', title: '새 시리즈 틀', reason: '작품 시리즈를 묶습니다.', createdBy: '요청자', createdAt: now, processedBy: null, processedAt: null, processingReason: '', targetNo: null, imageId: null, body, description: '', sourceUrl: '', imagePreviewUrl: null, image: null, resultTargetNo: null, resultImageId: null, canCancel: true, canProcess: false, canApprove: false};
 
-async function setup({operator = false, eligible = true, request = requestBase, owned = true, capabilities = {}, omitCapabilities = false} = {}) {
+async function setup({operator = false, eligible = true, request = requestBase, owned = true, imageOverrides = {}, usage = {}, capabilities = {}, omitCapabilities = false} = {}) {
   const context = await browser.newContext({serviceWorkers: 'block'});
   await context.route('**/*', route => new URL(route.request().url()).origin === new URL(baseURL).origin ? route.continue() : route.abort());
   const user = Buffer.from(`2\x1etester@example.test\x1eTester\x1e${operator ? 'TRANSLATOR' : ''}`).toString('base64url');
   const dat = `${Math.floor(Date.now() / 1000) + 86400}.test.${user}.test.signature`;
   await context.addCookies([{name: 'dat', value: dat, url: baseURL}]);
   const writes = [], pageErrors = [], imageLists = [];
-  let current = structuredClone(request), image = structuredClone({...readyImage, ...(!owned ? {documentKind: null, documentNo: null} : {})}), replacementReads = 0, previewAuthenticated = false;
+  let current = structuredClone(request), image = structuredClone({...readyImage, ...(!owned ? {documentKind: null, documentNo: null} : {}), ...imageOverrides}), replacementReads = 0, previewAuthenticated = false;
   await context.route('**/test-image.png*', route => route.fulfill({contentType: 'image/png', body: pixel}));
   await context.route('**/api/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname.slice('/api'.length), method = request.method();
@@ -32,20 +32,22 @@ async function setup({operator = false, eligible = true, request = requestBase, 
     }
     else if (path === '/wiki/anime/1') data = {...template, templateNo: undefined, animeNo: 1};
     else if (path === '/anime/animeNo/1') data = {animeNo: 1, subject: '시험 작품', genres: '', captions: [], status: 'END', week: '8'};
-    else if (path.endsWith('/usage')) data = {content: [], totalElements: 0, currentCount: 0, historyCount: 0, canDelete: true};
+    else if (path.endsWith('/usage')) data = {content: [], totalElements: 0, currentCount: 0, historyCount: 0, canDelete: true, canDetach: true, ...usage};
     else if (path === '/wiki/images' && method === 'POST') {
       writes.push({path, method, payload: request.postData()}); data = image;
     } else if (path === '/wiki/images') {
       imageLists.push(Object.fromEntries(url.searchParams));
-      data = {content: [image], totalElements: 1, page: 0, size: 30};
-    } else if (path === `/wiki/images/${imageId}/attach`) {
+      const content = image.attachmentActive === false ? [] : [image];
+      data = {content, totalElements: content.length, page: 0, size: 30};
+    } else if (path === `/wiki/images/${imageId}/detach`) {
       writes.push({path, method, payload: request.postDataJSON()});
-      data = {...image, id: '11111111111111111111111111111111', sourceImageId: imageId, url: '/test-image.png?copy=1'};
+      image = {...image, attachmentActive: false, revision: image.revision + 1}; data = image;
     }
     else if (path === `/wiki/images/${imageId}/file`) {
       writes.push({path, method, payload: request.postData()});
       image = {...image, replacementPending: true}; data = image;
     } else if (path === `/wiki/images/${imageId}`) {
+      if (method !== 'GET') writes.push({path, method, payload: request.postDataJSON()});
       if (image.replacementPending && ++replacementReads > 1) image = {...image, revision: 4, description: '교체 이미지', sourceUrl: 'https://example.com/new', replacementPending: false};
       data = image;
     } else if (path === '/wiki/requests' && method === 'POST') {
@@ -69,7 +71,7 @@ async function setup({operator = false, eligible = true, request = requestBase, 
   const page = await context.newPage();
   page.on('pageerror', error => pageErrors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
-  return {page, context, writes, pageErrors, imageLists, previewAuthenticated: () => previewAuthenticated};
+  return {page, context, writes, pageErrors, imageLists, image: () => image, previewAuthenticated: () => previewAuthenticated};
 }
 
 try {
@@ -128,6 +130,8 @@ try {
 
   const replacement = await setup();
   await replacement.page.goto(baseURL + `/wiki/images?imageId=${imageId}`);
+  await replacement.page.waitForURL(`**/wiki/templates?templateNo=12&imageId=${imageId}#wiki-images`);
+  await replacement.page.getByRole('region', {name: '문서 이미지 정보', exact: true}).waitFor();
   await replacement.page.getByRole('button', {name: '이미지 수정', exact: true}).click();
   await replacement.page.getByLabel('교체할 이미지 (선택)', {exact: true}).setInputFiles({name: 'replacement.png', mimeType: 'image/png', buffer: pixel});
   await replacement.page.getByLabel('이미지 설명', {exact: true}).fill('교체 이미지');
@@ -145,6 +149,13 @@ try {
   await scopedDialog.locator('article img').waitFor();
   assert.equal(await scoped.page.locator('.wiki-editor-images').count(), 1);
   assert.equal(await scoped.page.locator('dialog[open]').count(), 0);
+  assert.equal(await scoped.page.getByRole('link', {name: '이미지 보관함', exact: true}).count(), 0);
+  assert.equal(await scopedDialog.getByRole('button', {name: '보관함에서 가져오기', exact: true}).count(), 0);
+  assert.equal(await scopedDialog.evaluate(panel => {
+    const surface = document.querySelector('.nabi-content[contenteditable="true"]');
+    return !!(surface.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && panel.getBoundingClientRect().top >= surface.getBoundingClientRect().bottom;
+  }), true);
   const initialListRequests = scoped.imageLists.length;
   const editingSurface = scoped.page.locator('.nabi-content[contenteditable="true"]');
   await editingSurface.fill('앞');
@@ -170,20 +181,45 @@ try {
   await editingSurface.locator('img[src="/test-image.png"]').waitFor();
   assert.equal(await editingSurface.evaluate(element => { const range = document.createRange(); range.selectNodeContents(element); range.setEndBefore(element.querySelector('img')); return range.toString(); }), '앞');
   assert.equal(await editingSurface.evaluate(element => { const range = document.createRange(); range.selectNodeContents(element); range.setStartAfter(element.querySelector('img')); return range.toString(); }), '뒤');
-  await scopedDialog.getByRole('button', {name: '보관함에서 가져오기', exact: true}).click();
-  await scopedDialog.getByText('이 문서로 가져오기', {exact: true}).click();
-  await scoped.page.locator('.nabi-content[contenteditable="true"] img[src="/test-image.png?copy=1"]').waitFor();
-  assert.deepEqual(scoped.writes.find(write => write.path.endsWith('/attach')).payload, {documentKind: 'template', documentNo: 12});
   await scoped.page.locator('button[data-wing="img"]').click();
   await scoped.page.locator('.wiki-editor-images').getByRole('button', {name: '이미지 정보', exact: true}).click();
+  assert.equal(await scopedDialog.getByRole('button', {name: '첨부 취소', exact: true}).isDisabled(), true);
   await scoped.page.locator('.wiki-editor-images').getByRole('button', {name: '이미지 수정', exact: true}).click();
   await scoped.page.locator('.wiki-editor-images').getByLabel('이미지 설명', {exact: true}).fill('저장 전 변경');
   scoped.page.removeAllListeners('dialog');
   scoped.page.once('dialog', dialog => dialog.dismiss());
   await scoped.page.locator('.wiki-editor-images').getByRole('button', {name: '이미지 목록으로', exact: true}).click();
   assert.equal(await scoped.page.locator('.wiki-editor-images').getByRole('group', {name: '이미지 정보 수정', exact: true}).count(), 1);
+  assert.equal(scoped.writes.some(write => write.path.endsWith('/attach')), false);
+  assert.ok(scoped.imageLists.every(query => query.documentKind === 'template' && query.documentNo === '12'));
   assert.deepEqual(scoped.pageErrors, []);
   await scoped.context.close();
+
+  const detached = await setup({usage: {historyCount: 1, canDelete: false}});
+  await detached.page.goto(baseURL + '/wiki/templates?templateNo=12&edit=1');
+  const detachedPanel = detached.page.locator('.wiki-editor-images');
+  await detachedPanel.getByRole('button', {name: '이미지 정보', exact: true}).click();
+  const detachButton = detachedPanel.getByRole('button', {name: '첨부 취소', exact: true});
+  await detachButton.waitFor();
+  await detached.page.waitForFunction(() => ![...document.querySelectorAll('.wiki-editor-images button')].find(button => button.textContent === '첨부 취소')?.disabled);
+  await detachButton.click();
+  await detachedPanel.getByText('등록된 이미지가 없습니다.', {exact: true}).waitFor();
+  assert.deepEqual(detached.writes, [{path: `/wiki/images/${imageId}/detach`, method: 'POST', payload: {baseRevision: 3}}]);
+  assert.equal(detached.image().attachmentActive, false);
+  assert.equal(detached.image().status, 'READY');
+  assert.equal(detached.image().url, readyImage.url);
+  assert.equal(detached.image().documentKind, 'template');
+  assert.equal(detached.image().documentNo, 12);
+  assert.deepEqual(detached.pageErrors, []);
+  await detached.context.close();
+
+  const used = await setup({usage: {currentCount: 1, canDetach: false, canDelete: false}});
+  await used.page.goto(baseURL + `/wiki/templates?templateNo=12&imageId=${imageId}#wiki-images`);
+  await used.page.getByText('현재 문서 1개 · 과거 이력 0개', {exact: true}).waitFor();
+  assert.equal(await used.page.getByRole('button', {name: '첨부 취소', exact: true}).isDisabled(), true);
+  assert.deepEqual(used.writes, []);
+  assert.deepEqual(used.pageErrors, []);
+  await used.context.close();
 
   const inline = await setup();
   await inline.page.goto(baseURL + '/wiki/templates?templateNo=12&edit=1');
@@ -191,6 +227,7 @@ try {
   await inline.page.setViewportSize({width: 390, height: 844});
   const inlineDialog = inline.page.locator('.wiki-editor-images');
   await inlineDialog.locator('article img').waitFor();
+  assert.equal(await inlineDialog.evaluate(panel => panel.getBoundingClientRect().top >= document.querySelector('.nabi-content[contenteditable="true"]').getBoundingClientRect().bottom), true);
   await inlineDialog.getByRole('button', {name: '이미지 등록 요청', exact: true}).click();
   await inlineDialog.getByLabel('업로드할 이미지', {exact: true}).setInputFiles({name: 'requested.png', mimeType: 'image/png', buffer: pixel});
   await inlineDialog.getByLabel('이미지 설명', {exact: true}).fill('승인할 첨부');
@@ -213,11 +250,35 @@ try {
   await fresh.context.close();
   const archived = await setup({operator: true, owned: false});
   await archived.page.goto(baseURL + `/wiki/images?imageId=${imageId}`);
-  await archived.page.getByText('기존 이미지 보관함에 있는 이미지입니다.', {exact: false}).waitFor();
+  await archived.page.getByText('이 이미지에 연결된 문서가 없습니다.', {exact: true}).waitFor();
   assert.equal(await archived.page.getByRole('button', {name: '이미지 수정', exact: true}).count(), 0);
-  await archived.page.getByRole('button', {name: '이미지 삭제', exact: true}).waitFor();
+  assert.equal(await archived.page.getByRole('button', {name: '이미지 삭제', exact: true}).count(), 0);
+  assert.equal(archived.imageLists.length, 0);
   assert.deepEqual(archived.pageErrors, []);
   await archived.context.close();
+
+  const library = await setup({operator: true});
+  await library.page.goto(baseURL + '/wiki/images');
+  await library.page.getByText('이미지는 각 위키 문서나 템플릿의 편집 화면에서 관리합니다.', {exact: true}).waitFor();
+  assert.equal(library.imageLists.length, 0);
+  assert.equal(await library.page.locator('article').count(), 0);
+  assert.deepEqual(library.pageErrors, []);
+  await library.context.close();
+
+  const animeLink = await setup({imageOverrides: {documentKind: 'anime', documentNo: 1}});
+  await animeLink.page.goto(baseURL + `/wiki/images?imageId=${imageId}`);
+  await animeLink.page.waitForURL(`**/anime/1?imageId=${imageId}#wiki-images`);
+  await animeLink.page.getByRole('region', {name: '문서 이미지 정보', exact: true}).getByText('기존 이미지', {exact: true}).waitFor();
+  assert.deepEqual(animeLink.pageErrors, []);
+  await animeLink.context.close();
+
+  const wrongOwner = await setup();
+  await wrongOwner.page.goto(baseURL + `/anime/1?imageId=${imageId}#wiki-images`);
+  await wrongOwner.page.getByText('이 문서에 속한 이미지가 아닙니다.', {exact: true}).waitFor();
+  assert.equal(await wrongOwner.page.getByRole('button', {name: '첨부 취소', exact: true}).count(), 0);
+  assert.deepEqual(wrongOwner.writes, []);
+  assert.deepEqual(wrongOwner.pageErrors, []);
+  await wrongOwner.context.close();
 
   const missingCapabilities = await setup({operator: true, omitCapabilities: true});
   await missingCapabilities.page.goto(baseURL + '/wiki/templates?templateNo=12&edit=1');
@@ -252,7 +313,7 @@ try {
   assert.deepEqual(requestOnly.pageErrors, []);
   await requestOnly.context.close();
 
-  const animeEditor = await setup({operator: true});
+  const animeEditor = await setup({operator: true, imageOverrides: {documentKind: 'anime', documentNo: 1}});
   await animeEditor.page.goto(baseURL + '/anime/1');
   await animeEditor.page.locator('.anime-document-actions button').click();
   const animePanel = animeEditor.page.locator('.wiki-editor-images');
@@ -261,6 +322,7 @@ try {
   assert.equal(animeEditor.imageLists[0].documentKind, 'anime');
   assert.equal(animeEditor.imageLists[0].documentNo, '1');
   assert.equal(await animePanel.isVisible(), true);
+  assert.equal(await animePanel.evaluate(panel => panel.getBoundingClientRect().top >= document.querySelector('.nabi-content[contenteditable="true"]').getBoundingClientRect().bottom), true);
   assert.deepEqual(animeEditor.pageErrors, []);
   await animeEditor.context.close();
 
@@ -277,5 +339,10 @@ try {
   assert.deepEqual(independentSave.writes.map(write => [write.method, write.path]), [['PUT', '/wiki/templates/12']]);
   assert.deepEqual(independentSave.pageErrors, []);
   await independentSave.context.close();
-  console.log('PASS explicit image file capabilities, missing/false flags denied, metadata editing preserved, scoped image upload, archive copy, inline approval request, new-template save-first flow, member permissions, template request/cancel, 15-day restriction, operator approval, authenticated image request preview, and image replacement polling');
+  console.log('PASS document image ownership, below-body management, legacy detail redirect, attachment cancellation without file deletion, current/draft usage protection, scoped image upload, inline approval request, save-first templates, member permissions, request/cancel/approval, authenticated image preview, and replacement polling');
+} catch (error) {
+  for (const context of browser.contexts()) {
+    for (const page of context.pages()) console.error({url: page.url(), body: (await page.locator('body').innerText()).slice(0, 1600)});
+  }
+  throw error;
 } finally { await browser.close(); }

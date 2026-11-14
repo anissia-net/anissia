@@ -22,7 +22,7 @@
       <p v-if="uploadError" class="text-sm text-red-600 whitespace-pre-line" role="alert">{{uploadError}} <button v-if="current && processing" type="button" class="as-link" @click="poll(current.id)">상태 다시 확인</button></p>
       <div v-if="current?.status === 'READY' && current.url" class="flex flex-wrap items-center gap-4 border-t border-line pt-4">
         <img :src="wikiImageDisplayUrl(current.url, current.revision)" :alt="current.description || '업로드한 이미지'" class="w-24 h-24 object-contain"/>
-        <div class="space-y-2 text-sm"><p>업로드가 완료되었습니다.</p><p class="as-meta">{{dimensions(current)}}</p><div class="flex gap-3"><button type="button" class="as-link" @click="copy(current.url)">주소 복사</button><router-link v-if="!selectable" :to="{path: '/wiki/images', query: {imageId: current.id}}" class="as-link">이미지 정보</router-link><button v-if="selectable" type="button" class="as-btn-primary py-1.5" @click="$emit('select', current)">본문에 넣기</button></div></div>
+        <div class="space-y-2 text-sm"><p>업로드가 완료되었습니다.</p><p class="as-meta">{{dimensions(current)}}</p><div class="flex gap-3"><button type="button" class="as-link" @click="copy(current.url)">주소 복사</button><router-link v-if="!selectable && wikiImageLocation(current)" :to="wikiImageLocation(current)!" class="as-link">이미지 정보</router-link><button v-if="selectable" type="button" class="as-btn-primary py-1.5" @click="$emit('select', current)">본문에 넣기</button></div></div>
       </div>
     </div>
     <p v-else-if="!owner" class="as-desc">이미지는 위키 문서나 저장된 템플릿의 편집 화면에서 올려 주세요.</p>
@@ -35,7 +35,7 @@ import {sessionStore} from '../session/sessionStore';
 import toast from '../../common/toast';
 import {wikiRemote, wikiErrorMessage, type WikiAccess, type WikiImage} from './wikiRemote';
 import {wikiImageDisplayUrl} from './wikiImageVersion';
-import type {WikiImageOwner} from './wikiImageOwner';
+import {wikiImageLocation, type WikiImageOwner} from './wikiImageOwner';
 import {wikiRequestRemote} from './wikiRequestRemote';
 import {wikiImageUploadMode} from './wikiImageAccess';
 

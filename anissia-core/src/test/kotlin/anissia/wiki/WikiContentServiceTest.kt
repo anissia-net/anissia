@@ -119,6 +119,7 @@ class WikiContentServiceTest {
         assertEquals(4L, restored.revision)
         assertEquals(oldBody, restored.body)
         verify(images).requireReadyUrls(setOf(url), "anime", 11)
+        verify(images).activateReferencedImages(setOf(url), "anime", 11, account.name)
     }
 
     @Test

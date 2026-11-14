@@ -74,6 +74,8 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
             }
             SearchKind.IMAGE -> {
                 if (row.text("status") !in setOf("READY", "DELETING", "DELETED", "RESTORING")) return null
+                if (row.text("document_kind") !in setOf("anime", "template") || row["document_no"] == null ||
+                    row["attachment_active"].let { it != true && (it !is Number || it.toInt() == 0) }) return null
                 doc["title"] = row.text("description")
                 doc["originalTitle"] = id
                 doc["body"] = row.text("source_url")

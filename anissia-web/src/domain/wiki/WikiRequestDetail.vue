@@ -38,7 +38,7 @@ import toast from '../../common/toast';
 import WikiBodyView from './WikiBodyView.vue';
 import {wikiDate, wikiErrorMessage} from './wikiRemote';
 import {wikiImageDisplayUrl} from './wikiImageVersion';
-import {wikiImageOwner, wikiImageOwnerLocation} from './wikiImageOwner';
+import {wikiImageOwner, wikiImageOwnerLocation, wikiImageLocation} from './wikiImageOwner';
 import {wikiRequestKinds, wikiRequestStatuses, wikiRequestRemote, wikiRequestResult, type WikiRequest} from './wikiRequestRemote';
 const props = defineProps<{requestId: number}>();
 const session = sessionStore();
@@ -53,7 +53,7 @@ const targetLocation = computed(() => {
   const result = wikiRequestResult(item.value);
   if (result) return result;
   if (item.value.kind === 'TEMPLATE_DELETE' && item.value.targetNo) return `/wiki/templates?templateNo=${item.value.targetNo}`;
-  if (item.value.kind === 'IMAGE_DELETE' && item.value.imageId) return `/wiki/images?imageId=${item.value.imageId}`;
+  if (item.value.kind === 'IMAGE_DELETE' && item.value.imageId) return item.value.image ? wikiImageLocation(item.value.image) : `/wiki/images?imageId=${encodeURIComponent(item.value.imageId)}`;
 });
 function clearPreview() { ++previewGeneration; previewAbort?.abort(); if (preview.value) URL.revokeObjectURL(preview.value); preview.value = ''; previewError.value = ''; }
 async function loadPreview() {

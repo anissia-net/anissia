@@ -73,30 +73,13 @@ class WikiImageRepository(private val jdbc: JdbcTemplate, private val events: Ap
         jdbc.update("""UPDATE wiki_image SET status = 'FAILED', claim_token = NULL, error = 'DOCUMENT_UNAVAILABLE',
             file_operation_next_at = NULL, updated_at = CURRENT_TIMESTAMP(6)
             WHERE document_kind = ? AND document_no = ? AND status IN ('WAITING','PROCESSING','REVIEW_READY')""", kind, no)
-        jdbc.update("UPDATE wiki_image SET document_kind = NULL, document_no = NULL WHERE document_kind = ? AND document_no = ?", kind, no)
+        jdbc.update("UPDATE wiki_image SET attachment_active = FALSE WHERE document_kind = ? AND document_no = ?", kind, no)
         ids.forEach { events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, it)) }
     }
 
     private fun documentUnavailable(id: String) {
         jdbc.update("""UPDATE wiki_image SET status = 'FAILED', claim_token = NULL, error = 'DOCUMENT_UNAVAILABLE',
             file_operation_next_at = NULL, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?""", id)
-    }
-
-    @Transactional(propagation = Propagation.MANDATORY)
-    fun attachedCopy(sourceId: String, documentKind: String, documentNo: Long): WikiImage? = jdbc.query(
-        "SELECT $IMAGE_COLUMNS FROM wiki_image i WHERE source_image_id = ? AND document_kind = ? AND document_no = ? FOR UPDATE",
-        ::map, sourceId, documentKind, documentNo,
-    ).firstOrNull()
-
-    @Transactional(propagation = Propagation.MANDATORY)
-    fun insertAttachedCopy(source: WikiImage, id: String, documentKind: String, documentNo: Long): WikiImage {
-        check(jdbc.update("""INSERT INTO wiki_image (id, owner_an, status, description, source_url, width, height, frames, bytes, animated,
-            thumbnail_bytes, revision, updated_by, submission_kind, document_kind, document_no, source_image_id, created_at, updated_at)
-            SELECT ?, owner_an, 'READY', description, source_url, width, height, frames, bytes, animated,
-                thumbnail_bytes, revision, updated_by, 'DIRECT', ?, ?, id, created_at, updated_at
-            FROM wiki_image WHERE id = ? AND status = 'READY'""", id, documentKind, documentNo, source.id) == 1)
-        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
-        return requireNotNull(find(id))
     }
 
     fun find(id: String): WikiImage? = jdbc.query("SELECT $IMAGE_COLUMNS FROM wiki_image i WHERE id = ?", ::map, id).firstOrNull()
@@ -109,14 +92,44 @@ class WikiImageRepository(private val jdbc: JdbcTemplate, private val events: Ap
     fun lock(id: String): WikiImage? = jdbc.query("SELECT $IMAGE_COLUMNS FROM wiki_image i WHERE id = ? FOR UPDATE", ::map, id).firstOrNull()
 
     fun list(page: Int, query: String, deleted: Boolean = false, documentKind: String? = null, documentNo: Long? = null): Pair<List<WikiImage>, Long> {
+        require(documentKind in setOf("anime", "template") && documentNo != null && documentNo > 0) {
+            "이미지가 속한 위키 문서 또는 템플릿을 선택해 주세요."
+        }
         val pattern = "%${query.replace("!", "!!").replace("%", "!%").replace("_", "!_")}%"
         val states = if (deleted) "status IN ('DELETING', 'DELETED', 'RESTORING')" else "status = 'READY'"
-        val scope = if (documentKind == null) "document_kind IS NULL AND document_no IS NULL" else "document_kind = ? AND document_no = ?"
-        val args = mutableListOf<Any>(pattern).apply { if (documentKind != null) { add(documentKind); add(requireNotNull(documentNo)) } }
+        val scope = "document_kind = ? AND document_no = ? AND attachment_active = TRUE"
+        val args = listOf<Any>(pattern, requireNotNull(documentKind), documentNo)
         val where = "$states AND description LIKE ? ESCAPE '!' AND $scope"
         val content = jdbc.query("SELECT $IMAGE_COLUMNS FROM wiki_image i WHERE $where ORDER BY created_at DESC, id DESC LIMIT 24 OFFSET ?", ::map, *(args + page.toLong() * 24).toTypedArray())
         val count = jdbc.queryForObject("SELECT COUNT(*) FROM wiki_image WHERE $where", Long::class.java, *args.toTypedArray())!!
         return content to count
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun detach(id: String, baseRevision: Long, author: String, url: String, audit: () -> Unit = {}): WikiImage {
+        val current = lock(id) ?: missing()
+        checkRevision(baseRevision, current.revision)
+        if (current.documentKind == null || current.documentNo == null) throw FailException("문서에 첨부된 이미지만 제외할 수 있습니다.")
+        if (current.status != WikiImageStatus.READY) throw FailException("공개된 이미지만 첨부를 취소할 수 있습니다.")
+        requireNoReplacement(current)
+        if (!current.attachmentActive) return current
+        if (usageCounts(url).first > 0) throw FailException("현재 본문이나 썸네일에서 사용 중인 이미지입니다. 사용을 해제한 뒤 첨부를 취소해 주세요.")
+        jdbc.update("""UPDATE wiki_image SET attachment_active = FALSE, revision = revision + 1,
+            updated_by = ?, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?""", author, id)
+        audit()
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
+        return requireNotNull(find(id))
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun activateAttachment(id: String, documentKind: String, documentNo: Long, author: String) {
+        val current = lock(id) ?: missing()
+        check(current.status == WikiImageStatus.READY && current.documentKind == documentKind && current.documentNo == documentNo)
+        if (current.attachmentActive) return
+        requireNoReplacement(current)
+        jdbc.update("""UPDATE wiki_image SET attachment_active = TRUE, revision = revision + 1,
+            updated_by = ?, updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?""", author, id)
+        events.publishEvent(SearchChangedEvent(SearchKind.IMAGE, id))
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -342,6 +355,7 @@ class WikiImageRepository(private val jdbc: JdbcTemplate, private val events: Ap
         replacementPending = rs.getBoolean("replacement_pending"), replacementError = rs.getString("replacement_error"),
         documentKind = rs.getString("document_kind"), documentNo = (rs.getObject("document_no") as? Number)?.toLong(),
         sourceImageId = rs.getString("source_image_id"),
+        attachmentActive = rs.getBoolean("attachment_active"),
     )
 
     private fun epoch(rs: ResultSet, field: String): Instant = rs.getBigDecimal(field).let {

@@ -1,7 +1,6 @@
 package anissia.wiki.upload
 
 import anissia.activepanel.service.ActivePanelLogService
-import anissia.search.ContentSearchRepository
 import anissia.security.Actor
 import anissia.support.FailException
 import anissia.wiki.WikiAccessService
@@ -25,7 +24,6 @@ class WikiImageService(
     private val properties: WikiUploadProperties,
     private val fileOperations: WikiImageFileOperations,
     private val logs: ActivePanelLogService,
-    private val search: ContentSearchRepository,
 ) {
     private val receiving = Semaphore(2)
 
@@ -54,6 +52,7 @@ class WikiImageService(
         val account = access.requireImageFileReplacement(actor)
         val current = find(id)
         repository.requireDocument(current.documentKind, current.documentNo, lock = true)
+        requireActiveAttachment(current)
         requireCompleteMetadata(description, sourceUrl)
         receive(file, description, sourceUrl, account.an, account.name, "REPLACEMENT", id, baseRevision,
             current.documentKind, current.documentNo)
@@ -133,8 +132,10 @@ class WikiImageService(
 
     fun list(page: Int, query: String, deleted: Boolean = false, actor: Actor = Actor(),
              documentKind: String? = null, documentNo: Long? = null): WikiImagePage {
-        if (documentKind == null && documentNo == null) access.requireOperator(actor)
-        else repository.requireDocument(documentKind, documentNo)
+        if (documentKind == null && documentNo == null) {
+            throw ResponseStatusException(HttpStatus.GONE, "이미지 보관함이 제거되었습니다. 위키 또는 템플릿에서 이미지를 확인해 주세요.")
+        }
+        repository.requireDocument(documentKind, documentNo)
         if (deleted) access.requireOperator(actor)
         require(page in 0..100_000 && query.length <= 100) { "잘못된 이미지 검색 요청입니다." }
         val (images, count) = repository.list(page, query, deleted, documentKind, documentNo)
@@ -142,33 +143,13 @@ class WikiImageService(
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    fun attach(id: String, request: WikiImageAttachRequest, actor: Actor): WikiImageDto {
-        val account = access.requireImageUpload(actor)
-        repository.requireDocument(request.documentKind, request.documentNo, lock = true)
-        find(id)
-        val source = repository.lock(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        if (source.documentKind != null || source.documentNo != null) {
-            throw FailException("보관함의 이미지만 문서에 첨부할 수 있습니다.")
-        }
-        if (source.status != WikiImageStatus.READY || source.replacementPending) {
-            throw FailException("처리가 완료된 보관함 이미지만 첨부할 수 있습니다.")
-        }
-        repository.attachedCopy(id, request.documentKind, request.documentNo)?.let {
-            if (it.status != WikiImageStatus.READY) throw FailException("이미 첨부한 이미지가 삭제되어 있습니다. 먼저 복구해 주세요.")
-            return dto(it)
-        }
-        val newId = UUID.randomUUID().toString().replace("-", "")
-        storage.copy(source, newId)
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
-                override fun afterCompletion(status: Int) {
-                    if (status == TransactionSynchronization.STATUS_ROLLED_BACK) storage.removeUnpublished(newId)
-                }
-            })
-        }
-        val image = repository.insertAttachedCopy(source, newId, request.documentKind, request.documentNo)
-        logs.addText("[${account.name}]님이 보관 이미지를 ${request.documentKind} 문서 [${request.documentNo}]에 첨부하였습니다.", actor = Actor(an = account.an, name = account.name))
-        return dto(image)
+    fun detach(id: String, request: WikiImageOperationRequest, actor: Actor): WikiImageDto {
+        val account = access.requireContributor(actor)
+        val current = find(id)
+        repository.requireDocument(current.documentKind, current.documentNo, lock = true)
+        return dto(repository.detach(id, request.baseRevision, account.name, storage.publicUrl(id)) {
+            logs.addText("[${account.name}]님이 ${current.documentKind} 문서 [${current.documentNo}]의 이미지 [$id] 첨부를 취소하였습니다.", actor = Actor(an = account.an, name = account.name))
+        })
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
@@ -176,6 +157,7 @@ class WikiImageService(
         val account = access.requireContributor(actor)
         val current = find(id)
         repository.requireDocument(current.documentKind, current.documentNo, lock = true)
+        requireActiveAttachment(current)
         val description = request.description.trim()
         val source = request.sourceUrl.trim()
         validateMetadata(description, source)
@@ -187,7 +169,10 @@ class WikiImageService(
     fun usage(id: String, page: Int, actor: Actor): WikiImageUsagePage {
         val image = get(id, actor)
         require(page in 0..100_000) { "잘못된 사용처 조회입니다." }
-        return repository.usage(storage.publicUrl(id), page, image.status == WikiImageStatus.READY, access.access(actor).isOperator)
+        return repository.usage(storage.publicUrl(id), page, image.status == WikiImageStatus.READY, access.access(actor).isOperator).let {
+            it.copy(canDetach = image.status == WikiImageStatus.READY && image.attachmentActive &&
+                image.documentKind != null && image.documentNo != null && !image.replacementPending && it.currentCount == 0L)
+        }
     }
 
     fun delete(id: String, request: WikiImageOperationRequest, actor: Actor): WikiImageDto {
@@ -228,6 +213,14 @@ class WikiImageService(
             if (current?.status != WikiImageStatus.READY || current.documentKind != documentKind || current.documentNo != documentNo) {
                 throw FailException("이 문서에 첨부되어 승인과 업로드가 완료된 이미지만 사용할 수 있습니다.")
             }
+        }
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun activateReferencedImages(urls: Set<String>, documentKind: String, documentNo: Long, author: String) {
+        urls.sorted().forEach { url ->
+            val id = url.substringAfterLast('/').removeSuffix(".avif")
+            repository.activateAttachment(id, documentKind, documentNo, author)
         }
     }
 
@@ -278,6 +271,10 @@ class WikiImageService(
         return repository.find(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
     }
 
+    private fun requireActiveAttachment(image: WikiImage) {
+        if (!image.attachmentActive) throw FailException("첨부를 취소한 이미지는 본문에 다시 사용한 뒤 수정해 주세요.")
+    }
+
     private fun dto(image: WikiImage) = WikiImageDto(
         id = image.id, status = image.status, description = image.description, sourceUrl = image.sourceUrl,
         createdAt = image.createdAt, url = if (image.status == WikiImageStatus.READY) storage.publicUrl(image.id) else null,
@@ -288,6 +285,7 @@ class WikiImageService(
         replacementPending = image.replacementPending,
         replacementError = image.replacementError?.let(::errorMessage),
         documentKind = image.documentKind, documentNo = image.documentNo, sourceImageId = image.sourceImageId,
+        attachmentActive = image.attachmentActive,
     )
 
     companion object {

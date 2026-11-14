@@ -1,18 +1,18 @@
 <template>
   <div class="as-post as-post-editor">
     <div ref="root" v-save-surface class="nabi">
-    <section ref="imagePanel" class="wiki-editor-images" aria-label="이 문서의 이미지" tabindex="-1" @pointerdown.capture="rememberImageSelection" @focusin="rememberImageSelection">
-      <h2 class="as-section-title mb-2">이 문서의 이미지</h2>
-      <p v-if="imageOwner" class="as-desc mb-4">이 문서에 올린 이미지입니다. 이미지를 선택하면 본문의 작성 위치에 넣습니다.</p>
-      <WikiImageLibrary v-if="imageOwner" ref="imageLibrary" selectable :owner="imageOwner" @select="insertImage"/>
-      <p v-else class="as-desc">템플릿을 먼저 저장하거나 등록 요청이 승인된 뒤, 템플릿 편집 화면에서 이미지를 올릴 수 있습니다.</p>
-    </section>
       <div ref="chrome" class="nabi-toolbar">
         <div class="nabi-toolbar-row"><span ref="viewTools"></span><div ref="toolbar"></div></div>
         <div ref="context" class="nabi-context" hidden></div>
       </div>
       <div ref="surface" class="nabi-content" contenteditable="true"></div>
     </div>
+    <section id="wiki-images" ref="imagePanel" class="wiki-editor-images" aria-label="이 문서의 이미지" tabindex="-1" @pointerdown.capture="rememberImageSelection" @focusin="rememberImageSelection">
+      <h2 class="as-section-title mb-2">이 문서의 이미지</h2>
+      <p v-if="imageOwner" class="as-desc mb-4">이 문서에 올린 이미지입니다. 이미지를 선택하면 본문의 작성 위치에 넣습니다.</p>
+      <WikiImageLibrary v-if="imageOwner" ref="imageLibrary" selectable :owner="imageOwner" :used-image-urls="usedImageUrls" @select="insertImage"/>
+      <p v-else class="as-desc">템플릿을 먼저 저장하거나 등록 요청이 승인된 뒤, 템플릿 편집 화면에서 이미지를 올릴 수 있습니다.</p>
+    </section>
     <Teleport to="body">
     <dialog ref="templateDialog" class="as-wiki-dialog as-box" @click="backdrop($event, templateDialog)">
       <div class="flex items-center justify-between gap-3 mb-5"><h2 class="as-section-title">템플릿 선택</h2><button type="button" class="as-input-btn px-3 py-1" @click="templateDialog?.close()">닫기</button></div>
@@ -34,7 +34,7 @@ import '../../common/nabi.pcss';
 import {resolveNoteLink} from '../../common/noteLink';
 import {vSaveSurface} from '../../common/saveShortcut';
 import './wiki.pcss';
-import {onBeforeUnmount, onMounted, ref} from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref} from 'vue';
 import {onBeforeRouteLeave, onBeforeRouteUpdate} from 'vue-router';
 import {createNabiWith, mountSurface, mountToolbar, mountContextToolbar, mountHints, mountViewTools, mountPickedMark, mountSticky, watchSettle, type Nabi, type Selection, type Surface} from 'nabi-note';
 import {attachViewer} from 'nabi-note/viewer';
@@ -48,6 +48,18 @@ const emit = defineEmits<{'update:modelValue': [body: WikiBody]; 'update:templat
 const root = ref<HTMLElement>(), chrome = ref<HTMLElement>(), toolbar = ref<HTMLElement>(), context = ref<HTMLElement>(), surface = ref<HTMLElement>(), viewTools = ref<HTMLElement>();
 const imagePanel = ref<HTMLElement>(), templateDialog = ref<HTMLDialogElement>();
 const imageLibrary = ref<InstanceType<typeof WikiImageLibrary>>();
+const usedImageUrls = computed(() => {
+  const urls: string[] = [];
+  function visit(value: unknown) {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach(visit); return; }
+    const node = value as {w?: string; a?: {src?: string}; ch?: unknown[]};
+    if (node.w === 'img' && node.a?.src) urls.push(node.a.src);
+    node.ch?.forEach(visit);
+  }
+  visit(props.modelValue.blocks);
+  return urls;
+});
 const templateQuery = ref(''), templateLoading = ref(false), templateError = ref('');
 const templateResults = ref<WikiDocument[]>([]);
 const templateHasMore = ref(false);
@@ -133,7 +145,7 @@ onBeforeUnmount(() => { active = false; ++templateGeneration; unmounts.forEach(o
 <style scoped>
 .wiki-editor-images {
   padding: 1.25rem;
-  border-bottom: 1px solid var(--as-line);
+  border-top: 1px solid var(--as-line);
   scroll-margin-top: 1.5rem;
 }
 .wiki-editor-images:focus-visible {

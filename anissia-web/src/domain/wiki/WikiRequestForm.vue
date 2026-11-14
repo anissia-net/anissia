@@ -28,7 +28,7 @@
           <label class="block"><span class="as-meta">출처</span><input v-model="sourceUrl" required type="url" maxlength="1024" placeholder="https://" class="as-input-text px-3 py-2 w-full mt-1"/></label>
         </template>
         <div v-else-if="kind === 'IMAGE_DELETE'" class="space-y-3">
-          <div v-if="targetImage" class="as-box p-4"><img v-if="targetImage.url" :src="wikiImageDisplayUrl(targetImage.url, targetImage.revision)" :alt="targetImage.description || '삭제 요청 대상'" class="max-h-60 w-full object-contain mb-4"/><p class="font-semibold break-words">{{targetImage.description || '위키 이미지'}}</p><p class="as-meta mt-2">{{targetImage.revision}}판</p><div class="flex gap-3 mt-3 text-sm"><router-link :to="`/wiki/images?imageId=${targetImage.id}`" target="_blank" class="as-link">대상 보기 (새 창)</router-link><button type="button" class="as-link" @click="targetImage = undefined">다른 이미지 선택</button></div></div>
+          <div v-if="targetImage" class="as-box p-4"><img v-if="targetImage.url" :src="wikiImageDisplayUrl(targetImage.url, targetImage.revision)" :alt="targetImage.description || '삭제 요청 대상'" class="max-h-60 w-full object-contain mb-4"/><p class="font-semibold break-words">{{targetImage.description || '위키 이미지'}}</p><p class="as-meta mt-2">{{targetImage.revision}}판</p><div class="flex gap-3 mt-3 text-sm"><router-link v-if="wikiImageLocation(targetImage)" :to="wikiImageLocation(targetImage)!" target="_blank" class="as-link">대상 보기 (새 창)</router-link><button type="button" class="as-link" @click="targetImage = undefined">다른 이미지 선택</button></div></div>
           <WikiImageLibrary v-else-if="imageOwner" selectable :owner="imageOwner" @select="selectImage"/>
           <p v-else class="as-desc">삭제할 이미지는 해당 문서의 이미지 정보 화면에서 선택해 주세요.</p>
         </div>
@@ -51,7 +51,7 @@ import WikiEditor from './WikiEditor.vue';
 import WikiImageLibrary from './WikiImageLibrary.vue';
 import {wikiDate, wikiErrorMessage, wikiRemote, type WikiAccess, type WikiDocument, type WikiImage} from './wikiRemote';
 import {wikiImageDisplayUrl} from './wikiImageVersion';
-import {wikiImageOwner, wikiImageOwnerLocation} from './wikiImageOwner';
+import {wikiImageOwner, wikiImageOwnerLocation, wikiImageLocation} from './wikiImageOwner';
 import {wikiRequestKinds, wikiRequestRemote, type WikiRequestKind, type WikiRequestInput} from './wikiRequestRemote';
 const route = useRoute(), router = useRouter(), session = sessionStore();
 const imageOwner = computed(() => wikiImageOwner(route.query.documentKind, route.query.documentNo));

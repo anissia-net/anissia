@@ -34,6 +34,7 @@ export interface WikiImage {
   documentKind?: 'anime' | 'template' | null;
   documentNo?: number | null;
   sourceImageId?: string | null;
+  attachmentActive?: boolean;
   status: 'WAITING' | 'PROCESSING' | 'READY' | 'FAILED' | 'DELETING' | 'DELETED' | 'RESTORING' | 'REVIEW_READY' | 'APPROVING' | 'CANCELLED';
   revision: number;
   description: string;
@@ -54,7 +55,7 @@ export interface WikiImage {
 }
 export interface WikiImageUsage extends WikiUsage { url: string; scope: 'current' | 'history'; revision: number | null }
 export interface AnimeWikiImages { thumbnail: string | null; images: WikiImage[] }
-export interface WikiImageUsagePage extends WikiPage<WikiImageUsage> { currentCount: number; historyCount: number; canDelete: boolean }
+export interface WikiImageUsagePage extends WikiPage<WikiImageUsage> { currentCount: number; historyCount: number; canDelete: boolean; canDetach?: boolean }
 export interface WikiPage<T> { content: T[]; totalElements: number; page: number; size: number }
 
 export class WikiError extends Error {
@@ -112,9 +113,9 @@ function upload(file: File, description: string, sourceUrl: string, owner: WikiI
 export const wikiRemote = {
   request, emptyBody, upload,
   access: () => request<WikiAccess>('/access'),
-  images: (page = 0, q = '', deleted = false, owner?: WikiImageOwner) => request<WikiPage<WikiImage>>(`/images?page=${page}&q=${encodeURIComponent(q)}${deleted ? '&deleted=true' : ''}${owner ? `&${new URLSearchParams(wikiImageOwnerFields(owner))}` : ''}`),
-  attachImage: (id: string, owner: WikiImageOwner) => request<WikiImage>(`/images/${encodeURIComponent(id)}/attach`, 'POST', owner),
+  images: (owner: WikiImageOwner, page = 0, q = '', deleted = false) => request<WikiPage<WikiImage>>(`/images?page=${page}&q=${encodeURIComponent(q)}${deleted ? '&deleted=true' : ''}&${new URLSearchParams(wikiImageOwnerFields(owner))}`),
   image: (id: string) => request<WikiImage>(`/images/${encodeURIComponent(id)}`),
+  detachImage: (id: string, baseRevision: number) => request<WikiImage>(`/images/${encodeURIComponent(id)}/detach`, 'POST', {baseRevision}),
   animeImages: (animeNo: number, signal?: AbortSignal) => request<AnimeWikiImages>(`/anime/${animeNo}/images`, 'GET', undefined, signal),
   setAnimeThumbnail: (animeNo: number, imageId: string | null) => request<AnimeWikiImages>(`/anime/${animeNo}/thumbnail`, 'PUT', {imageId}),
   templates: (page = 0, q = '', deleted = false) => request<WikiPage<WikiDocument>>(`/templates?page=${page}&q=${encodeURIComponent(q)}${deleted ? '&deleted=true' : ''}`),

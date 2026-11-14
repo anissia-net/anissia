@@ -9,6 +9,21 @@ import org.springframework.jdbc.core.JdbcTemplate
 
 class SearchDocumentsTest {
     @Test
+    fun `image index includes only active document attachments`() {
+        val jdbc = mock(JdbcTemplate::class.java)
+        val image = mapOf<String, Any?>("id" to "a", "status" to "READY", "document_kind" to "anime", "document_no" to 1L,
+            "attachment_active" to true, "description" to "문서 사진", "source_url" to "https://example.com")
+        val documents = SearchDocuments(jdbc)
+        `when`(jdbc.queryForList("SELECT * FROM wiki_image WHERE id IN (?)", "a")).thenReturn(listOf(image))
+        assertEquals("문서 사진", documents.load(SearchKind.IMAGE, "a")?.get("title"))
+        for (hidden in listOf(image + ("attachment_active" to false), image + ("attachment_active" to 0),
+            image + ("document_kind" to null), image + ("document_no" to null))) {
+            `when`(jdbc.queryForList("SELECT * FROM wiki_image WHERE id IN (?)", "a")).thenReturn(listOf(hidden))
+            assertNull(documents.load(SearchKind.IMAGE, "a"))
+        }
+    }
+
+    @Test
     fun `hidden anime are removed from search documents while their source remains stored`() {
         val jdbc = mock(JdbcTemplate::class.java)
         `when`(jdbc.queryForList("SELECT * FROM anime WHERE anime_no IN (?)", "1"))

@@ -2,7 +2,7 @@
 
 > 사용자가 지정한 애니메이션의 위키가 없거나 비어 있을 때 본문·이미지·시리즈·제작사 템플릿을 함께 작성하는 AI 에이전트용 작업 규격입니다. 기존 글이 있으면 보존하고, 빠진 이미지나 해당 템플릿만 연결합니다.
 
-규격 버전: 1.2 (2026-11-11)
+규격 버전: 1.3 (2026-11-14)
 규격 주소: https://anissia.net/wiki-new.txt
 사이트: https://anissia.net
 운영 API: https://api.anissia.net
@@ -33,7 +33,7 @@
 - 일반 회원은 가입 후 15일이 지나야 위키에 기여할 수 있습니다. canContribute: false이면 문서·이미지 설명/출처 수정을 진행하지 말고 서버의 message와 필요한 경우 eligibleAt을 알립니다. 로그인만으로 모든 권한이 생기지는 않습니다.
 - canContribute: true이면 작품 위키 저장, 기존 템플릿 수정, 같은 문서에 소속된 공개 이미지 삽입, 공개 템플릿 포함, 파일 없는 등록/삭제 요청 제출이 가능합니다. 이 값은 이미지 파일 전송 권한을 뜻하지 않습니다.
 - 새 템플릿 직접 생성과 요청 승인·반려는 isOperator: true일 때만 가능합니다.
-- 이미지 파일 작업은 별도 권한을 확인합니다. canUploadImage: true는 새 파일 직접 업로드와 보관함에서 문서로 복사를 허용합니다. canRequestImageUpload: true는 파일을 첨부하는 이미지 등록 요청을 허용합니다. canReplaceImageFile: true는 소속 문서가 있는 기존 이미지의 파일 교체를 허용합니다.
+- 이미지 파일 작업은 별도 권한을 확인합니다. canUploadImage: true는 소속 문서의 새 파일 직접 업로드를 허용합니다. canRequestImageUpload: true는 파일을 첨부하는 이미지 등록 요청을 허용합니다. canReplaceImageFile: true는 소속 문서가 있는 기존 이미지의 파일 교체를 허용합니다.
 - 현재 정책은 운영진의 직접 업로드, 가입 조건을 충족한 기여자의 이미지 등록 요청과 기존 파일 교체입니다. 일반 기여자의 새 이미지 등록에는 운영진 승인이 필요합니다. 승인 요청 제출을 연결 완료로 보고하지 않습니다.
 - 일반 회원은 자신의 등록 요청만, 운영진은 전체 요청을 볼 수 있습니다. 요청 중복 검사는 현재 계정으로 접근 가능한 범위에서 수행하며 다른 회원의 요청까지 없다고 단정하지 않습니다.
 - 브라우저 UI로 작업하거나, 사용자의 승인된 로그인 세션 안에서 실제 앱과 동일한 API 요청을 사용합니다. API 인증 헤더 이름은 dat입니다. 같은 세션의 dat 쿠키 값을 헤더로 보내며 Bearer 인증으로 바꾸지 않습니다. 세션 값은 요청에만 사용하고 채팅·로그·문서·URL에 출력하지 않습니다. 비밀번호나 토큰을 채팅으로 보내 달라고 요구하지 않습니다.
@@ -74,13 +74,13 @@
 
 ## 5. 이미지 검색·업로드·연결
 
-1. 이미지는 각 위키 문서 또는 템플릿에 소속됩니다. 편집 화면 상단의 '이 문서의 이미지' 영역에 첨부 이미지 목록이 바로 표시됩니다. 그 영역에서 업로드·등록 요청·본문 삽입을 진행하며, 툴바의 이미지 버튼은 같은 영역으로 이동합니다. 대상 작품의 이미지는 GET /wiki/images?documentKind=anime&documentNo={animeNo}&q={작품명}&page=0에서 확인합니다. 같은 문서의 READY 이미지만 본문에 넣습니다. 다른 문서의 이미지 URL을 복사해 넣지 않습니다. 템플릿 이미지는 documentKind=template&documentNo={templateNo}로 조회하며, 템플릿 포함을 통해 표시됩니다.
+1. 이미지는 각 위키 문서 또는 템플릿에 소속됩니다. 편집 화면 본문 아래의 '이 문서의 이미지' 영역에 첨부 이미지 목록이 바로 표시됩니다. 그 영역에서 업로드·등록 요청·본문 삽입을 진행하며, 툴바의 이미지 버튼은 같은 영역으로 이동합니다. 대상 작품의 이미지는 GET /wiki/images?documentKind=anime&documentNo={animeNo}&q={작품명}&page=0에서 확인합니다. 같은 문서의 READY이고 attachmentActive: true인 이미지만 본문에 넣습니다. 다른 문서의 이미지 URL을 복사해 넣지 않습니다. 템플릿 이미지는 documentKind=template&documentNo={templateNo}로 조회하며, 템플릿 포함을 통해 표시됩니다.
 2. 사용할 이미지가 없을 때 공식 사이트의 해당 작품 키 비주얼/포스터를 선택합니다. 실제 이미지 파일을 내려받아 이미지인지 확인하고, 설명(description)과 원본 출처 페이지 URL(sourceUrl)을 함께 준비합니다. 출처·이용 조건을 확인할 수 없는 이미지, 임의 생성한 공식 포스터, 다른 시즌 이미지를 사용하지 않습니다. 찾을 수 없으면 그 사유를 알리고 가짜 이미지나 빈 이미지 블록을 넣지 않습니다.
 3. canUploadImage: true일 때만 문서 편집 화면에서 직접 업로드하거나 POST /wiki/images에 multipart/form-data의 file, description, sourceUrl, documentKind, documentNo를 보냅니다. documentKind는 anime 또는 template이며 documentNo는 실제 작품/템플릿 번호입니다. 새 템플릿은 먼저 저장하거나 등록 승인을 받은 뒤 이미지를 올립니다. 로컬 파일 경로나 외부 이미지 주소를 본문에 붙이는 것으로 업로드를 대체하지 않습니다. multipart Content-Type의 boundary는 사용하는 업로드 도구가 생성하게 합니다.
 4. 업로드 응답의 id로 GET /wiki/images/{id}를 조회합니다. WAITING/PROCESSING은 완료가 아닙니다. 몇 초 간격으로 제한된 시간 동안 확인하고 status: READY와 유효한 url을 얻은 뒤 삽입합니다. FAILED이면 error를 알리고 계속 재업로드하지 않습니다. 전송 응답을 잃었을 때도 목록과 처리 상태를 먼저 확인합니다.
-5. canRequestImageUpload: true일 때 문서 편집 화면에서 이미지 등록을 요청하거나 POST /wiki/requests/images에 file, description, sourceUrl, reason, documentKind, documentNo를 보내 등록 요청을 만듭니다. 승인은 요청한 문서의 이미지로 등록하며 다른 문서에서는 사용할 수 없습니다. PENDING 또는 이미지의 REVIEW_READY는 아직 공개 READY가 아닙니다. 기존 요청을 재사용하거나 승인된 요청의 resultImageId를 삽입하기 전에 GET /wiki/images/{id}의 documentKind와 documentNo가 현재 대상 문서와 모두 같은지, status가 READY이고 url이 유효한지 확인합니다. 다른 문서에 승인된 이미지나 요청 결과를 이 문서용으로 재사용하지 않습니다. imagePreviewUrl이나 blob: 미리보기 URL은 본문에 저장하지 않습니다.
+5. canRequestImageUpload: true일 때 문서 편집 화면에서 이미지 등록을 요청하거나 POST /wiki/requests/images에 file, description, sourceUrl, reason, documentKind, documentNo를 보내 등록 요청을 만듭니다. 승인은 요청한 문서의 이미지로 등록하며 다른 문서에서는 사용할 수 없습니다. PENDING 또는 이미지의 REVIEW_READY는 아직 공개 READY가 아닙니다. 기존 요청을 재사용하거나 승인된 요청의 resultImageId를 삽입하기 전에 GET /wiki/images/{id}의 documentKind와 documentNo가 현재 대상 문서와 모두 같은지, status가 READY이고 attachmentActive: true이며 url이 유효한지 확인합니다. 다른 문서에 승인된 이미지나 요청 결과를 이 문서용으로 재사용하지 않습니다. imagePreviewUrl이나 blob: 미리보기 URL은 본문에 저장하지 않습니다.
 6. 본문 img의 src에는 서버가 반환한 공개 url을 그대로 사용합니다. 확장자·파일 호스트·ID 경로를 추측하지 않습니다. thumbnailUrl은 목록용이고 본문 원본 이미지로 쓰지 않습니다. 화면 캐시용 ?v=revision 값을 저장 src에 덧붙이지 않습니다. 업로드 메타데이터(description, sourceUrl)와 참고 자료로 작품과 출처를 식별할 수 있게 하며, 대표 이미지 바로 아래에는 캡션이나 설명 문단을 넣지 않습니다.
-7. 업로드 또는 승인으로 문서에 이미지가 첨부됩니다. 본문에 표시하려면 해당 문서의 이미지 목록에서 선택해 본문을 저장합니다. 문서에 소속되지 않은 기존 원본 이미지는 운영진 전용 보관함에 보존합니다. isOperator: true이고 canUploadImage: true인 운영진은 POST /wiki/images/{id}/attach에 {"documentKind":"anime","documentNo":실제_작품번호}를 보내 보관함 이미지를 문서로 복사할 수 있습니다. 복사 응답의 새 id/url을 사용합니다. 원본 보관함 이미지는 유지합니다.
+7. 업로드 또는 승인으로 문서에 이미지가 첨부됩니다. 본문에 표시하려면 해당 문서의 이미지 목록에서 선택해 본문을 저장합니다. 독립 이미지 보관함과 가져오기 기능은 제공하지 않습니다. 문서의 이미지 정보에서 첨부 취소를 하면 목록에서만 제외하며 원본 파일·소속 문서·과거 이력은 보존합니다. canContribute: true인 경우 GET /wiki/images/{id}/usage의 canDetach: true를 확인하고 POST /wiki/images/{id}/detach에 {"baseRevision":현재_이미지_revision}을 보냅니다. 현재 본문이나 썸네일에서 사용 중이면 먼저 그 사용을 해제하고 문서를 저장해야 합니다. 이미지 삭제 API를 첨부 취소 대신 사용하지 않습니다.
 8. 작품 목록의 대표 썸네일이 비어 있으면 위키 저장 시 현재 본문/템플릿의 첫 사용 가능 이미지로 자동 지정됩니다. 기존 썸네일은 유지합니다. 운영진만 GET /wiki/anime/{animeNo}/images에서 후보를 읽고 PUT /wiki/anime/{animeNo}/thumbnail에 {"imageId":"실제 이미지 ID"}로 선택할 수 있습니다. 선택하려는 이미지는 저장된 위키에 포함되어 있어야 합니다. 일반 회원에게 이 운영진 API를 실행시키지 않습니다.
 9. 기존 이미지 파일 교체는 canReplaceImageFile: true일 때 PUT /wiki/images/{id}/file에 file, baseRevision, description, sourceUrl을 보냅니다. 대상 이미지의 문서 소속을 먼저 확인합니다. 교체는 같은 URL로 소속 문서와 이력에 반영되며, 템플릿 이미지라면 해당 템플릿을 포함한 문서에도 반영됩니다. 설명·출처만 바꾸는 PUT /wiki/images/{id}는 canContribute 권한과 baseRevision을 사용하며 파일 교체 권한과 구분합니다.
 
@@ -96,7 +96,7 @@
 - GET /wiki/anime/{animeNo}: 현재 body, revision, templates, renderWarning 등.
 - GET /wiki/access: 현재 세션의 canContribute, isOperator와 별도의 canUploadImage, canRequestImageUpload, canReplaceImageFile 권한. 파일 권한 필드가 없으면 파일 작업을 중단합니다.
 - GET /wiki/templates?q={query}&page={page}, GET /wiki/templates/{templateNo}: 템플릿 검색/본문.
-- GET /wiki/images?documentKind={anime|template}&documentNo={문서번호}&q={query}&page={page}: 해당 문서의 이미지. GET /wiki/images/{id}: 이미지 상태/소속/공개 URL. 문서 범위 없는 목록 조회는 운영진 전용 기존 이미지 보관함입니다.
+- GET /wiki/images?documentKind={anime|template}&documentNo={문서번호}&q={query}&page={page}: 해당 문서의 이미지. GET /wiki/images/{id}: 이미지 상태/소속/공개 URL. 목록 조회에는 documentKind와 documentNo가 필수이며 첨부가 활성인 이미지만 반환합니다. 독립 보관함 조회와 이미지 가져오기 API는 지원하지 않습니다.
 - GET /wiki/requests?page={page}, GET /wiki/requests/{id}: 접근 가능한 모든 상태의 기존 등록 요청/처리 결과. status 생략 시 전체 상태를 조회하며 필요하면 status=PENDING 등으로 필터링합니다.
 
 작품 저장 (최초 작성과 수정 모두 PUT):
@@ -189,6 +189,5 @@ const body = {schemaVersion: 1, blocks: [
 
 - [작품 검색](https://anissia.net/anime)
 - [템플릿](https://anissia.net/wiki/templates)
-- [기존 이미지 보관함 (운영진)](https://anissia.net/wiki/images)
 - [등록 요청](https://anissia.net/wiki/requests)
 - [로그인](https://anissia.net/login)

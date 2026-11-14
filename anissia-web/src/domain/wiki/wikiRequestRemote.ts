@@ -1,6 +1,6 @@
 import sessionService from '../session/remote/sessionService';
 import {wikiFileRequest, wikiRemote, WikiError, type WikiBody, type WikiImage, type WikiPage} from './wikiRemote';
-import {wikiImageOwnerFields, type WikiImageOwner} from './wikiImageOwner';
+import {wikiImageLocation, wikiImageOwnerFields, type WikiImageOwner} from './wikiImageOwner';
 
 export const wikiRequestKinds = {
   TEMPLATE_CREATE: '템플릿 등록', TEMPLATE_DELETE: '템플릿 삭제',
@@ -22,7 +22,7 @@ export interface WikiRequestInput {
 }
 export function wikiRequestResult(item: WikiRequest): string | undefined {
   if (item.resultTargetNo) return `/wiki/templates?templateNo=${item.resultTargetNo}`;
-  if (item.resultImageId) return `/wiki/images?imageId=${item.resultImageId}`;
+  if (item.resultImageId) return item.image ? wikiImageLocation({...item.image, id: item.resultImageId}) : `/wiki/images?imageId=${encodeURIComponent(item.resultImageId)}`;
 }
 export const wikiRequestRemote = {
   list: (page = 0, status = '') => wikiRemote.request<WikiPage<WikiRequest>>(`/requests?page=${page}${status ? `&status=${encodeURIComponent(status)}` : ''}`),

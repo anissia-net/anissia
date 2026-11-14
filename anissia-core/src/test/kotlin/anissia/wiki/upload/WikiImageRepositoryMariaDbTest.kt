@@ -198,6 +198,8 @@ class WikiImageRepositoryMariaDbTest {
     @Test
     fun `delete and restore persist intent and can resume after file operation interruption`() {
         val image = ready()
+        val templateNo = template()
+        jdbc.update("UPDATE wiki_image SET document_kind = 'template', document_no = ? WHERE id = ?", templateNo, image.id)
         val url = "http://localhost:8001/wiki/files/wiki/${image.id}.avif"
         repository.beginDelete(image.id, 1, "운영자", url)
         assertEquals(WikiImageStatus.DELETING, repository.find(image.id)!!.status)
@@ -206,8 +208,8 @@ class WikiImageRepositoryMariaDbTest {
         assertEquals(WikiImageStatus.DELETING, repository.find(image.id)!!.status)
         repository.applyFileOperation(image.id) { }
         assertEquals(WikiImageStatus.DELETED, repository.find(image.id)!!.status)
-        assertTrue(repository.list(0, image.description).first.isEmpty())
-        assertEquals(image.id, repository.list(0, image.description, true).first.single().id)
+        assertTrue(repository.list(0, image.description, false, "template", templateNo).first.isEmpty())
+        assertEquals(image.id, repository.list(0, image.description, true, "template", templateNo).first.single().id)
         repository.beginRestore(image.id, 2, "운영자")
         assertEquals(WikiImageStatus.RESTORING, repository.find(image.id)!!.status)
         repository.applyFileOperation(image.id) { }
@@ -224,13 +226,14 @@ class WikiImageRepositoryMariaDbTest {
     @Test
     fun `requested image stays private until approval commits and publication finishes`() {
         val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
-        repository.enqueue(id, owner, "등록 요청", "https://example.com", WikiUploadProperties(), "REQUEST")
+        val templateNo = template()
+        repository.enqueue(id, owner, "등록 요청", "https://example.com", WikiUploadProperties(), "REQUEST", documentKind = "template", documentNo = templateNo)
         val job = requireNotNull(repository.claim(180))
         var published = false
         repository.complete(id, job.claimToken!!, result(), 3) { published = true }
         assertFalse(published)
         assertEquals(WikiImageStatus.REVIEW_READY, repository.find(id)!!.status)
-        assertTrue(repository.list(0, "등록 요청").first.isEmpty())
+        assertTrue(repository.list(0, "등록 요청", false, "template", templateNo).first.isEmpty())
         assertTrue(repository.pendingPublications().isEmpty())
         repository.approveRequest(id)
         assertEquals(WikiImageStatus.APPROVING, repository.find(id)!!.status)
@@ -294,22 +297,20 @@ class WikiImageRepositoryMariaDbTest {
     }
 
     @Test
-    fun `document copies are independent unique per owner and separated from the archive`() {
+    fun `migrated document copies stay independent and ownerless listing is rejected`() {
         val source = ready()
         val firstNo = template()
         val secondNo = template()
         val firstId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
         val secondId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
         repository.lock(source.id)
-        assertNull(repository.attachedCopy(source.id, "template", firstNo))
-        val first = repository.insertAttachedCopy(source, firstId, "template", firstNo)
-        val second = repository.insertAttachedCopy(source, secondId, "template", secondNo)
+        val first = migratedCopy(source, firstId, firstNo)
+        val second = migratedCopy(source, secondId, secondNo)
         assertEquals(source.id, first.sourceImageId)
         assertEquals("template", first.documentKind)
         assertEquals(firstNo, first.documentNo)
         assertEquals(source.createdAt, first.createdAt)
-        assertEquals(first.id, repository.attachedCopy(source.id, "template", firstNo)!!.id)
-        assertEquals(listOf(source.id), repository.list(0, source.description).first.map { it.id })
+        assertThrows<IllegalArgumentException> { repository.list(0, source.description) }
         assertEquals(listOf(first.id), repository.list(0, source.description, false, "template", firstNo).first.map { it.id })
         assertEquals(listOf(second.id), repository.list(0, source.description, false, "template", secondNo).first.map { it.id })
         repository.edit(first.id, first.revision, "첫 문서 전용 설명", "", "fixture")
@@ -317,7 +318,7 @@ class WikiImageRepositoryMariaDbTest {
         assertEquals(source.description, repository.find(second.id)!!.description)
         val duplicateId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
         assertThrows<org.springframework.dao.DataIntegrityViolationException> {
-            repository.insertAttachedCopy(source, duplicateId, "template", firstNo)
+            migratedCopy(source, duplicateId, firstNo)
         }
     }
 
@@ -338,15 +339,15 @@ class WikiImageRepositoryMariaDbTest {
         jdbc.update("UPDATE wiki_template SET deleted = FALSE WHERE template_no = ?", templateNo)
         assertFalse(repository.publishPrepared(id) { _, _ -> throw AssertionError("duplicate publication") })
         assertEquals(listOf(id), repository.list(0, "문서 첨부 요청", false, "template", templateNo).first.map { it.id })
-        assertTrue(repository.list(0, "문서 첨부 요청").first.isEmpty())
+        assertThrows<IllegalArgumentException> { repository.list(0, "문서 첨부 요청") }
     }
 
     @Test
-    fun `permanent document purge archives independent images and cancels unapproved jobs`() {
+    fun `permanent document purge keeps image ownership and files while hiding attachments`() {
         val source = ready()
         val templateNo = template()
         val copyId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
-        repository.insertAttachedCopy(source, copyId, "template", templateNo)
+        migratedCopy(source, copyId, templateNo)
         val pending = UUID.randomUUID().toString().replace("-", "").also(ids::add)
         repository.enqueue(pending, owner, "purge-request", "", WikiUploadProperties(), "REQUEST", documentKind = "template", documentNo = templateNo)
         val job = requireNotNull(repository.claim(180))
@@ -358,20 +359,22 @@ class WikiImageRepositoryMariaDbTest {
         repository.approveRequest(approved)
         repository.archiveDocument("template", templateNo)
         val archived = repository.find(copyId)!!
-        assertNull(archived.documentKind)
-        assertNull(archived.documentNo)
+        assertEquals("template", archived.documentKind)
+        assertEquals(templateNo, archived.documentNo)
+        assertFalse(archived.attachmentActive)
         assertEquals(source.id, archived.sourceImageId)
         assertEquals(WikiImageStatus.READY, archived.status)
         assertEquals(WikiImageStatus.FAILED, repository.find(pending)!!.status)
         assertEquals("DOCUMENT_UNAVAILABLE", repository.find(pending)!!.error)
         assertFalse(repository.publishPrepared(pending) { _, _ -> throw AssertionError("ownerless cancelled publication") })
-        assertTrue(repository.list(0, source.description).first.any { it.id == copyId })
+        assertTrue(repository.list(0, source.description, false, "template", templateNo).first.isEmpty())
         val detached = repository.find(approved)!!
         assertEquals(WikiImageStatus.APPROVING, detached.status)
         assertEquals(approvedJob.claimToken, detached.claimToken)
-        assertNull(detached.documentKind)
-        assertTrue(repository.publishPrepared(approved) { current, target -> assertNull(current.documentKind); assertNull(target) })
-        assertEquals(listOf(approved), repository.list(0, "purge-approved").first.map { it.id })
+        assertEquals("template", detached.documentKind)
+        assertFalse(detached.attachmentActive)
+        assertTrue(repository.publishPrepared(approved) { current, target -> assertEquals("template", current.documentKind); assertNull(target) })
+        assertTrue(repository.list(0, "purge-approved", false, "template", templateNo).first.isEmpty())
     }
 
     @Test
@@ -379,7 +382,7 @@ class WikiImageRepositoryMariaDbTest {
         val source = ready()
         val templateNo = template()
         val targetId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
-        repository.insertAttachedCopy(source, targetId, "template", templateNo)
+        migratedCopy(source, targetId, templateNo)
         val jobId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
         repository.enqueue(jobId, owner, "교체 후 설명", "https://example.com/new", WikiUploadProperties(), "REPLACEMENT",
             targetId, 1, "fixture", "template", templateNo)
@@ -405,17 +408,90 @@ class WikiImageRepositoryMariaDbTest {
         repository.archiveDocument("template", templateNo)
         jdbc.update("DELETE FROM wiki_template WHERE template_no = ?", templateNo)
         assertEquals(WikiImageStatus.REPLACING, repository.find(jobId)!!.status)
-        assertNull(repository.find(jobId)!!.documentKind)
+        assertEquals("template", repository.find(jobId)!!.documentKind)
+        assertFalse(repository.find(jobId)!!.attachmentActive)
         assertTrue(repository.publishPrepared(jobId) { current, target -> storage.replace(current, requireNotNull(target)) })
         val recovered = repository.find(targetId)!!
         assertEquals(2L, recovered.revision)
         assertEquals("교체 후 설명", recovered.description)
         assertEquals(3L, recovered.bytes)
-        assertNull(recovered.documentKind)
+        assertEquals("template", recovered.documentKind)
+        assertFalse(recovered.attachmentActive)
         assertEquals(WikiImageStatus.REPLACED, repository.find(jobId)!!.status)
         assertEquals(listOf<Byte>(1, 2), Files.readAllBytes(files.resolve("originals/replacements/$targetId/$jobId/image.avif")).toList())
         assertEquals(listOf<Byte>(5, 6, 7), Files.readAllBytes(storage.publicFile(targetId)).toList())
     }
 
     private fun result() = ConvertedImage(1, 1, 1, 0, false, false, 2)
+
+    @Test
+    fun `attachment cancellation preserves original ownership and history then document reuse reactivates it`() {
+        val source = ready()
+        val templateNo = template()
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        val image = migratedCopy(source, id, templateNo)
+        val url = "http://localhost:8001/wiki/files/wiki/$id.avif"
+        val body = """{"schemaVersion":1,"blocks":[{"w":"img","a":{"src":"$url"}}]}"""
+        jdbc.update("""INSERT INTO wiki_revision (kind, target_no, revision, title, body, templates, summary, author_no, updated_by, updated_at)
+            VALUES ('template', ?, 1, '첨부 이력', ?, '[]', '', ?, 'fixture', CURRENT_TIMESTAMP(6))""", templateNo, body, owner)
+        var audited = false
+
+        val detached = repository.detach(id, 1, "편집자", url) { audited = true }
+
+        assertTrue(audited)
+        assertFalse(detached.attachmentActive)
+        assertEquals(2L, detached.revision)
+        assertEquals(WikiImageStatus.READY, detached.status)
+        assertEquals("template", detached.documentKind)
+        assertEquals(templateNo, detached.documentNo)
+        assertEquals(source.id, detached.sourceImageId)
+        assertEquals(image.bytes, detached.bytes)
+        assertEquals(source, repository.find(source.id))
+        assertEquals(0L to 1L, repository.usageCounts(url))
+        assertTrue(repository.list(0, source.description, false, "template", templateNo).first.isEmpty())
+        assertThrows<ResponseStatusException> { repository.detach(id, 1, "다른 편집자", url) }
+        assertEquals(detached, repository.detach(id, 2, "편집자", url))
+
+        repository.activateAttachment(id, "template", templateNo, "되돌린 편집자")
+        val restored = repository.find(id)!!
+        assertTrue(restored.attachmentActive)
+        assertEquals(3L, restored.revision)
+        assertEquals(listOf(id), repository.list(0, source.description, false, "template", templateNo).first.map { it.id })
+        assertEquals(0L to 1L, repository.usageCounts(url))
+    }
+
+    @Test
+    fun `current use replacement and stale revision prevent attachment cancellation`() {
+        val source = ready()
+        val templateNo = template()
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        migratedCopy(source, id, templateNo)
+        val url = "http://localhost:8001/wiki/files/wiki/$id.avif"
+        assertThrows<ResponseStatusException> { repository.detach(id, 0, "편집자", url) }
+        jdbc.update("INSERT INTO wiki_reference (owner_kind, owner_no, target_kind, target_id) VALUES ('template', ?, 'image', ?)", templateNo, url)
+        assertThrows<FailException> { repository.detach(id, 1, "편집자", url) }
+        jdbc.update("DELETE FROM wiki_reference WHERE owner_kind = 'template' AND owner_no = ?", templateNo)
+        jdbc.update("""INSERT INTO anime (status, week, time, subject, original_subject, autocorrect, genres,
+            start_date, end_date, website, x, note, caption_count, upd_dt, thumbnail)
+            VALUES ('ON', '0', '00:00', '첨부 취소 썸네일', '', '', '', '', '', '', '', '', 0, CURRENT_TIMESTAMP, ?)""",
+            url.removeSuffix(".avif") + ".thumb.avif")
+        val animeNo = jdbc.queryForObject("SELECT LAST_INSERT_ID()", Long::class.java)!!
+        assertThrows<FailException> { repository.detach(id, 1, "편집자", url) }
+        jdbc.update("UPDATE anime SET thumbnail = NULL WHERE anime_no = ?", animeNo)
+        val job = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(job, owner, "교체", "", WikiUploadProperties(), "REPLACEMENT", id, 1, "fixture", "template", templateNo)
+        assertThrows<FailException> { repository.detach(id, 1, "편집자", url) }
+        assertTrue(repository.find(id)!!.attachmentActive)
+        assertEquals(1L, repository.find(id)!!.revision)
+        assertThrows<FailException> { repository.detach(source.id, 1, "편집자", "http://localhost:8001/wiki/files/wiki/${source.id}.avif") }
+    }
+
+    private fun migratedCopy(source: WikiImage, id: String, templateNo: Long): WikiImage {
+        jdbc.update("""INSERT INTO wiki_image (id, owner_an, status, description, source_url, width, height, frames, bytes, animated,
+            thumbnail_bytes, revision, updated_by, submission_kind, document_kind, document_no, source_image_id, created_at, updated_at)
+            SELECT ?, owner_an, 'READY', description, source_url, width, height, frames, bytes, animated,
+                thumbnail_bytes, revision, updated_by, 'DIRECT', 'template', ?, id, created_at, updated_at
+            FROM wiki_image WHERE id = ?""", id, templateNo, source.id)
+        return repository.find(id)!!
+    }
 }

@@ -31,6 +31,7 @@ data class WikiImage(
     val documentKind: String? = null,
     val documentNo: Long? = null,
     val sourceImageId: String? = null,
+    val attachmentActive: Boolean = true,
 )
 
 data class WikiImageDto(
@@ -55,9 +56,8 @@ data class WikiImageDto(
     val documentKind: String? = null,
     val documentNo: Long? = null,
     val sourceImageId: String? = null,
+    val attachmentActive: Boolean = true,
 )
-
-data class WikiImageAttachRequest(val documentKind: String = "", val documentNo: Long = 0)
 
 data class WikiImageEditRequest(val baseRevision: Long = -1, val description: String = "", val sourceUrl: String = "")
 data class WikiImageOperationRequest(val baseRevision: Long = -1)
@@ -77,6 +77,7 @@ data class WikiImageUsagePage(
     val page: Int,
     val size: Int = 30,
     val canDelete: Boolean = false,
+    val canDetach: Boolean = false,
 )
 
 data class WikiImagePage(

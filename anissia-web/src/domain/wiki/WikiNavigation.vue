@@ -19,20 +19,16 @@
 <script setup lang="ts">
 import {computed} from 'vue';
 import {useRoute} from 'vue-router';
-import {sessionStore} from '../session/sessionStore';
 
 const props = withDefaults(defineProps<{query?: string}>(), {query: ''});
 const route = useRoute();
-const session = sessionStore();
 const categories = computed(() => [
   {type: 'templates', label: '템플릿', icon: 'template' as const},
-  ...(session.user.roles.some(role => role === 'ROOT' || role === 'TRANSLATOR') ? [{type: 'images', label: '이미지 보관함', icon: 'image' as const}] : []),
 ]);
 const active = computed(() => {
   if (route.path.startsWith('/wiki/requests')) return 'requests';
   if (route.path === '/wiki/recent') return 'recent';
   if (route.path === '/wiki/templates') return 'templates';
-  if (route.path === '/wiki/images') return 'images';
   return 'anime';
 });
 function searchLocation(type: string) {

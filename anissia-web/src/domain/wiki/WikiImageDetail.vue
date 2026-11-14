@@ -4,7 +4,7 @@
     <div v-if="loadError" class="as-box p-4"><p class="text-sm text-red-600" role="alert">{{loadError}}</p><button type="button" class="as-link text-sm mt-2" @click="load">다시 시도</button></div>
     <template v-if="item">
       <p v-if="imageOwner" class="as-desc mb-4">문서에 첨부된 이미지입니다. <router-link :to="wikiImageOwnerLocation(imageOwner)" class="as-link">소속 문서 보기</router-link></p>
-      <p v-else class="as-desc mb-4">기존 이미지 보관함에 있는 이미지입니다. 문서 편집 화면에서 가져온 뒤 수정할 수 있습니다.</p>
+      <p v-if="item.attachmentActive === false" class="as-desc mb-4">첨부가 취소된 이미지입니다. 원본 파일과 과거 이력은 보존됩니다.</p>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4"><h2 class="as-section-title">이미지 정보</h2><span class="as-meta">{{statusLabel}}</span></div>
       <a v-if="item.url" :href="imageUrl" target="_blank" rel="noopener noreferrer" class="block as-box p-4 mb-4"><img :src="imageUrl" :alt="item.description || '위키 이미지'" class="max-h-96 w-full object-contain"/></a>
       <div v-else class="as-box p-5 mb-4 as-desc">{{statusLabel}}<template v-if="item.status === 'DELETED'"> · 복구하면 이미지를 다시 사용할 수 있습니다.</template></div>
@@ -30,10 +30,12 @@
         <div class="flex flex-wrap gap-3 items-center mt-4 text-sm">
           <button v-if="item.url" type="button" class="as-link" @click="copyUrl">주소 복사</button>
           <button v-if="imageOwner && canEditImage && item.status === 'READY'" type="button" class="as-input-btn py-2" :disabled="busy || item.replacementPending" @click="beginEdit">이미지 수정</button>
+          <button v-if="access?.canContribute && item.status === 'READY' && item.attachmentActive !== false" type="button" class="as-input-btn py-2" :disabled="busy || !usage?.canDetach || usedInDraft" @click="detach">첨부 취소</button>
           <button v-if="access?.isOperator && item.status === 'READY'" type="button" class="as-input-btn py-2" :disabled="busy || item.replacementPending || !usage?.canDelete" @click="changeState('delete')">이미지 삭제</button>
           <router-link v-else-if="imageOwner && access?.canContribute && item.status === 'READY' && !item.replacementPending" :to="{path: '/wiki/requests/new', query: {kind: 'IMAGE_DELETE', imageId: item.id, ...wikiImageOwnerFields(imageOwner)}}" class="as-input-btn py-2">이미지 삭제 요청</router-link>
           <button v-if="access?.isOperator && item.status === 'DELETED'" type="button" class="as-btn-primary py-2" :disabled="busy" @click="changeState('restore')">이미지 복구</button>
         </div>
+        <p v-if="access?.canContribute && item.status === 'READY' && item.attachmentActive !== false && usage" class="as-desc mt-3">{{usage.canDetach && !usedInDraft ? '첨부 취소는 이 문서의 이미지 목록에서만 제외합니다. 원본 파일과 과거 이력은 보존됩니다.' : '본문이나 썸네일에서 사용 중인 이미지는 사용을 해제하고 저장한 뒤 첨부를 취소할 수 있습니다.'}}</p>
         <p v-if="!access?.canContribute && item.status === 'READY'" class="as-desc mt-3">{{access?.message}}</p>
       </template>
       <p v-if="actionError" class="text-sm text-red-600 whitespace-pre-line mt-3" role="alert">{{actionError}}</p>
@@ -59,8 +61,8 @@ import {sessionStore} from '../session/sessionStore';
 import toast from '../../common/toast';
 import {WikiError, wikiDate, wikiErrorMessage, wikiFileRequest, wikiLocation, wikiRemote, type WikiAccess, type WikiImage, type WikiImageUsagePage} from './wikiRemote';
 import {wikiImageDisplayUrl} from './wikiImageVersion';
-import {wikiImageOwner, wikiImageOwnerFields, wikiImageOwnerLocation} from './wikiImageOwner';
-const props = defineProps<{imageId: string}>();
+import {wikiImageOwner, wikiImageOwnerFields, wikiImageOwnerLocation, type WikiImageOwner} from './wikiImageOwner';
+const props = defineProps<{imageId: string; owner: WikiImageOwner; usedInDraft?: boolean}>();
 const formId = `wiki-image-edit-${useId()}`;
 const emit = defineEmits<{changed: [image: WikiImage]}>();
 const session = sessionStore();
@@ -69,8 +71,8 @@ const imageOwner = computed(() => wikiImageOwner(item.value?.documentKind, item.
 const loading = ref(false), loadError = ref(''), editing = ref(false), busy = ref(false), actionError = ref(''), conflicted = ref(false);
 const description = ref(''), sourceUrl = ref(''), usageLoading = ref(false), usageError = ref('');
 const replacementFile = ref<File>(), replacementProgress = ref(0);
-const canEditImage = computed(() => access.value?.canContribute === true || access.value?.canReplaceImageFile === true);
-const canSaveImage = computed(() => replacementFile.value ? access.value?.canReplaceImageFile === true : access.value?.canContribute === true);
+const canEditImage = computed(() => item.value?.attachmentActive !== false && (access.value?.canContribute === true || access.value?.canReplaceImageFile === true));
+const canSaveImage = computed(() => item.value?.attachmentActive !== false && (replacementFile.value ? access.value?.canReplaceImageFile === true : access.value?.canContribute === true));
 let cancelReplacement: (() => void) | undefined;
 let active = true, generation = 0, usageGeneration = 0, usagePage = 0, editRevision = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -94,7 +96,8 @@ async function load() {
   try {
     const [image, permission] = await Promise.all([wikiRemote.image(props.imageId), wikiRemote.access()]);
     if (!active || expected !== generation) return;
-    item.value = image; access.value = permission; void loadUsage(false); schedulePoll(expected);
+    if (image.documentKind !== props.owner.documentKind || image.documentNo !== props.owner.documentNo) throw new Error('이 문서에 속한 이미지가 아닙니다.');
+    item.value = image; access.value = permission; emit('changed', image); void loadUsage(false); schedulePoll(expected);
   } catch (error) { if (active && expected === generation) loadError.value = wikiErrorMessage(error); }
   finally { if (expected === generation) loading.value = false; }
 }
@@ -128,6 +131,15 @@ async function changeState(action: 'delete' | 'restore') {
   } catch (error) { if (active && expected === generation) actionError.value = wikiErrorMessage(error); }
   finally { if (expected === generation) busy.value = false; }
 }
+async function detach() {
+  if (!item.value || busy.value || !access.value?.canContribute || !usage.value?.canDetach || props.usedInDraft || !window.confirm('이 문서의 이미지 목록에서 첨부를 취소하시겠습니까? 원본 파일과 과거 이력은 보존됩니다.')) return;
+  const expected = generation; busy.value = true; actionError.value = '';
+  try {
+    const value = await wikiRemote.detachImage(props.imageId, item.value.revision);
+    if (active && expected === generation) { item.value = value; emit('changed', value); void loadUsage(false); toast.success('이미지 첨부를 취소했습니다.'); }
+  } catch (error) { if (active && expected === generation) actionError.value = wikiErrorMessage(error); }
+  finally { if (expected === generation) busy.value = false; }
+}
 async function loadUsage(append: boolean) {
   if (append && usageLoading.value) return;
   const expected = ++usageGeneration, next = append ? usagePage + 1 : 0;
@@ -138,7 +150,7 @@ async function loadUsage(append: boolean) {
   } catch (error) { if (active && expected === usageGeneration) usageError.value = wikiErrorMessage(error); }
   finally { if (expected === usageGeneration) usageLoading.value = false; }
 }
-watch([() => props.imageId, () => session.user.email, () => session.user.roles.join(',')], load, {immediate: true});
+watch([() => props.imageId, () => props.owner.documentKind, () => props.owner.documentNo, () => session.user.email, () => session.user.roles.join(',')], load, {immediate: true});
 window.addEventListener('beforeunload', beforeUnload);
 onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnload); active = false; ++generation; ++usageGeneration; clearTimeout(timer); cancelReplacement?.(); });
 </script>
