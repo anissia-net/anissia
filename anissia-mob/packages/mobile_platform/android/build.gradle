@@ -1,0 +1,23 @@
+group = "net.anissia.mobile_platform"
+version = "1.0.0"
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+
+android {
+    namespace = "net.anissia.mobile_platform"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 35
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}

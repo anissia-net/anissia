@@ -22,6 +22,8 @@ export default class Anime {
     public tags: string[] = [];
 
     public agendaNo = 0;
+    public deletedAt: string | null = null;
+    public purgeAfter: string | null = null;
 
     public editGenresOpen = false;
     public editGenres = [] as string[];

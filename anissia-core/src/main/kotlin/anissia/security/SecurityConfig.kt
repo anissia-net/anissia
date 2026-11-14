@@ -64,7 +64,8 @@ class SecurityConfig {
                 }
             }
             .authorizeHttpRequests {
-                it.requestMatchers(HttpMethod.POST, "/wiki/images").authenticated()
+                it.requestMatchers(HttpMethod.POST, "/wiki/images", "/wiki/requests/images", "/wiki/images/*/attach").authenticated()
+                it.requestMatchers(HttpMethod.PUT, "/wiki/images/*/file").authenticated()
                 it.anyRequest().permitAll()
             }
             .addFilterBefore(datAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)

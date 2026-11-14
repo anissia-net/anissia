@@ -1,0 +1,19 @@
+# 애니시아
+
+> 애니메이션 정보와 함께 작성하는 위키 서비스입니다.
+
+## 위키 작성
+
+- [새 위키 작성 규칙](https://anissia.net/wiki-new.txt): 위키가 없거나 비어 있을 때 기본 글·이미지·시리즈·제작사 템플릿을 작성하는 규격입니다. 기존 글은 보존하고 누락된 연결만 추가합니다. 저장 전에 이 규칙의 API 계약과 본문 형식을 확인하세요.
+- 이미지는 위키 문서 또는 템플릿에 소속됩니다. 편집 화면 상단의 '이 문서의 이미지' 영역에서 첨부 목록을 바로 보고 업로드·등록 요청·본문 삽입을 진행합니다. 툴바의 이미지 버튼은 같은 영역으로 이동합니다. 목록은 `GET /wiki/images?documentKind=anime&documentNo={animeNo}` 또는 `documentKind=template&documentNo={templateNo}`로 조회합니다. 업로드와 이미지 등록 요청에도 `documentKind`, `documentNo`를 보냅니다. 새 템플릿은 저장하거나 등록 승인을 받은 뒤 이미지를 올립니다.
+- 본문에는 같은 문서의 READY 이미지만 삽입합니다. 다른 문서의 이미지 URL이나 이미지 등록 요청 결과를 재사용하지 않습니다. 승인된 `resultImageId`도 이미지의 `documentKind`, `documentNo`가 현재 문서와 같은지 확인합니다. 템플릿 이미지는 해당 템플릿을 포함하여 표시합니다.
+- `GET /wiki/access`의 `canContribute`는 문서·이미지 설명/출처 수정 권한입니다. 파일 작업은 `canUploadImage`(새 파일 직접 업로드·보관함 복사), `canRequestImageUpload`(이미지 등록 요청의 파일 전송), `canReplaceImageFile`(기존 이미지 파일 교체)를 각각 확인합니다. 파일 권한을 `canContribute`나 `isOperator`에서 추정하지 않으며, 해당 필드가 없거나 true가 아니면 그 파일 작업을 진행하지 않습니다.
+- 현재 새 이미지 직접 등록은 운영진, 이미지 등록 요청과 기존 파일 교체는 가입 조건을 충족한 기여자에게 허용됩니다. 일반 기여자의 새 이미지는 운영진 승인 후 사용할 수 있습니다. 승인 대기나 파일 변환 중인 이미지를 본문에 넣지 않습니다. 새 템플릿 생성과 요청 승인·반려는 별도의 `isOperator` 권한을 확인합니다.
+- 문서에 소속되지 않은 기존 원본은 운영진 보관함에 보존됩니다. 운영진은 `canUploadImage: true`일 때 문서 편집 화면에서 복사해 가져올 수 있습니다. 복사된 새 이미지의 ID와 URL을 사용합니다.
+
+## 탐색
+
+- [작품 검색](https://anissia.net/anime)
+- [템플릿](https://anissia.net/wiki/templates)
+- [기존 이미지 보관함 (운영진)](https://anissia.net/wiki/images)
+- [등록 요청](https://anissia.net/wiki/requests)

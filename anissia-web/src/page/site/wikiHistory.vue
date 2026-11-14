@@ -50,7 +50,7 @@
             <button v-if="item && access?.canContribute && !item.deleted && selectedRevision.revision !== item.revision" type="button" class="as-input-btn py-2" :disabled="saving" @click="restore">{{saving ? '되돌리는 중…' : '이 판으로 되돌리기'}}</button>
           </div>
           <p v-if="restoreError" class="text-sm text-red-600 mb-4" role="alert">{{restoreError}}</p>
-          <WikiBodyView :body="selectedRevision.body" :templates="selectedRevision.templates"/>
+          <WikiBodyView :body="selectedRevision.body" :templates="selectedRevision.templates" :image-versions="selectedRevision.imageVersions"/>
         </template>
       </section>
     </template>

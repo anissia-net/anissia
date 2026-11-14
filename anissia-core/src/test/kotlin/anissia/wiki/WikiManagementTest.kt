@@ -48,9 +48,24 @@ class WikiManagementTest {
         val result = service.recoverTemplate(5, 3, actor)
         assertFalse(result.deleted)
         assertEquals(4L, result.revision)
-        verify(images).requireReadyUrls(emptySet())
+        verify(images).requireReadyUrls(emptySet(), "template", 5)
         verify(revisions).save(org.mockito.ArgumentMatchers.argThat { it.revision == 4L && it.summary.contains("복구") })
         verify(references).deleteAllByOwnerKindAndOwnerNo("template", 5)
+    }
+
+    @Test
+    fun `recover preserves attached images under the deleted template owner`() {
+        val url = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val imageBody = WikiBody(blocks = Json.readTree("""[{"w":"img","a":{"src":"$url"}}]"""))
+        val template = deleted().apply { body = Json.write(imageBody) }
+        `when`(templates.lockTemplate(5)).thenReturn(template)
+        `when`(access.requireOperator(actor)).thenReturn(Account(an = 7, name = "운영자"))
+
+        val result = service.recoverTemplate(5, 3, actor)
+
+        assertFalse(result.deleted)
+        assertEquals(imageBody, result.body)
+        verify(images).requireReadyUrls(setOf(url), "template", 5)
     }
 
     @Test

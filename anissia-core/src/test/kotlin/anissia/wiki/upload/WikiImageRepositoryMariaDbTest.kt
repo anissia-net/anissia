@@ -20,10 +20,14 @@ import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.DefaultTransactionDefinition
 import org.springframework.web.server.ResponseStatusException
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import org.junit.jupiter.api.io.TempDir
 import java.util.UUID
 
 @EnabledIfEnvironmentVariable(named = "ANISSIA_TEST_DB_URL", matches = "jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/[a-zA-Z0-9_]+")
 class WikiImageRepositoryMariaDbTest {
+    @TempDir lateinit var files: Path
     private lateinit var jdbc: JdbcTemplate
     private lateinit var transactions: DataSourceTransactionManager
     private lateinit var transaction: TransactionStatus
@@ -215,6 +219,202 @@ class WikiImageRepositoryMariaDbTest {
         val image = enqueue()
         jdbc.update("UPDATE wiki_image SET status = 'READY', width = 1, height = 1, frames = 1, bytes = 2, animated = FALSE WHERE id = ?", image.id)
         return repository.find(image.id)!!
+    }
+
+    @Test
+    fun `requested image stays private until approval commits and publication finishes`() {
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(id, owner, "등록 요청", "https://example.com", WikiUploadProperties(), "REQUEST")
+        val job = requireNotNull(repository.claim(180))
+        var published = false
+        repository.complete(id, job.claimToken!!, result(), 3) { published = true }
+        assertFalse(published)
+        assertEquals(WikiImageStatus.REVIEW_READY, repository.find(id)!!.status)
+        assertTrue(repository.list(0, "등록 요청").first.isEmpty())
+        assertTrue(repository.pendingPublications().isEmpty())
+        repository.approveRequest(id)
+        assertEquals(WikiImageStatus.APPROVING, repository.find(id)!!.status)
+        repository.publishPrepared(id) { _, target -> assertNull(target); published = true }
+        assertTrue(published)
+        assertEquals(WikiImageStatus.READY, repository.find(id)!!.status)
+        assertFalse(repository.publishPrepared(id) { _, _ -> throw AssertionError("duplicate publication") })
+    }
+
+    @Test
+    fun `cancelled request cannot publish even when its conversion finishes`() {
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(id, owner, "취소 요청", "https://example.com", WikiUploadProperties(), "REQUEST")
+        val job = requireNotNull(repository.claim(180))
+        repository.discardRequest(id)
+        assertFalse(repository.complete(id, job.claimToken!!, result(), 3) { throw AssertionError("published") })
+        assertThrows<FailException> { repository.approveRequest(id) }
+        assertEquals("CANCELLED", repository.find(id)!!.error)
+    }
+
+    @Test
+    fun `replacement keeps current bytes and metadata until successful single publication`() {
+        val target = ready()
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(id, owner, "교체 설명", "https://example.com/new", WikiUploadProperties(), "REPLACEMENT", target.id, 1, "편집자")
+        assertTrue(repository.find(target.id)!!.replacementPending)
+        assertEquals(target.description, repository.find(target.id)!!.description)
+        assertThrows<FailException> { repository.edit(target.id, 1, "경합", "", "다른 사람") }
+        assertThrows<FailException> { repository.beginDelete(target.id, 1, "운영자", "http://localhost:8001/wiki/files/wiki/${target.id}.avif") }
+        val job = requireNotNull(repository.claim(180))
+        repository.complete(id, job.claimToken!!, result().copy(bytes = 9), 4) { throw AssertionError("early publication") }
+        assertEquals(WikiImageStatus.REPLACING, repository.find(id)!!.status)
+        assertThrows<IOException> { repository.publishPrepared(id) { _, _ -> throw IOException("disk unavailable") } }
+        assertEquals(1L, repository.find(target.id)!!.revision)
+        repository.publishPrepared(id) { current, original -> assertEquals(target.id, original!!.id); assertEquals(9L, current.bytes) }
+        val replaced = repository.find(target.id)!!
+        assertEquals("교체 설명", replaced.description)
+        assertEquals("https://example.com/new", replaced.sourceUrl)
+        assertEquals(9L, replaced.bytes)
+        assertEquals(2L, replaced.revision)
+        assertFalse(replaced.replacementPending)
+        assertEquals(WikiImageStatus.REPLACED, repository.find(id)!!.status)
+        assertFalse(repository.publishPrepared(id) { _, _ -> throw AssertionError("duplicate replacement") })
+    }
+
+    private fun template(): Long {
+        jdbc.update("INSERT INTO wiki_template (title, deleted, body, revision, updated_at, updated_by) VALUES (?, FALSE, '{}', 1, CURRENT_TIMESTAMP(6), 'fixture')", "scope-${UUID.randomUUID()}")
+        return jdbc.queryForObject("SELECT LAST_INSERT_ID()", Long::class.java)!!
+    }
+
+    @Test
+    fun `document validation rejects malformed missing and deleted owners`() {
+        val templateNo = template()
+        repository.requireDocument("template", templateNo, true)
+        assertThrows<IllegalArgumentException> { repository.requireDocument(null, null) }
+        assertThrows<IllegalArgumentException> { repository.requireDocument("other", templateNo) }
+        assertThrows<IllegalArgumentException> { repository.requireDocument("template", 0) }
+        assertThrows<ResponseStatusException> { repository.requireDocument("template", Long.MAX_VALUE) }
+        jdbc.update("UPDATE wiki_template SET deleted = TRUE WHERE template_no = ?", templateNo)
+        assertThrows<ResponseStatusException> { repository.requireDocument("template", templateNo, true) }
+    }
+
+    @Test
+    fun `document copies are independent unique per owner and separated from the archive`() {
+        val source = ready()
+        val firstNo = template()
+        val secondNo = template()
+        val firstId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        val secondId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.lock(source.id)
+        assertNull(repository.attachedCopy(source.id, "template", firstNo))
+        val first = repository.insertAttachedCopy(source, firstId, "template", firstNo)
+        val second = repository.insertAttachedCopy(source, secondId, "template", secondNo)
+        assertEquals(source.id, first.sourceImageId)
+        assertEquals("template", first.documentKind)
+        assertEquals(firstNo, first.documentNo)
+        assertEquals(source.createdAt, first.createdAt)
+        assertEquals(first.id, repository.attachedCopy(source.id, "template", firstNo)!!.id)
+        assertEquals(listOf(source.id), repository.list(0, source.description).first.map { it.id })
+        assertEquals(listOf(first.id), repository.list(0, source.description, false, "template", firstNo).first.map { it.id })
+        assertEquals(listOf(second.id), repository.list(0, source.description, false, "template", secondNo).first.map { it.id })
+        repository.edit(first.id, first.revision, "첫 문서 전용 설명", "", "fixture")
+        assertEquals(source.description, repository.find(source.id)!!.description)
+        assertEquals(source.description, repository.find(second.id)!!.description)
+        val duplicateId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        assertThrows<org.springframework.dao.DataIntegrityViolationException> {
+            repository.insertAttachedCopy(source, duplicateId, "template", firstNo)
+        }
+    }
+
+    @Test
+    fun `scoped upload stays private until approval and approved intent finishes after document deletion`() {
+        val templateNo = template()
+        val id = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(id, owner, "문서 첨부 요청", "https://example.com", WikiUploadProperties(), "REQUEST",
+            documentKind = "template", documentNo = templateNo)
+        val job = requireNotNull(repository.claim(180))
+        repository.complete(id, job.claimToken!!, result(), 3) { throw AssertionError("unapproved publication") }
+        assertEquals(templateNo, repository.find(id)!!.documentNo)
+        assertTrue(repository.list(0, "문서 첨부 요청", false, "template", templateNo).first.isEmpty())
+        repository.approveRequest(id)
+        jdbc.update("UPDATE wiki_template SET deleted = TRUE WHERE template_no = ?", templateNo)
+        assertTrue(repository.publishPrepared(id) { current, target -> assertEquals(templateNo, current.documentNo); assertNull(target) })
+        assertEquals(WikiImageStatus.READY, repository.find(id)!!.status)
+        jdbc.update("UPDATE wiki_template SET deleted = FALSE WHERE template_no = ?", templateNo)
+        assertFalse(repository.publishPrepared(id) { _, _ -> throw AssertionError("duplicate publication") })
+        assertEquals(listOf(id), repository.list(0, "문서 첨부 요청", false, "template", templateNo).first.map { it.id })
+        assertTrue(repository.list(0, "문서 첨부 요청").first.isEmpty())
+    }
+
+    @Test
+    fun `permanent document purge archives independent images and cancels unapproved jobs`() {
+        val source = ready()
+        val templateNo = template()
+        val copyId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.insertAttachedCopy(source, copyId, "template", templateNo)
+        val pending = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(pending, owner, "purge-request", "", WikiUploadProperties(), "REQUEST", documentKind = "template", documentNo = templateNo)
+        val job = requireNotNull(repository.claim(180))
+        repository.complete(pending, job.claimToken!!, result(), 3) { throw AssertionError("early publication") }
+        val approved = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(approved, owner, "purge-approved", "", WikiUploadProperties(), "REQUEST", documentKind = "template", documentNo = templateNo)
+        val approvedJob = requireNotNull(repository.claim(180))
+        repository.complete(approved, approvedJob.claimToken!!, result(), 3) { throw AssertionError("early approved publication") }
+        repository.approveRequest(approved)
+        repository.archiveDocument("template", templateNo)
+        val archived = repository.find(copyId)!!
+        assertNull(archived.documentKind)
+        assertNull(archived.documentNo)
+        assertEquals(source.id, archived.sourceImageId)
+        assertEquals(WikiImageStatus.READY, archived.status)
+        assertEquals(WikiImageStatus.FAILED, repository.find(pending)!!.status)
+        assertEquals("DOCUMENT_UNAVAILABLE", repository.find(pending)!!.error)
+        assertFalse(repository.publishPrepared(pending) { _, _ -> throw AssertionError("ownerless cancelled publication") })
+        assertTrue(repository.list(0, source.description).first.any { it.id == copyId })
+        val detached = repository.find(approved)!!
+        assertEquals(WikiImageStatus.APPROVING, detached.status)
+        assertEquals(approvedJob.claimToken, detached.claimToken)
+        assertNull(detached.documentKind)
+        assertTrue(repository.publishPrepared(approved) { current, target -> assertNull(current.documentKind); assertNull(target) })
+        assertEquals(listOf(approved), repository.list(0, "purge-approved").first.map { it.id })
+    }
+
+    @Test
+    fun `replacement recovers after file write before database acknowledgement and permanent parent purge`() {
+        val source = ready()
+        val templateNo = template()
+        val targetId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.insertAttachedCopy(source, targetId, "template", templateNo)
+        val jobId = UUID.randomUUID().toString().replace("-", "").also(ids::add)
+        repository.enqueue(jobId, owner, "교체 후 설명", "https://example.com/new", WikiUploadProperties(), "REPLACEMENT",
+            targetId, 1, "fixture", "template", templateNo)
+        val job = requireNotNull(repository.claim(180))
+        val storage = WikiImageStorage(WikiUploadProperties(tempRoot = files.resolve("temp").toString(),
+            publicRoot = files.resolve("public").toString(), originalRoot = files.resolve("originals").toString()))
+        storage.ensureDirectories()
+        Files.write(storage.publicFile(targetId), byteArrayOf(1, 2))
+        Files.write(storage.thumbnailFile(targetId), byteArrayOf(3))
+        storage.receive(jobId, byteArrayOf(4).inputStream())
+        Files.write(storage.output(jobId, job.claimToken!!), byteArrayOf(5, 6, 7))
+        Files.write(storage.thumbnailOutput(jobId, job.claimToken), byteArrayOf(8))
+        repository.complete(jobId, job.claimToken, result().copy(bytes = 3), 1) { throw AssertionError("early replacement") }
+        assertThrows<IOException> {
+            repository.publishPrepared(jobId) { current, target ->
+                storage.replace(current, requireNotNull(target))
+                throw IOException("interrupted after file publication before database acknowledgement")
+            }
+        }
+        assertEquals(1L, repository.find(targetId)!!.revision)
+        assertEquals(source.description, repository.find(targetId)!!.description)
+        assertEquals(listOf<Byte>(5, 6, 7), Files.readAllBytes(storage.publicFile(targetId)).toList())
+        repository.archiveDocument("template", templateNo)
+        jdbc.update("DELETE FROM wiki_template WHERE template_no = ?", templateNo)
+        assertEquals(WikiImageStatus.REPLACING, repository.find(jobId)!!.status)
+        assertNull(repository.find(jobId)!!.documentKind)
+        assertTrue(repository.publishPrepared(jobId) { current, target -> storage.replace(current, requireNotNull(target)) })
+        val recovered = repository.find(targetId)!!
+        assertEquals(2L, recovered.revision)
+        assertEquals("교체 후 설명", recovered.description)
+        assertEquals(3L, recovered.bytes)
+        assertNull(recovered.documentKind)
+        assertEquals(WikiImageStatus.REPLACED, repository.find(jobId)!!.status)
+        assertEquals(listOf<Byte>(1, 2), Files.readAllBytes(files.resolve("originals/replacements/$targetId/$jobId/image.avif")).toList())
+        assertEquals(listOf<Byte>(5, 6, 7), Files.readAllBytes(storage.publicFile(targetId)).toList())
     }
 
     private fun result() = ConvertedImage(1, 1, 1, 0, false, false, 2)

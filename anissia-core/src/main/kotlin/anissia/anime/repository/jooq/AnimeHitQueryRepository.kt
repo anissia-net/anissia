@@ -85,6 +85,7 @@ class AnimeHitQueryRepository(
                 .leftJoin(AnimeTable.TABLE)
                 .on(AnimeTable.ANIME_NO.eq(AnimeHitHourTable.ANIME_NO))
                 .where(AnimeHitHourTable.HOUR.ge(startHour))
+                .and(AnimeTable.DELETED_AT.isNull)
                 .groupBy(AnimeHitHourTable.ANIME_NO, AnimeTable.SUBJECT)
                 .orderBy(totalHit.desc())
                 .limit(limit)

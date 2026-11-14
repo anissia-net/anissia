@@ -9,6 +9,14 @@ import org.springframework.jdbc.core.JdbcTemplate
 
 class SearchDocumentsTest {
     @Test
+    fun `hidden anime are removed from search documents while their source remains stored`() {
+        val jdbc = mock(JdbcTemplate::class.java)
+        `when`(jdbc.queryForList("SELECT * FROM anime WHERE anime_no IN (?)", "1"))
+            .thenReturn(listOf(mapOf("anime_no" to 1L, "subject" to "숨긴 작품", "deleted_at" to "2026-11-11 12:00:00")))
+        assertNull(SearchDocuments(jdbc).load(SearchKind.ANIME, "1"))
+    }
+
+    @Test
     fun `single and batch anime documents omit included template text`() {
         val jdbc = mock(JdbcTemplate::class.java)
         val anime = mapOf<String, Any>("anime_no" to 1L, "subject" to "우주 여행")

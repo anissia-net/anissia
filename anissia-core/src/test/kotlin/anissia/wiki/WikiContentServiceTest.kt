@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -44,6 +45,146 @@ class WikiContentServiceTest {
         `when`(access.requireContributor(actor)).thenReturn(account)
         `when`(access.requireOperator(actor)).thenReturn(account)
         `when`(documents.lockAnime(11)).thenReturn(source)
+    }
+
+    @Test
+    fun `ordinary contributors cannot register templates directly`() {
+        `when`(access.requireOperator(actor)).thenThrow(FailException("운영자 권한이 필요합니다."))
+        assertThrows<FailException> { service.createTemplate(WikiEditRequest(body = textBody, title = "요청할 템플릿"), actor) }
+        verifyNoInteractions(templates, revisions, references, images)
+    }
+
+    @Test
+    fun `new templates must exist before accepting attached images`() {
+        allow()
+        val body = imageBody("https://files.example/wiki/${"a".repeat(32)}.avif")
+        val error = assertThrows<FailException> {
+            service.createTemplate(WikiEditRequest(body = body, title = "새 템플릿"), actor)
+        }
+        assertEquals("템플릿을 등록한 뒤 해당 문서에서 이미지를 추가해 주세요.", error.message)
+        verifyNoInteractions(templates, revisions, references, images)
+    }
+
+    @Test
+    fun `document save checks direct and included images against their separate owners`() {
+        allow()
+        val direct = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val embedded = "https://files.example/wiki/${"b".repeat(32)}.avif"
+        val body = WikiBody(blocks = Json.readTree("""[{"w":"img","a":{"src":"$direct"}},{"w":"exTemplateInclude","a":{"exTemplateNo":"5"}}]"""))
+        val template = WikiTemplate(templateNo = 5, title = "사진 틀").apply {
+            revision = 1; this.body = Json.write(imageBody(embedded))
+        }
+        `when`(templates.lockTemplate(5)).thenReturn(template)
+        `when`(templates.findAllById(setOf(5L))).thenReturn(listOf(template))
+
+        val result = service.editAnime(11, WikiEditRequest(0, body), actor)
+
+        assertEquals(1L, result.revision)
+        verify(images).requireReadyUrls(setOf(direct), "anime", 11)
+        verify(images).requireReadyUrls(setOf(embedded), "template", 5)
+        val captured = ArgumentCaptor.forClass(WikiRevision::class.java)
+        verify(revisions).save(captured.capture())
+        assertEquals(imageBody(embedded), Json.read<List<WikiTemplateSnapshot>>(captured.value.templates).single().body)
+    }
+
+    @Test
+    fun `foreign document image rejection leaves the current revision and references untouched`() {
+        allow()
+        val url = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val current = AnimeWiki(11).apply { revision = 2; body = Json.write(textBody) }
+        `when`(documents.lockWiki(11)).thenReturn(current)
+        doThrow(FailException("이 문서에 속한 이미지만 사용할 수 있습니다.")).`when`(images)
+            .requireReadyUrls(setOf(url), "anime", 11)
+
+        assertThrows<FailException> { service.editAnime(11, WikiEditRequest(2, imageBody(url)), actor) }
+
+        assertEquals(2L, current.revision)
+        assertEquals(Json.write(textBody), current.body)
+        verifyNoInteractions(revisions, references)
+    }
+
+    @Test
+    fun `restoring a migrated historical body validates the same document owner`() {
+        allow()
+        val url = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val oldBody = imageBody(url)
+        val current = AnimeWiki(11).apply { revision = 3; body = Json.write(textBody) }
+        `when`(documents.lockWiki(11)).thenReturn(current)
+        `when`(revisions.findByKindAndTargetNoAndRevision("anime", 11, 1)).thenReturn(WikiRevision(
+            kind = "anime", targetNo = 11, revision = 1, body = Json.write(oldBody), title = source.subject,
+        ))
+
+        val restored = service.restore("anime", 11, 1, WikiRestoreRequest(3), actor)
+
+        assertEquals(4L, restored.revision)
+        assertEquals(oldBody, restored.body)
+        verify(images).requireReadyUrls(setOf(url), "anime", 11)
+    }
+
+    @Test
+    fun `existing template images are checked against the template owner`() {
+        allow()
+        val url = "https://files.example/wiki/${"b".repeat(32)}.avif"
+        val template = WikiTemplate(templateNo = 5, title = "사진 틀").apply {
+            revision = 1; body = Json.write(textBody)
+        }
+        `when`(templates.lockTemplate(5)).thenReturn(template)
+
+        val result = service.editTemplate(5, WikiEditRequest(1, imageBody(url), title = template.title), actor)
+
+        assertEquals(2L, result.revision)
+        verify(images).requireReadyUrls(setOf(url), "template", 5)
+    }
+
+    @Test
+    fun `retained deleted anime cannot expose or edit its wiki`() {
+        source.deletedAt = java.time.OffsetDateTime.now()
+        `when`(anime.findById(11)).thenReturn(Optional.of(source))
+        allow()
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows<ResponseStatusException> { service.animeDocument(11) }.statusCode)
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows<ResponseStatusException> { service.editAnime(11, WikiEditRequest(0, textBody), actor) }.statusCode)
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows<ResponseStatusException> { service.history("anime", 11, 0, actor) }.statusCode)
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows<ResponseStatusException> { service.animeImages(11, actor) }.statusCode)
+        verifyNoInteractions(revisions, references, templates, images)
+    }
+
+    @Test
+    fun `rendered documents include current file versions for direct and embedded images without changing source URLs`() {
+        val direct = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val embedded = "https://files.example/wiki/${"b".repeat(32)}.avif"
+        val body = WikiBody(blocks = Json.readTree("""[{"w":"img","a":{"src":"$direct"}},{"w":"exTemplateInclude","a":{"exTemplateNo":"5"}}]"""))
+        val templateBody = imageBody(embedded)
+        val savedBody = Json.write(body)
+        val wiki = AnimeWiki(11).apply { revision = 2; this.body = savedBody }
+        `when`(anime.findById(11)).thenReturn(Optional.of(source))
+        `when`(documents.findById(11)).thenReturn(Optional.of(wiki))
+        `when`(templates.findAllById(setOf(5L))).thenReturn(listOf(WikiTemplate(templateNo = 5, title = "이미지 틀").apply {
+            revision = 1; this.body = Json.write(templateBody)
+        }))
+        `when`(images.versionMap(setOf(direct, embedded))).thenReturn(mapOf(direct to 4L, embedded to 7L))
+        val result = service.animeDocument(11)
+        assertEquals(mapOf(direct to 4L, embedded to 7L), result.imageVersions)
+        assertEquals(body, result.body)
+        assertEquals(templateBody, result.templates.single().body)
+        assertEquals(savedBody, wiki.body)
+        verify(images).versionMap(setOf(direct, embedded))
+    }
+
+    @Test
+    fun `historical documents use preserved template bodies and current image file versions`() {
+        val direct = "https://files.example/wiki/${"a".repeat(32)}.avif"
+        val historical = "https://files.example/wiki/${"c".repeat(32)}.avif"
+        val body = WikiBody(blocks = Json.readTree("""[{"w":"img","a":{"src":"$direct"}},{"w":"exTemplateInclude","a":{"exTemplateNo":"5"}}]"""))
+        val snapshot = WikiTemplateSnapshot(5, "옛 이미지 틀", imageBody(historical), 1)
+        `when`(anime.findById(11)).thenReturn(Optional.of(source))
+        `when`(revisions.findByKindAndTargetNoAndRevision("anime", 11, 2)).thenReturn(WikiRevision(kind = "anime", targetNo = 11,
+            revision = 2, title = source.subject, body = Json.write(body), templates = Json.write(listOf(snapshot))))
+        `when`(images.versionMap(setOf(direct, historical))).thenReturn(mapOf(direct to 4L, historical to 9L))
+        val result = service.revision("anime", 11, 2)
+        assertEquals(mapOf(direct to 4L, historical to 9L), result.imageVersions)
+        assertEquals(body, result.body)
+        assertEquals(listOf(snapshot), result.templates)
+        verifyNoInteractions(templates)
     }
 
     @Test
@@ -87,20 +228,38 @@ class WikiContentServiceTest {
     }
 
     @Test
-    fun `anime deletion locks the parent and removes revisions and references before the document`() {
+    fun `permanent anime deletion removes document references before archiving its attachments`() {
         allow()
         val current = AnimeWiki(11)
         `when`(documents.lockWiki(11)).thenReturn(current)
         service.deleteForAnime(11)
-        inOrder(documents, references, revisions).run {
+        inOrder(documents, references, revisions, images).run {
             verify(documents).lockAnime(11)
             verify(references).deleteAllByOwnerKindAndOwnerNo("anime", 11)
             verify(revisions).deleteAllByKindAndTargetNo("anime", 11)
             verify(documents).lockWiki(11)
             verify(documents).delete(current)
             verify(documents).flush()
+            verify(images).archiveDocument("anime", 11)
         }
-        verifyNoInteractions(templates, images)
+        verifyNoInteractions(templates)
+    }
+
+    @Test
+    fun `permanent anime deletion also archives uploads made before the first wiki save`() {
+        allow()
+
+        service.deleteForAnime(11)
+
+        verify(images).archiveDocument("anime", 11)
+        verifyNoInteractions(templates)
+    }
+
+    @Test
+    fun `missing anime deletion cannot archive another documents images`() {
+        service.deleteForAnime(11)
+
+        verifyNoInteractions(references, revisions, templates, images)
     }
 
     @Test
@@ -195,6 +354,20 @@ class WikiContentServiceTest {
         assertEquals(image.thumbnailUrl, service.selectAnimeThumbnail(11, WikiThumbnailRequest(image.id), actor).thumbnail)
         assertEquals(image.thumbnailUrl, source.thumbnail)
         assertNull(service.selectAnimeThumbnail(11, WikiThumbnailRequest(null), actor).thumbnail)
+        assertNull(source.thumbnail)
+    }
+
+    @Test
+    fun `thumbnail selection rejects an image owned by another document`() {
+        allow()
+        val image = image("a")
+        val wiki = AnimeWiki(11).apply { revision = 1; body = Json.write(imageBody(image.url!!)) }
+        `when`(documents.lockWiki(11)).thenReturn(wiki)
+        doThrow(FailException("이 문서에 속한 이미지만 사용할 수 있습니다.")).`when`(images)
+            .requireReadyUrls(setOf(image.url!!), "anime", 11)
+
+        assertThrows<FailException> { service.selectAnimeThumbnail(11, WikiThumbnailRequest(image.id), actor) }
+
         assertNull(source.thumbnail)
     }
 

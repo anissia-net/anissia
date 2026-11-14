@@ -103,6 +103,7 @@ import anissia from "../../common/anissia";
 import {ajaxStateStore} from "../../common/ajaxStateStore";
 import {decodeTheme, palette, Theme} from "./2026/palette";
 import siteTheme, {type ColorMode} from '../../common/theme';
+import {mobilePageReady, notifyMobileColorMode, registerMobileBackHandler} from '../../common/mobileBridge';
 
 const props = withDefaults(defineProps<{embedded?: boolean, themeCode?: string}>(), {embedded: false});
 
@@ -261,6 +262,7 @@ function applyColorMode(value: string | null) {
 
 function toggleMode() {
   applyColorMode(mode.value == 'light' ? 'dark' : 'light');
+  if (!props.embedded) notifyMobileColorMode(mode.value);
 }
 
 // 미리보기에서 색을 끄는 동안은 전환 효과 없이 바로 칠한다.
@@ -279,12 +281,19 @@ defineExpose({applyColorMode});
 let clock = 0;
 let readyFrame = 0;
 let resize: ResizeObserver | null = null;
+let unregisterMobileBack: (() => void) | undefined;
 
 onMounted(() => {
   getAnimeList(todayWeek.value);
   if (!props.embedded) {
     (window as any).colorMode = applyColorMode;
     (window as any).repaint = repaint;
+    unregisterMobileBack = registerMobileBackHandler(() => {
+      if (animeNow.value === null) return false;
+      animeNow.value = null;
+      return true;
+    });
+    mobilePageReady();
   }
   window.addEventListener('keydown', evtKeyClosePopup, true);
   clock = window.setInterval(() => {
@@ -299,6 +308,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  unregisterMobileBack?.();
   window.removeEventListener('keydown', evtKeyClosePopup, true);
   clearInterval(clock);
   clearTimeout(instantTimer);

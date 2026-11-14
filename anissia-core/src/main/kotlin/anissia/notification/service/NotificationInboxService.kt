@@ -16,7 +16,8 @@ class NotificationInboxService(private val jdbc: JdbcTemplate) {
     fun getInbox(actor: Actor): NotificationInbox {
         actor.validateLogin()
         val unreadCount = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM notification_inbox WHERE an = ? AND read_at IS NULL",
+            """SELECT COUNT(*) FROM notification_inbox n JOIN caption_push_event e ON e.event_key = n.event_key
+                JOIN anime a ON a.anime_no = e.anime_no AND a.deleted_at IS NULL WHERE n.an = ? AND n.read_at IS NULL""",
             Long::class.java, actor.an,
         ) ?: 0L
         val items = jdbc.query(
@@ -26,6 +27,7 @@ class NotificationInboxService(private val jdbc: JdbcTemplate) {
                 UNIX_TIMESTAMP(n.created_at) * 1000 AS created_at_ms,
                 UNIX_TIMESTAMP(n.read_at) * 1000 AS read_at_ms
                 FROM notification_inbox n JOIN caption_push_event e ON e.event_key = n.event_key
+                JOIN anime a ON a.anime_no = e.anime_no AND a.deleted_at IS NULL
                 WHERE n.an = ? ORDER BY n.id DESC LIMIT 50""",
             { rs, _ ->
                 NotificationInboxItem(

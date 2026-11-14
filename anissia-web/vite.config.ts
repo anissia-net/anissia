@@ -16,6 +16,7 @@ function immutableBundleHeaders(): Plugin {
         fileName: '_headers',
         source: files.map(file => `/${file}\n  Cache-Control: public, max-age=31536000, immutable\n`).join('\n')
           + '\n/sw.js\n  Cache-Control: no-cache\n\n/manifest.webmanifest\n  Cache-Control: no-cache\n'
+          + '\n/wiki-new.txt\n  Content-Type: text/plain; charset=utf-8\n\n/llms.txt\n  Content-Type: text/plain; charset=utf-8\n'
       });
     }
   };

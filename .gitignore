@@ -1,3 +1,14 @@
+# Build outputs and dependency caches, including nested packages
+build/
+dist/
+dist-ssr/
+coverage/
+node_modules/
+.gradle/
+.kotlin/
+.dart_tool/
+*.tsbuildinfo
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

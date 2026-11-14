@@ -145,6 +145,34 @@ class WikiImageStorageTest {
     }
 
     @Test
+    fun `replacement preserves private previous bytes and is safe to retry before database acknowledgement`() {
+        val config = properties().apply { retainOriginals = true }
+        val storage = WikiImageStorage(config)
+        storage.receive(id, byteArrayOf(1).inputStream())
+        Files.write(storage.output(id, token), byteArrayOf(2))
+        Files.write(storage.thumbnailOutput(id, token), byteArrayOf(3))
+        storage.publish(id, token, 1, 1)
+        storage.removeTemporary(id)
+        val replacement = "c".repeat(32)
+        storage.receive(replacement, byteArrayOf(4).inputStream())
+        Files.write(storage.output(replacement, token), byteArrayOf(5, 6))
+        Files.write(storage.thumbnailOutput(replacement, token), byteArrayOf(7))
+        val original = WikiImage(id, 7, WikiImageStatus.READY, "이전", "", Instant.EPOCH, Instant.EPOCH, bytes = 1, thumbnailBytes = 1)
+        val job = WikiImage(replacement, 8, WikiImageStatus.REPLACING, "새 설명", "", Instant.EPOCH, Instant.EPOCH,
+            claimToken = token, bytes = 2, thumbnailBytes = 1, submissionKind = "REPLACEMENT", replacementFor = id)
+        repeat(2) { storage.replace(job, original) }
+        assertArrayEquals(byteArrayOf(5, 6), Files.readAllBytes(storage.publicFile(id)))
+        assertArrayEquals(byteArrayOf(7), Files.readAllBytes(storage.thumbnailFile(id)))
+        assertArrayEquals(byteArrayOf(4), Files.readAllBytes(root.resolve("originals/$id.source")))
+        val backup = root.resolve("originals/replacements/$id/$replacement")
+        assertArrayEquals(byteArrayOf(2), Files.readAllBytes(backup.resolve("image.avif")))
+        assertArrayEquals(byteArrayOf(3), Files.readAllBytes(backup.resolve("thumbnail.avif")))
+        assertArrayEquals(byteArrayOf(1), Files.readAllBytes(backup.resolve("source")))
+        assertFalse(Files.exists(storage.publicFile(replacement)))
+        assertTrue(Files.exists(storage.output(replacement, token)))
+    }
+
+    @Test
     fun `request identifiers cannot escape storage roots`() {
         val storage = WikiImageStorage(properties())
         assertThrows<IllegalArgumentException> { storage.input("../../secret") }
@@ -199,5 +227,35 @@ class WikiImageStorageTest {
         assertThrows<IOException> { storage.restore(id, 2) }
         assertArrayEquals(byteArrayOf(1, 2), Files.readAllBytes(storage.archivedFile(id)))
         assertArrayEquals(byteArrayOf(3, 4), Files.readAllBytes(storage.publicFile(id)))
+    }
+
+    @Test
+    fun `attachment copies public variants and private original independently`() {
+        val storage = WikiImageStorage(properties())
+        storage.ensureDirectories()
+        Files.write(storage.publicFile(id), byteArrayOf(1, 2))
+        Files.write(storage.thumbnailFile(id), byteArrayOf(3))
+        Files.write(root.resolve("originals/$id.source"), byteArrayOf(4))
+        val target = "c".repeat(32)
+        val source = WikiImage(id, 7, WikiImageStatus.READY, "사진", "", Instant.EPOCH, Instant.EPOCH, bytes = 2, thumbnailBytes = 1)
+        storage.copy(source, target)
+        Files.write(storage.publicFile(target), byteArrayOf(9, 9))
+        assertArrayEquals(byteArrayOf(1, 2), Files.readAllBytes(storage.publicFile(id)))
+        assertArrayEquals(byteArrayOf(3), Files.readAllBytes(storage.thumbnailFile(target)))
+        assertArrayEquals(byteArrayOf(4), Files.readAllBytes(root.resolve("originals/$target.source")))
+        assertFalse(Files.exists(root.resolve("public/$target.source")))
+    }
+
+    @Test
+    fun `incomplete attachment copy removes copied output and preserves source`() {
+        val storage = WikiImageStorage(properties())
+        storage.ensureDirectories()
+        Files.write(storage.publicFile(id), byteArrayOf(1, 2))
+        val target = "c".repeat(32)
+        val source = WikiImage(id, 7, WikiImageStatus.READY, "사진", "", Instant.EPOCH, Instant.EPOCH, bytes = 2, thumbnailBytes = 1)
+        assertThrows<IOException> { storage.copy(source, target) }
+        assertFalse(Files.exists(storage.publicFile(target)))
+        assertFalse(Files.exists(storage.thumbnailFile(target)))
+        assertArrayEquals(byteArrayOf(1, 2), Files.readAllBytes(storage.publicFile(id)))
     }
 }

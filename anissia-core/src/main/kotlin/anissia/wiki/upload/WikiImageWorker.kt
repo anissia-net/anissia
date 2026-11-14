@@ -39,6 +39,7 @@ class WikiImageWorker(
             executor.submit {
                 try {
                     storage.ensureDirectories()
+                    repository.pendingPublications().forEach(::publishPrepared)
                     repository.claim(properties.timeoutSeconds * 2 + 60)?.let(::process)
                     val now = Instant.now()
                     if (lastCleanup.plus(1, ChronoUnit.HOURS).isBefore(now)) {
@@ -61,11 +62,11 @@ class WikiImageWorker(
         val token = requireNotNull(job.claimToken)
         try {
             val owner = job.ownerAn?.let(accounts::findWithRolesByAn) ?: throw FailException("ACCOUNT_UNAVAILABLE")
-            access.requireContributor(Actor.of(owner, ""))
+            authorize(job, Actor.of(owner, ""))
             if (!Files.isRegularFile(storage.input(job.id), NOFOLLOW_LINKS)) throw IOException("missing private upload")
             val result = converter.convert(storage.input(job.id), storage.output(job.id, token))
             val thumbnail = converter.convertThumbnail(storage.input(job.id), storage.thumbnailOutput(job.id, token))
-            access.requireContributor(Actor(an = owner.an))
+            authorize(job, Actor(an = owner.an))
             val completed = repository.complete(job.id, token, result, thumbnail.bytes) {
                 storage.publish(job.id, token, result.bytes, thumbnail.bytes)
             }
@@ -87,6 +88,33 @@ class WikiImageWorker(
                 if (current == null || current.status == WikiImageStatus.FAILED) storage.removeUnpublished(job.id)
                 if (current == null || current.status == WikiImageStatus.FAILED || current.status == WikiImageStatus.READY) storage.removeTemporary(job.id)
             }.onFailure { log.warn("wiki image cleanup deferred: {}", job.id, it) }
+        }
+    }
+
+    private fun authorize(job: WikiImage, actor: Actor) {
+        when (job.submissionKind) {
+            "DIRECT" -> access.requireImageUpload(actor)
+            "REQUEST" -> access.requireImageUploadRequest(actor)
+            "REPLACEMENT" -> access.requireImageFileReplacement(actor)
+            else -> throw FailException("ACCOUNT_UNAVAILABLE")
+        }
+    }
+
+    internal fun publishPrepared(job: WikiImage) {
+        try {
+            repository.publishPrepared(job.id) { current, target ->
+                if (target == null) storage.publish(current.id, requireNotNull(current.claimToken), requireNotNull(current.bytes), requireNotNull(current.thumbnailBytes))
+                else storage.replace(current, target)
+            }
+        } catch (e: Exception) {
+            log.warn("wiki prepared image publication deferred: {}", job.id, e)
+            runCatching { repository.fileOperationFailed(job.id) }
+        } finally {
+            runCatching {
+                val status = repository.find(job.id)?.status
+                if (status == WikiImageStatus.FAILED) storage.removeUnpublished(job.id)
+                if (status in setOf(WikiImageStatus.READY, WikiImageStatus.REPLACED, WikiImageStatus.FAILED)) storage.removeTemporary(job.id)
+            }.onFailure { log.warn("wiki prepared image cleanup deferred: {}", job.id, it) }
         }
     }
 

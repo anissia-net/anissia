@@ -35,8 +35,8 @@ class WikiImageServiceTest {
     private fun record(status: WikiImageStatus) = WikiImage(id, actor.an, status, "설명", "", Instant.EPOCH, Instant.EPOCH)
 
     @Test
-    fun `age and ban checks happen before receiving bytes or creating jobs`() {
-        `when`(access.requireContributor(actor)).thenThrow(FailException("가입 후 15일"))
+    fun `operator policy is checked before receiving bytes or creating jobs`() {
+        `when`(access.requireImageUpload(actor)).thenThrow(FailException("이미지 업로드 권한 없음"))
         assertThrows<FailException> {
             service.upload(MockMultipartFile("file", byteArrayOf(1)), "", "", actor)
         }
@@ -66,13 +66,13 @@ class WikiImageServiceTest {
     @Test
     fun `only exact published image urls can be referenced`() {
         `when`(storage.publicUrl(id)).thenReturn(url)
-        `when`(repository.lock(id)).thenReturn(record(WikiImageStatus.READY))
-        service.requireReadyUrls(setOf(url))
+        `when`(repository.lock(id)).thenReturn(record(WikiImageStatus.READY).copy(documentKind = "anime", documentNo = 11))
+        service.requireReadyUrls(setOf(url), "anime", 11)
         for (invalid in listOf("https://evil.example/wiki/$id.avif", "$url?x=1", "${properties.publicBaseUrl}/wiki/../$id.avif")) {
-            assertThrows<FailException> { service.requireReadyUrls(setOf(invalid)) }
+            assertThrows<FailException> { service.requireReadyUrls(setOf(invalid), "anime", 11) }
         }
         `when`(repository.lock(id)).thenReturn(record(WikiImageStatus.PROCESSING))
-        assertThrows<FailException> { service.requireReadyUrls(setOf(url)) }
+        assertThrows<FailException> { service.requireReadyUrls(setOf(url), "anime", 11) }
     }
 
     @Test
@@ -81,11 +81,11 @@ class WikiImageServiceTest {
         assertTrue(WikiImageService.validSource(""))
         assertFalse(WikiImageService.validSource("javascript:alert(1)"))
         assertFalse(WikiImageService.validSource("https://user:password@example.com/image"))
-        `when`(access.requireContributor(actor)).thenReturn(Account(an = actor.an))
+        `when`(access.requireImageUpload(actor)).thenReturn(Account(an = actor.an))
         assertThrows<IllegalArgumentException> {
             service.upload(MockMultipartFile("file", byteArrayOf(1)), "a".repeat(501), "", actor)
         }
-        verifyNoInteractions(repository, storage)
+        verifyNoInteractions(storage)
     }
 
     @Test
@@ -153,5 +153,86 @@ class WikiImageServiceTest {
         `when`(repository.find(id)).thenReturn(record(WikiImageStatus.READY))
         `when`(repository.find(second)).thenReturn(record(WikiImageStatus.DELETED).copy(id = second, thumbnailBytes = 12))
         assertTrue(service.thumbnailCandidates(listOf(secondUrl, url)).isEmpty())
+    }
+
+    @Test
+    fun `document image references reject another owner and ownerless legacy images`() {
+        `when`(storage.publicUrl(id)).thenReturn(url)
+        for (image in listOf(record(WikiImageStatus.READY),
+            record(WikiImageStatus.READY).copy(documentKind = "anime", documentNo = 12),
+            record(WikiImageStatus.READY).copy(documentKind = "template", documentNo = 11))) {
+            `when`(repository.lock(id)).thenReturn(image)
+            assertThrows<FailException> { service.requireReadyUrls(setOf(url), "anime", 11) }
+        }
+        assertThrows<FailException> { service.requireReadyUrls(setOf(url)) }
+        service.requireReadyUrls(emptySet())
+    }
+
+    @Test
+    fun `archive list requires operator while document list is limited to its owner`() {
+        `when`(access.requireOperator(actor)).thenThrow(FailException("운영자만 가능"))
+        assertThrows<FailException> { service.list(0, "", actor = actor) }
+        verifyNoInteractions(repository)
+        `when`(repository.list(0, "사진", false, "anime", 11)).thenReturn(emptyList<WikiImage>() to 0L)
+        assertTrue(service.list(0, "사진", actor = actor, documentKind = "anime", documentNo = 11).content.isEmpty())
+        verify(repository).requireDocument("anime", 11)
+        verify(repository).list(0, "사진", false, "anime", 11)
+    }
+
+    @Test
+    fun `deleted upload target fails before consuming file bytes`() {
+        `when`(access.requireImageUpload(actor)).thenReturn(Account(an = actor.an))
+        org.mockito.Mockito.doThrow(ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND))
+            .`when`(repository).requireDocument("anime", 11, true)
+        assertThrows<ResponseStatusException> { service.upload(MockMultipartFile("file", byteArrayOf(1)), "", "", actor, "anime", 11) }
+        verifyNoInteractions(storage)
+    }
+
+    @Test
+    fun `request approval checks target before publishing the request`() {
+        val request = record(WikiImageStatus.REVIEW_READY).copy(submissionKind = "REQUEST", documentKind = "template", documentNo = 11)
+        `when`(repository.find(id)).thenReturn(request)
+        `when`(access.requireOperator(actor)).thenReturn(Account(an = actor.an))
+        org.mockito.Mockito.doThrow(ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND))
+            .`when`(repository).requireDocument("template", 11, true)
+        assertThrows<ResponseStatusException> { service.approveRequest(id, actor) }
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).approveRequest(id)
+        verifyNoInteractions(storage)
+    }
+
+    @Test
+    fun `reattaching archive image returns existing independent copy without copying again`() {
+        val original = record(WikiImageStatus.READY)
+        val attached = original.copy(id = "b".repeat(32), documentKind = "anime", documentNo = 11, sourceImageId = id)
+        `when`(access.requireImageUpload(actor)).thenReturn(Account(an = actor.an))
+        `when`(repository.find(id)).thenReturn(original)
+        `when`(repository.lock(id)).thenReturn(original)
+        `when`(repository.attachedCopy(id, "anime", 11)).thenReturn(attached)
+        val result = service.attach(id, WikiImageAttachRequest("anime", 11), actor)
+        assertEquals(attached.id, result.id)
+        assertEquals("anime", result.documentKind)
+        assertEquals(11L, result.documentNo)
+        assertEquals(id, result.sourceImageId)
+        verify(storage).publicUrl(attached.id)
+        org.mockito.Mockito.verifyNoMoreInteractions(storage)
+        verifyNoInteractions(logs)
+        inOrder(repository).run {
+            verify(repository).requireDocument("anime", 11, true)
+            verify(repository).find(id)
+            verify(repository).lock(id)
+        }
+    }
+
+    @Test
+    fun `upload request and replacement enforce separate file capabilities before accessing files`() {
+        `when`(access.requireImageUploadRequest(actor)).thenThrow(FailException("파일 업로드 요청 권한 없음"))
+        `when`(access.requireImageFileReplacement(actor)).thenThrow(FailException("파일 교체 권한 없음"))
+        val file = MockMultipartFile("file", byteArrayOf(1))
+        assertThrows<FailException> { service.receiveRequest(file, "설명", "https://example.com", actor, "anime", 11) }
+        assertThrows<FailException> { service.replace(id, file, 1, "설명", "https://example.com", actor) }
+        verify(access).requireImageUploadRequest(actor)
+        verify(access).requireImageFileReplacement(actor)
+        org.mockito.Mockito.verify(access, org.mockito.Mockito.never()).requireContributor(actor)
+        verifyNoInteractions(repository, storage)
     }
 }

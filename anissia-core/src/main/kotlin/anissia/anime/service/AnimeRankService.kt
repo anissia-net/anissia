@@ -4,6 +4,7 @@ import anissia.anime.api.dto.AnimeRankItem
 import anissia.anime.domain.AnimeHit
 import anissia.anime.repository.AnimeHitHourRepository
 import anissia.anime.repository.AnimeHitRepository
+import anissia.anime.repository.AnimeRepository
 import anissia.anime.repository.jooq.AnimeHitQueryRepository
 import anissia.security.Actor
 import anissia.store.domain.Store
@@ -26,17 +27,21 @@ class AnimeRankService(
     private val animeHitRepository: AnimeHitRepository,
     private val animeHitHourRepository: AnimeHitHourRepository,
     private val animeHitQueryRepository: AnimeHitQueryRepository,
+    private val animeRepository: AnimeRepository,
 ) {
     private val cache = ttlCache<String, List<Map<*, *>>>(5.minutes)
 
     @Transactional(readOnly = true)
-    fun get(type: String): List<Map<*, *>> = cache.getOrLoad(type) {
-        when (it) {
-            "week", "quarter", "year" ->
-                Json.read(storeRepository.findByIdOrNull("rank.$it")?.data ?: "[]")
-
-            else -> listOf()
+    fun get(type: String): List<Map<*, *>> {
+        val ranked = cache.getOrLoad(type) {
+            when (it) {
+                "week", "quarter", "year" -> Json.read(storeRepository.findByIdOrNull("rank.$it")?.data ?: "[]")
+                else -> listOf()
+            }
         }
+        if (ranked.isEmpty()) return ranked
+        val visible = animeRepository.findVisibleAnimeNos(ranked.mapNotNull { (it["animeNo"] as? Number)?.toLong() }).toSet()
+        return ranked.filter { (it["animeNo"] as? Number)?.toLong() in visible }
     }
 
     @Async

@@ -13,6 +13,10 @@
 
     <div class="relative mt-6">
 
+      <p v-if="state === 'delist'" class="text-sm text-ink-3 mb-4">
+        삭제한 작품은 공개 화면에서 숨겨지며 30일 뒤 영구 삭제됩니다. 영구 삭제 전에는 위키와 이력을 포함해 복원할 수 있습니다.
+      </p>
+
       <div v-if="state == 'list'" class="as-input-with-icon">
         <as-icon name="search"/>
         <input type="text" id="default-search" autocomplete="off" class="py-3 pr-24 as-input-text" aria-label="애니메이션 검색" placeholder="애니메이션 검색 : 검색어 #장르 @제작자 /완결"  v-model="query" @click="autocorrectOn = true" @keydown="keyAutocorrect" @compositionstart="clearAutocorrect" @input="loadAutocorrect">
@@ -48,6 +52,7 @@
                 <input type="button" value="복원" @click="doRecover(node)" class="as-input-btn float-right py-1.5 text-xs!" />
                 <div class="text-md font-semibold text-ink">{{node.subject}}</div>
                 <div class="text-xs mt-1.5 text-ink-3" lang="ja" v-if="node.originalSubject">{{node.originalSubject}}</div>
+                <div v-if="node.purgeAfter" class="text-xs mt-2 text-ink-3">{{deletionDate(node.purgeAfter)}} 이후 영구 삭제 예정</div>
               </div>
             </div>
             <div class="mt-auto pt-4 flex flex-wrap gap-1.5">
@@ -155,8 +160,10 @@ function loadList() {
       });
     });
   } else if (state.value === 'delist') {
-    animeRemote.getAdminAnimeDelist().then(pageData => {
-      if (request === listRequest) list.value = pageData;
+    animeRemote.getAdminAnimeDelist(page.value).then(pageData => {
+      if (request !== listRequest) return;
+      list.value = isFirstPage ? pageData : list.value.merge(pageData);
+      nextTick(() => { if (request === listRequest) sl.watch(pageData.next); });
     });
   }
 }
@@ -242,6 +249,10 @@ function doRecover(anime: Anime) {
       }
     });
   }
+}
+
+function deletionDate(value: string) {
+  return new Date(value).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short'});
 }
 
 clear(new Locate());

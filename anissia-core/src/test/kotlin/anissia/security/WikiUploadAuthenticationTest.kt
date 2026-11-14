@@ -39,9 +39,9 @@ class WikiUploadAuthenticationTest {
 
     @AfterEach fun stop() { context.close() }
 
-    private fun request(method: String, token: String? = null): Pair<MockHttpServletResponse, Boolean> {
-        val request = MockHttpServletRequest(method, "/wiki/images").apply {
-            servletPath = "/wiki/images"
+    private fun request(method: String, token: String? = null, path: String = "/wiki/images"): Pair<MockHttpServletResponse, Boolean> {
+        val request = MockHttpServletRequest(method, path).apply {
+            servletPath = path
             contentType = "multipart/form-data; boundary=broken"
             setContent("invalid multipart body".toByteArray())
             if (token != null) addHeader("dat", token)
@@ -54,8 +54,8 @@ class WikiUploadAuthenticationTest {
 
     @Test
     fun `anonymous and invalid sessions are rejected before multipart processing`() {
-        for (token in listOf(null, "invalid")) {
-            val (response, reached) = request("POST", token)
+        for ((method, path) in listOf("POST" to "/wiki/images", "POST" to "/wiki/requests/images", "POST" to "/wiki/images/abc/attach", "PUT" to "/wiki/images/abc/file")) for (token in listOf(null, "invalid")) {
+            val (response, reached) = request(method, token, path)
             assertEquals(401, response.status)
             assertFalse(reached)
             assertTrue(response.contentAsString.contains("로그인이 필요합니다."))

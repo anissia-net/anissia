@@ -12,18 +12,18 @@ import java.time.OffsetDateTime
 interface AnimeCaptionRepository : JpaRepository<AnimeCaption, AnimeCaption.Key> {
 
     @EntityGraph(attributePaths = ["account"])
-    @Query("SELECT a FROM AnimeCaption a WHERE a.anime.animeNo = :animeNo ORDER BY a.updDt DESC")
+    @Query("SELECT a FROM AnimeCaption a WHERE a.anime.animeNo = :animeNo AND a.anime.deletedAt IS NULL ORDER BY a.updDt DESC")
     fun findAllWithAccountByAnimeNo(animeNo: Long): List<AnimeCaption>
 
     @EntityGraph(attributePaths = ["anime"])
     @Query(
-        "SELECT a FROM AnimeCaption a JOIN a.anime b WHERE a.an = :an AND b.status <> anissia.anime.domain.AnimeStatus.END ORDER BY a.updDt DESC",
+        "SELECT a FROM AnimeCaption a JOIN a.anime b WHERE a.an = :an AND b.deletedAt IS NULL AND b.status <> anissia.anime.domain.AnimeStatus.END ORDER BY a.updDt DESC",
     )
     fun findAllActiveWithAnimeByAn(an: Long, pageable: Pageable): Page<AnimeCaption>
 
     @EntityGraph(attributePaths = ["anime"])
     @Query(
-        "SELECT a FROM AnimeCaption a JOIN a.anime b WHERE a.an = :an AND b.status = anissia.anime.domain.AnimeStatus.END ORDER BY a.updDt DESC",
+        "SELECT a FROM AnimeCaption a JOIN a.anime b WHERE a.an = :an AND b.deletedAt IS NULL AND b.status = anissia.anime.domain.AnimeStatus.END ORDER BY a.updDt DESC",
     )
     fun findAllEndedWithAnimeByAn(an: Long, pageable: Pageable): Page<AnimeCaption>
 
@@ -41,6 +41,7 @@ interface AnimeCaptionRepository : JpaRepository<AnimeCaption, AnimeCaption.Key>
     fun deleteAllByAn(an: Long): Int
 
     @EntityGraph(attributePaths = ["account", "anime"])
+    @Query("SELECT a FROM AnimeCaption a WHERE a.updDt > :updDt AND a.website <> :website AND a.anime.deletedAt IS NULL ORDER BY a.updDt DESC")
     fun findAllByUpdDtAfterAndWebsiteNotOrderByUpdDtDesc(
         pageable: Pageable,
         updDt: OffsetDateTime = OffsetDateTime.now().minusDays(90),

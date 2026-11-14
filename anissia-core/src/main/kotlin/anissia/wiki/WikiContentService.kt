@@ -33,6 +33,7 @@ data class WikiDocument(
     val templates: List<WikiTemplateSnapshot> = emptyList(),
     val deleted: Boolean = false,
     val renderWarning: String? = null,
+    val imageVersions: Map<String, Long> = emptyMap(),
 )
 data class WikiEditRequest(val baseRevision: Long = -1, val body: WikiBody = WikiBody(), val summary: String = "", val title: String = "")
 data class WikiRestoreRequest(val baseRevision: Long = -1, val summary: String = "")
@@ -59,7 +60,7 @@ class WikiContentService(
 ) {
     @Transactional(readOnly = true)
     fun animeDocument(animeNo: Long): WikiDocument {
-        val source = anime.findByIdOrNull(animeNo) ?: missing()
+        val source = anime.findByIdOrNull(animeNo)?.takeIf { it.deletedAt == null } ?: missing()
         val wiki = documents.findByIdOrNull(animeNo)
             ?: return WikiDocument(animeNo = animeNo, title = source.subject, body = WikiBody.empty(), revision = 0)
         return document("anime", animeNo, source.subject, wiki)
@@ -68,7 +69,7 @@ class WikiContentService(
     @Transactional(isolation = Isolation.READ_COMMITTED)
     fun editAnime(animeNo: Long, request: WikiEditRequest, actor: Actor): WikiDocument {
         val account = access.requireContributor(actor)
-        val source = documents.lockAnime(animeNo) ?: missing()
+        val source = documents.lockAnime(animeNo)?.takeIf { it.deletedAt == null } ?: missing()
         val wiki = documents.lockWiki(animeNo) ?: AnimeWiki(animeNo)
         checkRevision(request.baseRevision, wiki.revision)
         val snapshots = save("anime", animeNo, source.subject, wiki, request.body, request.summary, account)
@@ -82,7 +83,7 @@ class WikiContentService(
     @Transactional(readOnly = true)
     fun animeImages(animeNo: Long, actor: Actor): WikiAnimeImages {
         access.requireOperator(actor)
-        val source = anime.findByIdOrNull(animeNo) ?: missing()
+        val source = anime.findByIdOrNull(animeNo)?.takeIf { it.deletedAt == null } ?: missing()
         val wiki = documents.findByIdOrNull(animeNo)
             ?: return WikiAnimeImages(source.thumbnail, emptyList())
         val document = document("anime", animeNo, source.subject, wiki)
@@ -92,12 +93,13 @@ class WikiContentService(
     @Transactional(isolation = Isolation.READ_COMMITTED)
     fun selectAnimeThumbnail(animeNo: Long, request: WikiThumbnailRequest, actor: Actor): WikiAnimeImages {
         access.requireOperator(actor)
-        val source = documents.lockAnime(animeNo) ?: missing()
+        val source = documents.lockAnime(animeNo)?.takeIf { it.deletedAt == null } ?: missing()
         val wiki = documents.lockWiki(animeNo)
         val candidates = if (wiki == null) emptyList() else {
             val body = Json.read<WikiBody>(wiki.body)
             WikiBodyValidator.analyze(body).templates.sorted().forEach { templates.lockTemplate(it) }
             val document = document("anime", animeNo, source.subject, wiki)
+            requireDocumentImages("anime", animeNo, document.body, document.templates)
             imageCandidates(document.body, document.templates, lock = true)
         }
         source.thumbnail = request.imageId?.let { id ->
@@ -117,6 +119,7 @@ class WikiContentService(
         revisions.deleteAllByKindAndTargetNo("anime", animeNo)
         documents.lockWiki(animeNo)?.let { documents.delete(it) }
         documents.flush()
+        images.archiveDocument("anime", animeNo)
     }
 
     @Transactional(readOnly = true)
@@ -139,8 +142,11 @@ class WikiContentService(
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     fun createTemplate(request: WikiEditRequest, actor: Actor): WikiDocument {
-        val account = access.requireContributor(actor)
+        val account = access.requireOperator(actor)
         val title = title(request.title)
+        if (WikiBodyValidator.analyze(request.body, template = true).images.isNotEmpty()) {
+            throw FailException("템플릿을 등록한 뒤 해당 문서에서 이미지를 추가해 주세요.")
+        }
         if (templates.existsByTitleAndTemplateNoNot(title, 0)) throw FailException("같은 이름의 템플릿이 있습니다.")
         val template = try {
             templates.saveAndFlush(WikiTemplate(title = title))
@@ -216,11 +222,13 @@ class WikiContentService(
     fun revision(kind: String, targetNo: Long, revision: Long, actor: Actor = Actor()): WikiDocument {
         val currentTitle = targetTitle(kind, targetNo, actor)
         val entry = revisions.findByKindAndTargetNoAndRevision(kind, targetNo, revision) ?: missing()
+        val body = Json.read<WikiBody>(entry.body)
+        val snapshots = Json.read<List<WikiTemplateSnapshot>>(entry.templates)
         return WikiDocument(
             animeNo = targetNo.takeIf { kind == "anime" }, templateNo = targetNo.takeIf { kind == "template" },
             title = if (kind == "anime") currentTitle else entry.title,
-            body = Json.read(entry.body), revision = entry.revision, updatedAt = entry.updatedAt, updatedBy = entry.updatedBy,
-            templates = Json.read(entry.templates),
+            body = body, revision = entry.revision, updatedAt = entry.updatedAt, updatedBy = entry.updatedBy,
+            templates = snapshots, imageVersions = imageVersions(body, snapshots),
         )
     }
 
@@ -237,7 +245,7 @@ class WikiContentService(
     }
 
     private fun targetTitle(kind: String, id: Long, actor: Actor): String = when (kind) {
-        "anime" -> anime.findByIdOrNull(id)?.subject ?: missing()
+        "anime" -> anime.findByIdOrNull(id)?.takeIf { it.deletedAt == null }?.subject ?: missing()
         "template" -> visibleTemplate(id, actor).title
         else -> missing()
     }
@@ -262,7 +270,7 @@ class WikiContentService(
                 if (expandedBytes > 4L * 1024 * 1024) throw FailException("템플릿을 포함한 위키 본문은 4MB 이내로 작성해 주세요.")
             }
         }
-        images.requireReadyUrls(WikiBodyValidator.imageUrls(body, snapshots.associate { it.templateNo to it.body }).toSet())
+        requireDocumentImages(kind, id, body, snapshots)
         if (state.revision > 0 && state.body == json && kind == "anime") throw FailException("변경사항이 없습니다.")
         state.body = json
         state.revision++
@@ -276,6 +284,13 @@ class WikiContentService(
             refs.images.map { WikiReference(ownerKind = kind, ownerNo = id, targetKind = "image", targetId = it) })
         events.publishEvent(SearchChangedEvent(if (kind == "anime") SearchKind.ANIME else SearchKind.TEMPLATE, id))
         return snapshots
+    }
+
+    private fun requireDocumentImages(kind: String, id: Long, body: WikiBody, snapshots: List<WikiTemplateSnapshot>) {
+        images.requireReadyUrls(WikiBodyValidator.imageUrls(body).toSet(), kind, id)
+        snapshots.forEach { snapshot ->
+            images.requireReadyUrls(WikiBodyValidator.imageUrls(snapshot.body).toSet(), "template", snapshot.templateNo)
+        }
     }
 
     private fun document(kind: String, id: Long, title: String, state: WikiState): WikiDocument {
@@ -296,7 +311,13 @@ class WikiContentService(
                 }
             }
         return WikiDocument(id.takeIf { kind == "anime" }, id.takeIf { kind == "template" }, title, body,
-            state.revision, state.updatedAt, state.updatedBy, snapshots, (state as? WikiTemplate)?.deleted == true, warning)
+            state.revision, state.updatedAt, state.updatedBy, snapshots, (state as? WikiTemplate)?.deleted == true, warning,
+            imageVersions(body, snapshots))
+    }
+
+    private fun imageVersions(body: WikiBody, snapshots: List<WikiTemplateSnapshot>): Map<String, Long> {
+        val urls = WikiBodyValidator.imageUrls(body, snapshots.associate { it.templateNo to it.body }).toSet()
+        return if (urls.isEmpty()) emptyMap() else images.versionMap(urls)
     }
 
     private fun title(raw: String): String = raw.trim().also {

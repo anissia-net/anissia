@@ -2,7 +2,7 @@ package anissia.wiki.upload
 
 import java.time.Instant
 
-enum class WikiImageStatus { WAITING, PROCESSING, READY, FAILED, DELETING, DELETED, RESTORING }
+enum class WikiImageStatus { WAITING, PROCESSING, REVIEW_READY, APPROVING, REPLACING, REPLACED, READY, FAILED, DELETING, DELETED, RESTORING }
 
 data class WikiImage(
     val id: String,
@@ -23,6 +23,14 @@ data class WikiImage(
     val revision: Long = 1,
     val updatedBy: String = "",
     val thumbnailBytes: Long? = null,
+    val submissionKind: String = "DIRECT",
+    val replacementFor: String? = null,
+    val baseRevision: Long? = null,
+    val replacementPending: Boolean = false,
+    val replacementError: String? = null,
+    val documentKind: String? = null,
+    val documentNo: Long? = null,
+    val sourceImageId: String? = null,
 )
 
 data class WikiImageDto(
@@ -42,7 +50,14 @@ data class WikiImageDto(
     val updatedAt: Instant = createdAt,
     val updatedBy: String = "",
     val thumbnailUrl: String? = null,
+    val replacementPending: Boolean = false,
+    val replacementError: String? = null,
+    val documentKind: String? = null,
+    val documentNo: Long? = null,
+    val sourceImageId: String? = null,
 )
+
+data class WikiImageAttachRequest(val documentKind: String = "", val documentNo: Long = 0)
 
 data class WikiImageEditRequest(val baseRevision: Long = -1, val description: String = "", val sourceUrl: String = "")
 data class WikiImageOperationRequest(val baseRevision: Long = -1)

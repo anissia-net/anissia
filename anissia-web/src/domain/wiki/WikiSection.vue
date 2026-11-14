@@ -11,29 +11,45 @@
     <p v-if="loading" :class="embedded ? 'wiki-inline-state' : 'as-empty'" role="status">위키를 불러오는 중입니다.</p>
     <div v-else-if="loadError" :class="embedded ? 'wiki-inline-error' : 'as-box p-5'"><p class="text-sm text-red-600" role="alert">{{loadError}}</p><div class="flex gap-3 mt-2 text-sm"><button class="as-link" type="button" @click="load">다시 시도</button><router-link v-if="!newTemplate" class="as-link" :to="historyLocation">변경 이력</router-link></div></div>
     <template v-else-if="item">
-      <p v-if="!embedded && !access?.canContribute" class="as-desc mb-4">{{access?.message}}</p>
+      <p v-if="!embedded && !canModify" class="as-desc mb-4">{{newTemplate && access?.canContribute ? '새 템플릿은 운영진이 등록할 수 있습니다.' : access?.message}}</p>
+      <router-link v-if="newTemplate && access?.canContribute && !access.isOperator" to="/wiki/requests/new?kind=TEMPLATE_CREATE" class="as-btn-primary py-2 inline-block">템플릿 등록 요청</router-link>
       <router-link v-if="newTemplate && access && !session.user.isLogin" to="/login?path=%2Fwiki%2Ftemplates%3Fnew%3D1" class="as-input-btn inline-block py-2">로그인</router-link>
       <div v-if="item.deleted" class="as-box p-4 mb-4 flex flex-wrap items-center justify-between gap-3"><p class="as-desc">삭제된 템플릿입니다. 운영자만 이 내용과 이력을 볼 수 있습니다.</p><button v-if="access?.isOperator" type="button" class="as-btn-primary py-2" :disabled="saving" @click="recover">템플릿 복구</button></div>
-      <div v-if="availableDraft && !editing && !item.deleted && access?.canContribute" class="as-box p-4 mb-4 flex flex-wrap items-center gap-3 text-sm"><span>이 탭에 저장한 초안이 있습니다. {{wikiDate(availableDraft.savedAt)}}</span><button type="button" class="as-link" @click="resumeDraft">이어서 작성</button><button type="button" class="as-link" @click="discardDraft">초안 버리기</button></div>
+      <div v-if="availableDraft && !editing && !item.deleted && canModify" class="as-box p-4 mb-4 flex flex-wrap items-center gap-3 text-sm"><span>이 탭에 저장한 초안이 있습니다. {{wikiDate(availableDraft.savedAt)}}</span><button type="button" class="as-link" @click="resumeDraft">이어서 작성</button><button type="button" class="as-link" @click="discardDraft">초안 버리기</button></div>
       <form v-if="editing" data-save-scope="page" @submit.prevent="save" class="space-y-3">
         <fieldset :disabled="saving" :inert="saving || !!conflict" class="space-y-3">
           <label v-if="isTemplate" class="block"><span class="as-meta">템플릿 이름</span><input v-model="title" maxlength="100" class="as-input-text px-3 py-2 w-full mt-1" required/></label>
-          <WikiEditor :key="editorVersion" ref="editor" v-model="body" v-model:templates="templates" :saved-body="baseline?.body" :additional-dirty="title !== baseline?.title || !!summary.trim()" :allow-templates="!isTemplate"/>
+          <WikiEditor :key="editorVersion" ref="editor" v-model="body" v-model:templates="templates" :saved-body="baseline?.body" :additional-dirty="title !== baseline?.title || !!summary.trim()" :allow-templates="!isTemplate" :image-owner="imageOwner"/>
           <label class="block"><span class="as-meta">수정 요약</span><input v-model="summary" class="as-input-text px-3 py-2 w-full mt-1" maxlength="300" placeholder="변경 내역"/></label>
           <div class="flex flex-wrap justify-end gap-2"><button type="button" class="as-input-btn py-2" @click="cancelEdit">취소</button><button type="submit" data-save-button class="as-btn-primary py-2">{{saving ? '저장 중…' : '저장'}}</button></div>
         </fieldset>
         <p v-if="draftStatus" class="as-meta" role="status">{{draftStatus}}</p>
         <p v-if="saveError" class="text-sm text-red-600 whitespace-pre-line" role="alert">{{saveError}}</p>
       </form>
-      <template v-else-if="!newTemplate || access?.canContribute">
+      <template v-else-if="!newTemplate || canModify">
         <p v-if="item.renderWarning" class="as-desc mb-3" role="status">{{item.renderWarning}}</p>
-        <div v-if="item.revision > 0" :class="embedded ? 'wiki-content' : 'as-post overflow-hidden'"><WikiBodyView :body="item.body" :templates="item.templates"/></div>
-        <div v-else-if="embedded" class="wiki-empty">
-          <span class="wiki-empty-icon"><as-icon name="pen"/></span>
-          <p>아직 작성된 위키가 없습니다.</p>
+        <div v-if="item.revision > 0 && !showAgentHelp" :class="embedded ? 'wiki-content' : 'as-post overflow-hidden'"><WikiBodyView :body="item.body" :templates="item.templates" :image-versions="item.imageVersions"/></div>
+        <div v-else :class="embedded ? 'wiki-empty' : 'as-box p-6 as-desc'">
+          <span v-if="embedded" class="wiki-empty-icon" aria-hidden="true"><as-icon name="pen"/></span>
+          <div class="wiki-empty-content">
+            <details v-if="showAgentHelp" :key="path" class="wiki-agent-help">
+              <summary>아직 작성된 위키가 없습니다.</summary>
+              <p class="wiki-agent-intro">AI 에이전트를 통해 위키를 작성할 수 있습니다.</p>
+              <ol class="wiki-agent-steps">
+                <li><router-link :to="{path: '/login', query: {path: `/anime/${animeNo}`}}" class="as-link">로그인</router-link>을 해주세요.</li>
+                <li>아래 예문을 AI 에이전트에서 실행해보세요.</li>
+              </ol>
+              <blockquote class="wiki-agent-prompt">{{agentPrompt}}</blockquote>
+              <div class="flex flex-wrap items-center gap-3 mt-3">
+                <button type="button" class="as-input-btn py-2" @click="copyAgentPrompt">예문 복사</button>
+                <a :href="agentRulesUrl" class="as-link" target="_blank" rel="noopener">작성 규칙 보기</a>
+              </div>
+              <p class="as-meta mt-3">일반 회원은 가입 후 15일이 지나면 위키에 참여할 수 있습니다. 새 이미지·템플릿 등록은 권한에 따라 운영진 승인이 필요합니다.</p>
+            </details>
+            <p v-else>아직 작성된 위키가 없습니다.</p>
+          </div>
         </div>
-        <div v-else class="as-box p-6 as-desc">아직 작성된 위키가 없습니다.</div>
-        <div v-if="!embedded && item.updatedAt" class="flex flex-wrap justify-between items-center gap-3 mt-3 as-meta"><span>{{wikiDate(item.updatedAt)}}<template v-if="item.updatedBy"> · {{item.updatedBy}}</template> · {{item.revision}}판</span><button v-if="isTemplate && access?.isOperator && item.revision > 0 && !item.deleted" type="button" class="as-link" :disabled="saving" @click="removeTemplate">템플릿 삭제</button></div>
+        <div v-if="!embedded && item.updatedAt" class="flex flex-wrap justify-between items-center gap-3 mt-3 as-meta"><span>{{wikiDate(item.updatedAt)}}<template v-if="item.updatedBy"> · {{item.updatedBy}}</template> · {{item.revision}}판</span><button v-if="isTemplate && access?.isOperator && item.revision > 0 && !item.deleted" type="button" class="as-link" :disabled="saving" @click="removeTemplate">템플릿 삭제</button><router-link v-else-if="isTemplate && access?.canContribute && item.revision > 0 && !item.deleted" :to="{path: '/wiki/requests/new', query: {kind: 'TEMPLATE_DELETE', templateNo: item.templateNo}}" class="as-link">템플릿 삭제 요청</router-link></div>
         <WikiUsageList v-if="isTemplate && !newTemplate && !item.deleted" :key="item.revision" :endpoint="`${path}/usage`"/>
         <p v-if="saveError" class="text-sm text-red-600 mt-3" role="alert">{{saveError}}</p>
       </template>
@@ -53,19 +69,26 @@ import WikiMerge from './WikiMerge.vue';
 import WikiUsageList from './WikiUsageList.vue';
 import {wikiRemote, WikiError, wikiDate, wikiErrorMessage, wikiHistoryLocation, type WikiAccess, type WikiDocument, type WikiBody, type WikiTemplate} from './wikiRemote';
 import {readWikiDraft, removeWikiDraft, wikiDraftKey, writeWikiDraft, type WikiDraft} from './wikiDraft';
+import {isWikiBodyEmpty} from './wikiBodyEmpty';
+import {wikiImageOwner} from './wikiImageOwner';
 
 const props = defineProps<{animeNo?: number; templateNo?: number; newTemplate?: boolean; embedded?: boolean; editOnOpen?: boolean}>();
 const emit = defineEmits<{created: [item: WikiDocument]; deleted: []; saved: [item: WikiDocument]}>();
 const session = sessionStore();
 const isTemplate = computed(() => props.newTemplate || !!props.templateNo);
+const imageOwner = computed(() => props.newTemplate ? undefined : wikiImageOwner(isTemplate.value ? 'template' : 'anime', isTemplate.value ? props.templateNo : props.animeNo));
 const path = computed(() => props.newTemplate ? '/templates' : isTemplate.value ? `/templates/${props.templateNo}` : `/anime/${props.animeNo}`);
 const historyLocation = computed(() => wikiHistoryLocation({kind: isTemplate.value ? 'template' : 'anime', targetNo: (isTemplate.value ? props.templateNo : props.animeNo)!}));
 const item = ref<WikiDocument>(), baseline = ref<WikiDocument>(), access = ref<WikiAccess>();
 const body = ref<WikiBody>(wikiRemote.emptyBody()), templates = ref<WikiTemplate[]>([]), title = ref(''), summary = ref('');
 const loading = ref(false), editing = ref(false), saving = ref(false), loadError = ref(''), saveError = ref(''), editorVersion = ref(0);
 const hasRevision = computed(() => !!item.value && item.value.revision > 0);
+const showAgentHelp = computed(() => !isTemplate.value && !!props.animeNo && !!item.value && !item.value.deleted && !item.value.renderWarning && isWikiBodyEmpty(item.value.body));
+const agentRulesUrl = `${location.origin}/wiki-new.txt`;
+const agentPrompt = computed(() => `${location.origin}/anime/${props.animeNo} 주소에 ${agentRulesUrl} 규칙에 따라 새로운 위키를 작성해줘.`);
 const canViewHistory = computed(() => hasRevision.value && !editing.value);
-const canEdit = computed(() => !!item.value && !item.value.deleted && !editing.value && !!access.value?.canContribute);
+const canModify = computed(() => props.newTemplate ? !!access.value?.isOperator : !!access.value?.canContribute);
+const canEdit = computed(() => !!item.value && !item.value.deleted && !editing.value && canModify.value);
 defineExpose({hasRevision, canViewHistory, canEdit, beginEdit});
 const editor = ref<InstanceType<typeof WikiEditor>>();
 const conflict = ref<WikiDocument>();
@@ -88,6 +111,10 @@ async function copyLink() {
   try { await navigator.clipboard.writeText(`${location.origin}/anime/${props.animeNo}`); toast.success('위키 주소를 복사했습니다.'); }
   catch { toast.error('주소를 복사하지 못했습니다.'); }
 }
+async function copyAgentPrompt() {
+  try { await navigator.clipboard.writeText(agentPrompt.value); toast.success('위키 작성 예문을 복사했습니다.'); }
+  catch { toast.error('예문을 복사하지 못했습니다. 예문을 직접 선택해 복사해 주세요.'); }
+}
 function persistDraft() {
   clearTimeout(draftTimer);
   if (!editing.value || !baseline.value) return;
@@ -100,7 +127,7 @@ function persistDraft() {
 function discardDraft() { removeWikiDraft(draftKey.value); availableDraft.value = undefined; }
 function resumeDraft() {
   const draft = availableDraft.value;
-  if (!draft || item.value?.deleted || !access.value?.canContribute) return;
+  if (!draft || item.value?.deleted || !canModify.value) return;
   baseline.value = draft.baseline; body.value = draft.body; templates.value = draft.templates; title.value = draft.title; summary.value = draft.summary;
   editingDraftKey = draftKey.value; availableDraft.value = undefined; saveError.value = ''; editing.value = true; ++editorVersion.value;
 }
@@ -113,12 +140,12 @@ async function load() {
     if (!active || expected !== generation) return;
     item.value = value;
     availableDraft.value = readWikiDraft(draftKey.value);
-    if (props.newTemplate && access.value?.canContribute && !availableDraft.value) beginEdit();
+    if (props.newTemplate && canModify.value && !availableDraft.value) beginEdit();
   } catch (error) { if (active && expected === generation) loadError.value = wikiErrorMessage(error); }
   finally { if (expected === generation) loading.value = false; }
 }
 function beginEdit() {
-  if (!item.value || item.value.deleted || !access.value?.canContribute) return;
+  if (!item.value || item.value.deleted || !canModify.value) return;
   if (availableDraft.value) { resumeDraft(); return; }
   editingDraftKey = draftKey.value;
   baseline.value = JSON.parse(JSON.stringify(item.value));
@@ -130,7 +157,7 @@ function cancelEdit() {
   editing.value = false; saveError.value = '';
 }
 async function save() {
-  if (!baseline.value || saving.value || !access.value?.canContribute) return;
+  if (!baseline.value || saving.value || !canModify.value) return;
   const endpoint = path.value, expected = generation;
   saving.value = true; saveError.value = '';
   try {
@@ -185,7 +212,7 @@ watch([() => session.user.email, () => session.user.roles.join(',')], async (_, 
   if (previous?.length) void load();
   else if (loading.value) void load();
   availableDraft.value = readWikiDraft(draftKey.value);
-  try { const value = await wikiRemote.access(); if (active && expected === accessGeneration) { access.value = value; if (props.newTemplate && item.value && !editing.value && value.canContribute && !availableDraft.value) beginEdit(); } }
+  try { const value = await wikiRemote.access(); if (active && expected === accessGeneration) { access.value = value; if (props.newTemplate && item.value && !editing.value && canModify.value && !availableDraft.value) beginEdit(); } }
   catch (error) { if (active && expected === accessGeneration) access.value = {canContribute: false, isOperator: false, message: wikiErrorMessage(error)}; }
 }, {immediate: true});
 watch(path, load, {immediate: true});
@@ -218,13 +245,44 @@ onBeforeUnmount(() => { persistDraft(); clearTimeout(draftTimer); window.removeE
 }
 .wiki-empty {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   padding: 1.25rem;
   border: 0.0625rem dashed var(--as-line-2);
   border-radius: var(--radius-ctl);
   color: var(--as-ink-2);
   font-size: 0.875rem;
+}
+.wiki-empty-content {
+  min-width: 0;
+  flex: 1;
+}
+.wiki-agent-help > summary {
+  cursor: pointer;
+  border-radius: var(--radius-ctl);
+}
+.wiki-agent-help > summary:focus-visible {
+  outline: 2px solid var(--as-brand);
+  outline-offset: .25rem;
+}
+.wiki-agent-intro {
+  margin-top: .75rem;
+}
+.wiki-agent-steps {
+  margin-top: .75rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+  line-height: 1.8;
+}
+.wiki-agent-prompt {
+  margin-top: .75rem;
+  padding: .875rem 1rem;
+  border-radius: var(--radius-ctl);
+  background: var(--as-muted);
+  color: var(--as-ink);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  user-select: text;
 }
 .wiki-empty-icon {
   display: inline-flex;

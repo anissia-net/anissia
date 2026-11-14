@@ -1,0 +1,21 @@
+name: mobile_platform
+description: Native navigation and app links for the Anissia mobile apps.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+  flutter: '>=3.41.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: net.anissia.mobile_platform
+        pluginClass: MobilePlatformPlugin
+      ios:
+        pluginClass: MobilePlatformPlugin

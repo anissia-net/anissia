@@ -4,6 +4,7 @@ import {nextTick} from 'vue'
 import {whenIdle} from './idle'
 import {legacyWikiHistoryLocation} from '../domain/wiki/wikiLocation'
 import {legacyDetailLocation} from './detailLocation'
+import {delegateMobileNavigation} from './mobileBridge'
 
 const siteLayout = () => import('../page/site/layout.vue')
 
@@ -26,6 +27,7 @@ const wikiImages = () => import('../page/site/wikiImages.vue')
 const wikiTemplates = () => import('../page/site/wikiTemplates.vue')
 const wikiRecent = () => import('../page/site/wikiRecent.vue')
 const wikiHistory = () => import('../page/site/wikiHistory.vue')
+const wikiRequests = () => import('../page/site/wikiRequests.vue')
 const translatorApply = () => import('../page/site/translatorApply.vue')
 const captionRecent = () => import('../page/site/captionRecent.vue')
 const introduce = () => import('../page/site/introduce.vue')
@@ -74,6 +76,9 @@ const router = createRouter({
         { path: '/wiki/templates', component: wikiTemplates, meta: { title: '위키 템플릿 - 애니시아' } },
         { path: '/wiki/recent', component: wikiRecent, meta: { title: '위키 최근 변경 - 애니시아' } },
         { path: '/wiki/history', component: wikiHistory, meta: { title: '변경 이력 - 애니시아' } },
+        { path: '/wiki/requests', component: wikiRequests, meta: { title: '문서 요청 - 애니시아' } },
+        { path: '/wiki/requests/new', component: wikiRequests, meta: { title: '문서 요청 작성 - 애니시아' } },
+        { path: '/wiki/requests/:requestId([1-9]\\d*)', component: wikiRequests, meta: { title: '문서 요청 - 애니시아' } },
         { path: '/notifications', component: notifications, meta: { title: '알림 - 애니시아' } },
         { path: '/favorites', redirect: to => ({path: '/notifications', query: to.query, hash: to.hash}) },
         { path: '/caption/recent', component: captionRecent, meta: { title: '최근자막 - 애니시아' } },
@@ -114,6 +119,7 @@ const router = createRouter({
 });
 
 router.beforeEach(to => {
+  if (delegateMobileNavigation(to.fullPath)) return false;
   if (to.path === '/anime' && (to.query.type === 'templates' || to.query.type === 'images')) {
     const {type, animeNo, ...query} = to.query;
     return {path: `/wiki/${type}`, query, hash: to.hash, replace: true};

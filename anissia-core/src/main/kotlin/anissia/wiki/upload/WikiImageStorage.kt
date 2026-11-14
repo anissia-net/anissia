@@ -74,6 +74,40 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         if (hasSource) Files.move(source, target, ATOMIC_MOVE)
     }
 
+    fun copy(source: WikiImage, targetId: String) {
+        ensureDirectories()
+        validId(targetId)
+        val targets = mutableListOf<Path>()
+        fun copyFile(from: Path, to: Path, expectedBytes: Long?, publish: Boolean) {
+            if (!Files.isRegularFile(from, NOFOLLOW_LINKS) || expectedBytes != null && (expectedBytes <= 0 || Files.size(from) != expectedBytes)) {
+                throw IOException("complete source image is unavailable")
+            }
+            if (Files.exists(to, NOFOLLOW_LINKS)) throw IOException("target image already exists")
+            val staged = to.resolveSibling(to.fileName.toString() + ".copy")
+            try {
+                Files.copy(from, staged)
+                if (publish) publicPermissions(staged)
+                Files.move(staged, to, ATOMIC_MOVE)
+                targets.add(to)
+            } finally {
+                Files.deleteIfExists(staged)
+            }
+        }
+        try {
+            copyFile(publicFile(source.id), publicFile(targetId), requireNotNull(source.bytes), true)
+            source.thumbnailBytes?.takeIf { it > 0 }?.let {
+                copyFile(thumbnailFile(source.id), thumbnailFile(targetId), it, true)
+            }
+            val original = originalRoot.resolve("${validId(source.id)}.source")
+            if (Files.isRegularFile(original, NOFOLLOW_LINKS)) {
+                copyFile(original, originalRoot.resolve("$targetId.source"), null, false)
+            }
+        } catch (e: Exception) {
+            targets.forEach(Files::deleteIfExists)
+            throw e
+        }
+    }
+
     fun receive(id: String, source: InputStream) {
         ensureDirectories()
         Files.createDirectory(jobDirectory(id))
@@ -96,7 +130,26 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
         }
     }
 
-    fun publish(id: String, token: String, expectedBytes: Long, thumbnailBytes: Long) {
+    fun publish(id: String, token: String, expectedBytes: Long, thumbnailBytes: Long) = publishAs(id, id, token, expectedBytes, thumbnailBytes)
+
+    fun replace(job: WikiImage, target: WikiImage) {
+        val backup = originalRoot.resolve("replacements").resolve(validId(target.id)).resolve(validId(job.id))
+        Files.createDirectories(backup)
+        Files.getFileAttributeView(backup, PosixFileAttributeView::class.java, NOFOLLOW_LINKS)
+            ?.setPermissions(PosixFilePermissions.fromString("rwx------"))
+        for ((source, name) in listOf(publicFile(target.id) to "image.avif", thumbnailFile(target.id) to "thumbnail.avif",
+            originalRoot.resolve("${validId(target.id)}.source") to "source")) {
+            val saved = backup.resolve(name)
+            if (!Files.exists(saved, NOFOLLOW_LINKS) && Files.isRegularFile(source, NOFOLLOW_LINKS)) {
+                val staged = backup.resolve("$name.tmp")
+                Files.copy(source, staged, REPLACE_EXISTING)
+                Files.move(staged, saved, ATOMIC_MOVE)
+            }
+        }
+        publishAs(job.id, target.id, requireNotNull(job.claimToken), requireNotNull(job.bytes), requireNotNull(job.thumbnailBytes))
+    }
+
+    private fun publishAs(id: String, targetId: String, token: String, expectedBytes: Long, thumbnailBytes: Long) {
         val converted = output(id, token)
         check(Files.isRegularFile(converted, NOFOLLOW_LINKS) && expectedBytes > 0 && Files.size(converted) == expectedBytes)
         val thumbnail = thumbnailOutput(id, token)
@@ -107,14 +160,16 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
             val staged = originalRoot.resolve("${validId(id)}.${validId(token)}.tmp")
             try {
                 Files.copy(input(id), staged, REPLACE_EXISTING)
-                Files.move(staged, originalRoot.resolve("${validId(id)}.source"), ATOMIC_MOVE, REPLACE_EXISTING)
+                Files.move(staged, originalRoot.resolve("${validId(targetId)}.source"), ATOMIC_MOVE, REPLACE_EXISTING)
             } finally {
                 Files.deleteIfExists(staged)
             }
         }
-        // Cross-filesystem configurations fail here instead of exposing a partially copied image.
-        Files.move(thumbnail, thumbnailFile(id), ATOMIC_MOVE, REPLACE_EXISTING)
-        Files.move(converted, publicFile(id), ATOMIC_MOVE, REPLACE_EXISTING)
+        for ((source, target) in listOf(thumbnail to thumbnailFile(targetId), converted to publicFile(targetId))) {
+            val staged = source.resolveSibling(source.fileName.toString() + ".publish")
+            Files.copy(source, staged, REPLACE_EXISTING)
+            Files.move(staged, target, ATOMIC_MOVE, REPLACE_EXISTING)
+        }
     }
 
     private fun publicPermissions(path: Path, directory: Boolean = false) {
@@ -134,7 +189,7 @@ class WikiImageStorage(private val properties: WikiUploadProperties) {
             entries.filter { ID.matches(it.fileName.toString()) && Files.getLastModifiedTime(it, NOFOLLOW_LINKS).toInstant().isBefore(before) }
                 .forEach {
                     val record = lookup(it.fileName.toString())
-                    if (record == null || record.status == WikiImageStatus.READY || record.status == WikiImageStatus.FAILED) removeTree(it)
+                    if (record == null || record.status in setOf(WikiImageStatus.READY, WikiImageStatus.FAILED, WikiImageStatus.REPLACED)) removeTree(it)
                 }
         }
         for ((root, extension) in listOf(publicRoot.resolve("wiki") to ".avif", publicRoot.resolve("wiki") to ".thumb.avif", originalRoot to ".source")) {

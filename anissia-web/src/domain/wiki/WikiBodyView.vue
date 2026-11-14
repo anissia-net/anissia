@@ -14,12 +14,13 @@ import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {attachViewer} from 'nabi-note/viewer';
 import {mountNoteOutline} from '../../common/noteOutline';
 import {renderWiki} from './wikiNote';
+import {wikiImageVersionHtml, type WikiImageVersions} from './wikiImageVersion';
 import type {WikiBody, WikiTemplate} from './wikiRemote';
 
-const props = withDefaults(defineProps<{body: WikiBody; templates?: WikiTemplate[]; floatingOutline?: boolean}>(), {floatingOutline: true});
+const props = withDefaults(defineProps<{body: WikiBody; templates?: WikiTemplate[]; floatingOutline?: boolean; imageVersions?: WikiImageVersions}>(), {floatingOutline: true});
 const root = ref<HTMLElement>();
 const outlineRoot = ref<HTMLElement>();
-const html = computed(() => renderWiki(props.body, props.templates));
+const html = computed(() => wikiImageVersionHtml(renderWiki(props.body, props.templates), props.imageVersions));
 let detach: (() => void) | undefined;
 function attach() {
   detach?.();

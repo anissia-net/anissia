@@ -10,6 +10,8 @@
     </router-link>
     <router-link to="/wiki/recent" class="wiki-navigation-link" :class="{'is-active': active === 'recent'}"
                  :aria-current="active === 'recent' ? 'page' : undefined"><as-icon name="clock"/>최근 변경</router-link>
+    <router-link to="/wiki/requests" class="wiki-navigation-link" :class="{'is-active': active === 'requests'}"
+                 :aria-current="active === 'requests' ? 'page' : undefined"><as-icon name="envelope"/>문서 요청</router-link>
     </div>
   </nav>
 </template>
@@ -17,14 +19,17 @@
 <script setup lang="ts">
 import {computed} from 'vue';
 import {useRoute} from 'vue-router';
+import {sessionStore} from '../session/sessionStore';
 
 const props = withDefaults(defineProps<{query?: string}>(), {query: ''});
 const route = useRoute();
-const categories = [
-  {type: 'templates', label: '템플릿', icon: 'template'},
-  {type: 'images', label: '이미지', icon: 'image'},
-] as const;
+const session = sessionStore();
+const categories = computed(() => [
+  {type: 'templates', label: '템플릿', icon: 'template' as const},
+  ...(session.user.roles.some(role => role === 'ROOT' || role === 'TRANSLATOR') ? [{type: 'images', label: '이미지 보관함', icon: 'image' as const}] : []),
+]);
 const active = computed(() => {
+  if (route.path.startsWith('/wiki/requests')) return 'requests';
   if (route.path === '/wiki/recent') return 'recent';
   if (route.path === '/wiki/templates') return 'templates';
   if (route.path === '/wiki/images') return 'images';

@@ -12,6 +12,7 @@ object AnimeTable {
     val SUBJECT = jooqColumn(NAME, "subject", SQLDataType.VARCHAR)
     val AUTOCORRECT = jooqColumn(NAME, "autocorrect", SQLDataType.VARCHAR)
     val CAPTION_COUNT = jooqColumn(NAME, "caption_count", SQLDataType.INTEGER)
+    val DELETED_AT = jooqColumn(NAME, "deleted_at", SQLDataType.TIMESTAMP)
 }
 
 object AnimeCaptionTable {

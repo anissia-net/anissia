@@ -96,6 +96,7 @@ class CaptionPushOutbox(private val jdbc: JdbcTemplate, private val sender: Push
             JOIN anime_favorite n ON n.an = s.an AND n.anime_no = e.anime_no AND n.notify = true
             JOIN account a ON a.an = s.an
             JOIN anime_caption c ON c.anime_no = e.anime_no AND c.an = e.translator_an AND c.website <> ''
+            JOIN anime work ON work.anime_no = e.anime_no AND work.deleted_at IS NULL
             WHERE d.id = ? AND d.claim_token = ? AND d.state = 'pending'
             AND e.created_at > DATE_SUB(CURRENT_TIMESTAMP(6), INTERVAL 1 DAY)
             AND CAST(c.episode AS DECIMAL(7, 2)) >= CAST(e.episode AS DECIMAL(7, 2))

@@ -17,12 +17,14 @@ import anissia.support.DateFormats
 import anissia.support.badRequestUnless
 import anissia.support.getOrLoad
 import anissia.support.ttlCache
+import anissia.support.replaceContent
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.event.TransactionalEventListener
 import kotlin.time.Duration.Companion.minutes
 
 @Service
@@ -40,6 +42,7 @@ class AnimeCaptionService(
     @Transactional(readOnly = true)
     fun getListByAnimeNo(animeNo: Long, actor: Actor): List<CaptionItem> {
         badRequestUnless(animeNo > 0) { "animeNo 는 0 이상이어야 합니다." }
+        if (!animeRepository.existsByAnimeNoAndDeletedAtIsNull(animeNo)) return emptyList()
         return animeCaptionRepository.findAllWithAccountByAnimeNo(animeNo)
             .map { CaptionItem(it) }
             .also { animeRankService.hit(animeNo, actor) }
@@ -63,11 +66,19 @@ class AnimeCaptionService(
     fun getRecent(page: Int): Page<CaptionRecentItem> {
         badRequestUnless(page > -2) { "잘못된 pageNo" }
 
-        return if (page == -1) {
+        val result = if (page == -1) {
             recentCache.getOrLoad(page) { loadRecent(PageRequest.of(0, 12)) }
         } else {
             loadRecent(PageRequest.of(page, 20))
         }
+        if (result.isEmpty) return result
+        val visible = animeRepository.findVisibleAnimeNos(result.content.map { it.animeNo }).toSet()
+        return result.replaceContent(result.content.filter { it.animeNo in visible })
+    }
+
+    @TransactionalEventListener
+    fun documentsChanged(event: AnimeDocumentChangedEvent) {
+        recentCache.invalidateAll()
     }
 
     private fun loadRecent(pageable: PageRequest): Page<CaptionRecentItem> =
@@ -79,7 +90,8 @@ class AnimeCaptionService(
         badRequestUnless(animeNo > 0) { "animeNo 는 0 이상이어야 합니다." }
         actor.validateAdmin()
 
-        val anime = animeRepository.findByIdOrNull(animeNo)
+        val anime = animeRepository.lockByAnimeNo(animeNo)
+            ?.takeIf { it.deletedAt == null }
             ?: return ApiResponse.fail("존재하지 않는 애니메이션입니다.")
 
         if (animeCaptionRepository.findById(AnimeCaption.Key(animeNo, actor.an)).isPresent) {
@@ -98,6 +110,10 @@ class AnimeCaptionService(
     fun edit(animeNo: Long, request: EditCaptionRequest, actor: Actor): ApiResponse<Unit> {
         request.validate(animeNo)
         actor.validateAdmin()
+
+        if (animeRepository.lockByAnimeNo(animeNo)?.let { it.deletedAt == null } != true) {
+            return ApiResponse.fail("존재하지 않는 애니메이션입니다.")
+        }
 
         val caption = animeCaptionRepository.findByIdOrNull(AnimeCaption.Key(animeNo, actor.an))
             ?: return ApiResponse.fail("존재하지 않는 자막입니다.")
@@ -132,6 +148,10 @@ class AnimeCaptionService(
     fun delete(animeNo: Long, actor: Actor): ApiResponse<Unit> {
         badRequestUnless(animeNo > 0) { "animeNo 는 0 이상이어야 합니다." }
         actor.validateAdmin()
+
+        if (animeRepository.lockByAnimeNo(animeNo)?.let { it.deletedAt == null } != true) {
+            return ApiResponse.fail("존재하지 않는 애니메이션입니다.")
+        }
 
         val caption = animeCaptionRepository.findByIdOrNull(AnimeCaption.Key(animeNo, actor.an))
             ?: return ApiResponse.fail("이미 삭제되었습니다.")

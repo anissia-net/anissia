@@ -4,8 +4,8 @@
       <div class="title">
         <div class="title-main"><a href="/" target="_blank">애니<span class="mob-hide">메이션</span> 편성표</a></div>
         <div class="color-mode" v-if="isWeb">
-          <svg id="dark-mode" @click="applyColorMode('dark')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 3.1 14.3 9.4 21 9.7 15.7 13.8 17.6 20.3 12 16.5 6.4 20.3 8.3 13.8 3 9.7 9.7 9.4z"/></svg>
-          <svg id="light-mode" @click="applyColorMode('light')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M23 12l-4-1.8v3.6zM12 23l-1.8-4h3.6zM1 12l4-1.8v3.6zM12 1l-1.8 4h3.6zM19.8 19.8l-4.1-1.6 2.5-2.5zM4.2 19.8l1.6-4.1 2.5 2.5zM4.2 4.2l4.1 1.6-2.5 2.5zM19.8 4.2l-1.6 4.1-2.5-2.5z"/></svg>
+          <svg id="dark-mode" @click="selectColorMode('dark')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 3.1 14.3 9.4 21 9.7 15.7 13.8 17.6 20.3 12 16.5 6.4 20.3 8.3 13.8 3 9.7 9.7 9.4z"/></svg>
+          <svg id="light-mode" @click="selectColorMode('light')" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M23 12l-4-1.8v3.6zM12 23l-1.8-4h3.6zM1 12l4-1.8v3.6zM12 1l-1.8 4h3.6zM19.8 19.8l-4.1-1.6 2.5-2.5zM4.2 19.8l1.6-4.1 2.5 2.5zM4.2 4.2l4.1 1.6-2.5 2.5zM19.8 4.2l-1.6 4.1-2.5-2.5z"/></svg>
         </div>
       </div>
       <table class="nav">
@@ -71,6 +71,7 @@ import AnimeCaption from "../../domain/anime/AnimeCaption";
 import Anime from "../../domain/anime/Anime";
 import anissia from "../../common/anissia";
 import animeRemote from "../../domain/anime/remote/animeRemote";
+import {mobilePageReady, notifyMobileColorMode, registerMobileBackHandler, type MobileColorMode} from '../../common/mobileBridge';
 
 const props = withDefaults(defineProps<{embedded?: boolean, themeCode?: string}>(), {embedded: false});
 const userStyle = ref<HTMLElement | null>(null);
@@ -120,7 +121,13 @@ function applyColorMode(mode: string|null) {
   }
 }
 
+function selectColorMode(mode: MobileColorMode) {
+  applyColorMode(mode);
+  if (!props.embedded) notifyMobileColorMode(mode);
+}
+
 let repaint: ((colors: string) => void) | undefined;
+let unregisterMobileBack: (() => void) | undefined;
 watch(() => props.themeCode, code => repaint?.(code ?? ''));
 defineExpose({applyColorMode});
 
@@ -176,10 +183,19 @@ onMounted(() => {
     }
   };
   repaint(props.themeCode ?? theme);
-  if (!props.embedded) (window as any).repaint = repaint;
+  if (!props.embedded) {
+    (window as any).repaint = repaint;
+    unregisterMobileBack = registerMobileBackHandler(() => {
+      if (animeNow.value === null) return false;
+      animeNow.value = null;
+      return true;
+    });
+    mobilePageReady();
+  }
 });
 
 onBeforeUnmount(() => {
+  unregisterMobileBack?.();
   window.removeEventListener('keydown', evtKeyClosePopup, true);
   if ((window as any).colorMode === applyColorMode) delete (window as any).colorMode;
   if ((window as any).repaint === repaint) delete (window as any).repaint;

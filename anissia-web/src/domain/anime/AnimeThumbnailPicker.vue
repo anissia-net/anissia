@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex flex-wrap items-center gap-4">
-      <img v-if="thumbnail" :src="thumbnail" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
+      <img v-if="thumbnail" :src="displayThumbnail(thumbnail)" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
       <span v-else class="as-meta">썸네일이 없습니다.</span>
       <button type="button" class="as-input-btn py-2" @click="open">위키에서 이미지 선택</button>
     </div>
@@ -20,7 +20,7 @@
         </div>
         <template v-else>
           <div v-if="currentThumbnail" class="flex items-center gap-3 mb-4 border-b border-line pb-4">
-            <img :src="currentThumbnail" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
+            <img :src="displayThumbnail(currentThumbnail)" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
             <div><p class="text-sm">현재 썸네일</p><p v-if="!currentInImages" class="as-meta mt-1">현재 위키에서 제거된 이미지입니다. 새 이미지를 선택할 수 있습니다.</p></div>
           </div>
           <fieldset :disabled="saving" class="space-y-3">
@@ -32,7 +32,7 @@
             <div v-if="images.length" class="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
               <label v-for="(image, index) in images" :key="image.id" class="thumbnail-choice flex items-center gap-3 p-3" :class="{'is-selected': selected === image.id}">
                 <input v-model="selected" type="radio" :name="headingId" :value="image.id" :aria-label="image.description || `위키 이미지 ${index + 1}`"/>
-                <img :src="image.thumbnailUrl!" alt="" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 shrink-0 rounded-ctl object-cover"/>
+                <img :src="wikiImageDisplayUrl(image.thumbnailUrl!, image.revision)" alt="" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 shrink-0 rounded-ctl object-cover"/>
                 <span class="min-w-0 text-sm break-words">{{image.description || `위키 이미지 ${index + 1}`}}</span>
               </label>
             </div>
@@ -58,6 +58,7 @@
 import {computed, nextTick, onBeforeUnmount, ref, useId} from 'vue';
 import toast from '../../common/toast';
 import {wikiRemote, wikiErrorMessage, type AnimeWikiImages, type WikiImage} from '../wiki/wikiRemote';
+import {wikiImageDisplayUrl} from '../wiki/wikiImageVersion';
 import '../wiki/wiki.pcss';
 
 const props = defineProps<{animeNo: number; thumbnail: string | null}>();
@@ -74,6 +75,7 @@ const changed = computed(() => selected.value !== undefined && (selected.value =
   : images.value.find(image => image.id === selected.value)?.thumbnailUrl !== currentThumbnail.value));
 let active = true, generation = 0;
 let controller: AbortController | undefined;
+function displayThumbnail(source: string) { return wikiImageDisplayUrl(source, images.value.find(image => image.thumbnailUrl === source)?.revision); }
 
 function apply(state: AnimeWikiImages) {
   images.value = state.images.filter(image => image.status === 'READY' && image.thumbnailUrl);

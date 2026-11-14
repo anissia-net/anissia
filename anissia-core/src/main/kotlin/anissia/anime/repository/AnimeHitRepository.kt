@@ -8,6 +8,10 @@ import org.springframework.data.jpa.repository.Query
 interface AnimeHitRepository : JpaRepository<AnimeHit, Long> {
 
     @Modifying
+    @Query("DELETE FROM AnimeHit WHERE animeNo = :animeNo")
+    fun deleteByAnimeNo(animeNo: Long): Int
+
+    @Modifying
     @Query("DELETE FROM AnimeHit WHERE hour < :hour")
     fun deleteByHourLessThan(hour: Long): Int
 }

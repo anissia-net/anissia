@@ -20,7 +20,6 @@ import anissia.anime.repository.jooq.AnimeQueryRepository
 import anissia.counter.DerivedCounters
 import anissia.security.Actor
 import anissia.translator.service.TranslatorApplyService
-import anissia.wiki.WikiContentService
 import anissia.support.ApiResponse
 import anissia.support.DateFormats
 import anissia.support.Json
@@ -37,7 +36,9 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Isolation
+import org.springframework.transaction.event.TransactionalEventListener
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import kotlin.time.Duration.Companion.minutes
 
 @Service
@@ -55,7 +56,6 @@ class AnimeService(
     private val accountRepository: AccountRepository,
     private val translatorApplyService: TranslatorApplyService,
     private val events: ApplicationEventPublisher,
-    private val wiki: WikiContentService,
 ) {
     private val log = logger<AnimeService>()
     private val autocorrectCache = ttlCache<String, List<String>>(60.minutes)
@@ -63,6 +63,7 @@ class AnimeService(
     @Transactional(readOnly = true)
     fun get(animeNo: Long, actor: Actor): AnimeItem =
         animeRepository.findWithCaptionsByAnimeNo(animeNo)
+            ?.takeIf { it.deletedAt == null }
             ?.let { AnimeItem(it, true) }
             ?.also { animeRankService.hit(animeNo, actor) }
             ?: AnimeItem()
@@ -80,21 +81,35 @@ class AnimeService(
             return hitPage.replaceContent(emptyList())
         }
         return hitPage.replaceContent(
-            animeRepository.findAllById(found.animeNos).associateBy { it.animeNo }.let { byId -> found.animeNos.mapNotNull { byId[it]?.let(::AnimeItem) } },
+            animeRepository.findAllByAnimeNoIn(found.animeNos).associateBy { it.animeNo }.let { byId -> found.animeNos.mapNotNull { byId[it]?.let(::AnimeItem) } },
         )
     }
 
     @Transactional(readOnly = true)
-    fun getDelist(actor: Actor): Page<AnimeItem> {
+    fun getDelist(actor: Actor, page: Int = 0): Page<AnimeItem> {
         actor.validateAdmin()
+        require(page >= 0) { "잘못된 페이지입니다." }
 
-        return agendaRepository.findAllByCodeAndStatusOrderByAgendaNoDesc(CODE_ANIME_DEL, "wait")
-            .map { Json.read<AnimeItem>(it.data1!!).apply { agendaNo = it.agendaNo } }
+        return agendaRepository.findAllByCodeAndStatusOrderByAgendaNoDesc(CODE_ANIME_DEL, "wait", PageRequest.of(page, 30))
+            .map { agenda -> Json.read<AnimeItem>(agenda.data1!!).apply {
+                agendaNo = agenda.agendaNo
+                deletedAt = deletedAt ?: agenda.updDt.toString()
+                purgeAfter = purgeAfter ?: agenda.updDt.plusDays(30).toString()
+            } }
     }
 
     @Transactional(readOnly = true)
-    fun getAutocorrect(q: String): List<String> =
-        if (q.length < 3) autocorrectCache.getOrLoad(q) { loadAutocorrect(it) } else loadAutocorrect(q)
+    fun getAutocorrect(q: String): List<String> {
+        val suggestions = if (q.length < 3) autocorrectCache.getOrLoad(q) { loadAutocorrect(it) } else loadAutocorrect(q)
+        if (suggestions.isEmpty()) return suggestions
+        val visible = animeRepository.findVisibleAnimeNos(suggestions.mapNotNull { it.substringBefore(' ').toLongOrNull() }).toSet()
+        return suggestions.filter { it.substringBefore(' ').toLongOrNull() in visible }
+    }
+
+    @TransactionalEventListener
+    fun documentsChanged(event: AnimeDocumentChangedEvent) {
+        autocorrectCache.invalidateAll()
+    }
 
     private fun loadAutocorrect(q: String): List<String> =
         q.replace("%", "").trim()
@@ -171,7 +186,8 @@ class AnimeService(
             data1 = "[${actor.name}]님이 애니메이션 [${request.subject}]을(를) 수정하였습니다.",
         )
 
-        val anime = animeRepository.findByIdOrNull(animeNo)
+        val anime = animeRepository.lockByAnimeNo(animeNo)
+            ?.takeIf { it.deletedAt == null }
             ?.also {
                 if (
                     it.week == request.week &&
@@ -222,31 +238,47 @@ class AnimeService(
             return ApiResponse.fail("애니메이션 삭제는 권한 취득일로부터 90일 후에 가능합니다.")
         }
 
-        val agenda = Agenda(code = CODE_ANIME_DEL, status = "wait", an = actor.an)
-
-        val anime = animeRepository.findWithCaptionsByAnimeNo(animeNo)
-            ?.also { agenda.data1 = Json.write(AnimeItem(it, true)) }
+        val anime = animeRepository.lockByAnimeNo(animeNo)
+            ?.takeIf { it.deletedAt == null }
             ?: return ApiResponse.fail("존재하지 않는 애니메이션입니다.")
 
+        val deletedAt = OffsetDateTime.now()
+        anime.deletedAt = deletedAt
+        val agenda = Agenda(code = CODE_ANIME_DEL, status = "wait", an = actor.an,
+            data1 = Json.write(AnimeItem(anime, true)), data2 = retentionReference(animeNo),
+            regDt = deletedAt, updDt = deletedAt)
         activePanelLogService.addText("[${actor.name}]님이 애니메이션 [${anime.subject}]을(를) 삭제하였습니다.")
 
-        wiki.deleteForAnime(animeNo)
-        animeCaptionRepository.deleteByAnimeNo(animeNo)
-        animeRepository.delete(anime)
+        animeRepository.save(anime)
         agendaRepository.save(agenda)
         events.publishEvent(AnimeDocumentChangedEvent(animeNo))
 
         return ApiResponse.ok()
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     fun recover(agendaNo: Long, actor: Actor): ApiResponse<Long> {
         require(agendaNo > 0) { "agendaNo 는 0 이상이어야 합니다." }
         actor.validateAdmin()
 
-        val agenda = agendaRepository.findByIdOrNull(agendaNo)
+        val reference = agendaRepository.findDeletionReference(agendaNo)
+        val retainedNo = reference?.takeIf { it.startsWith("retained:") }?.substringAfter(':')?.toLongOrNull()
+        val retained = retainedNo?.let { animeRepository.lockByAnimeNo(it) }
+        val agenda = agendaRepository.lockByAgendaNo(agendaNo)
             ?.takeIf { it.code == CODE_ANIME_DEL && it.status == "wait" }
             ?: return ApiResponse.fail("이미 복원되었거나 존재하지 않는 애니메이션입니다.", -1)
+
+        if (agenda.data2?.startsWith("retained:") == true) {
+            if (retained == null || retained.deletedAt == null || agenda.data2 != retentionReference(retained.animeNo)) {
+                return ApiResponse.fail("이미 복원되었거나 영구 삭제된 애니메이션입니다.", -1)
+            }
+            retained.deletedAt = null
+            animeRepository.save(retained)
+            agendaRepository.save(agenda.apply { status = "recover"; updDt = OffsetDateTime.now() })
+            activePanelLogService.addText("[${actor.name}]님이 애니메이션 [${retained.subject}]을(를) 복원하였습니다.")
+            events.publishEvent(AnimeDocumentChangedEvent(retained.animeNo))
+            return ApiResponse.ok(retained.animeNo)
+        }
 
         val animeItem = Json.read<AnimeItem>(agenda.data1!!)
 
@@ -270,6 +302,8 @@ class AnimeService(
                 endDate = animeItem.endDate,
                 website = animeItem.website,
                 x = animeItem.x,
+                note = animeItem.note,
+                thumbnail = animeItem.thumbnail,
                 captionCount = animeItem.captionCount,
             ),
         )
@@ -302,5 +336,6 @@ class AnimeService(
     companion object {
         const val CODE_ANIME = "ANIME"
         const val CODE_ANIME_DEL = "ANIME-DEL"
+        fun retentionReference(animeNo: Long) = "retained:$animeNo"
     }
 }

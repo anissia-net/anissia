@@ -33,7 +33,8 @@ class AnimeController(
     ): ApiResponse<Page<AnimeItem>> = ApiResponse.ok(animeService.getList(q, page))
 
     @GetMapping("/delist")
-    fun getAnimeDelist(actor: Actor): ApiResponse<Page<AnimeItem>> = ApiResponse.ok(animeService.getDelist(actor))
+    fun getAnimeDelist(actor: Actor, @RequestParam(defaultValue = "0") page: Int): ApiResponse<Page<AnimeItem>> =
+        ApiResponse.ok(animeService.getDelist(actor, page))
 
     @GetMapping("/animeNo/{animeNo:\\d+}")
     fun getAnime(@PathVariable animeNo: Long, actor: Actor): ApiResponse<AnimeItem> =

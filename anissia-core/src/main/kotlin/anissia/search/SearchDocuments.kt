@@ -45,6 +45,7 @@ class SearchDocuments(private val jdbc: JdbcTemplate) {
         val doc = mutableMapOf<String, Any>("id" to id)
         when (kind) {
             SearchKind.ANIME -> {
+                if (row["deleted_at"] != null) return null
                 doc["title"] = row.text("subject")
                 doc["originalTitle"] = row.text("original_subject")
                 doc["status"] = row.text("status")

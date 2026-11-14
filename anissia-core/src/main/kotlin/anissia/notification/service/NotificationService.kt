@@ -36,7 +36,7 @@ class NotificationService(
         if (notificationRepository.lockAccount(actor.an) == null) {
             return ApiResponse.fail("존재하지 않는 계정입니다.")
         }
-        if (!animeRepository.existsById(animeNo)) {
+        if (!animeRepository.existsByAnimeNoAndDeletedAtIsNull(animeNo)) {
             return ApiResponse.fail("존재하지 않는 애니메이션입니다.")
         }
 

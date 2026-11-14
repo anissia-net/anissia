@@ -26,6 +26,7 @@ class JooqSqlTest {
         assertTrue(rendered.startsWith("select concat("), rendered)
         assertTrue(rendered.contains("from `anime`"), rendered)
         assertTrue(rendered.contains("`anime`.`autocorrect` like"), rendered)
+        assertTrue(rendered.contains("`anime`.`deleted_at` is null"), rendered)
         assertTrue(rendered.contains("10 rows only") || rendered.contains("limit 10"), rendered)
     }
 
@@ -99,6 +100,7 @@ class JooqSqlTest {
         val rendered = sql(AnimeHitQueryRepository.rank(dsl, 2026010100, 100))
         assertTrue(rendered.contains("sum(`anime_hit_hour`.`hit`)"), rendered)
         assertTrue(rendered.contains("left outer join `anime`"), rendered)
+        assertTrue(rendered.contains("`anime`.`deleted_at` is null"), rendered)
         assertTrue(rendered.contains("group by `anime_hit_hour`.`anime_no`, `anime`.`subject`"), rendered)
         assertTrue(rendered.contains("order by sum(`anime_hit_hour`.`hit`) desc"), rendered)
         assertTrue(rendered.contains("100 rows only") || rendered.contains("limit 100"), rendered)

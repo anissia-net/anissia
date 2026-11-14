@@ -239,7 +239,7 @@ function thumbnailChanged(thumbnail: string | null) {
 }
 
 function doDelete() {
-  if (confirm(`${anime.value?.subject}을(를) 삭제하시겠습니까?\n임의삭제시 권한박탈의 사유가됩니다.`)) {
+  if (confirm(`${anime.value?.subject}을(를) 삭제하시겠습니까?\n작품과 위키가 숨겨지며, 30일 뒤 영구 삭제됩니다. 그 전에는 삭제대기 목록에서 복원할 수 있습니다.\n임의삭제시 권한박탈의 사유가됩니다.`)) {
     animeRemote.deleteAdminAnime(anime.value?.animeNo!!).then(result => {
       if (result.code == 'ok') {
         animeUpdates.publish(animeNo, null);

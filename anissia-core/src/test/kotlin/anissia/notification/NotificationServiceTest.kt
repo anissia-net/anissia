@@ -36,7 +36,7 @@ class NotificationServiceTest {
 
     private fun allowWrite() {
         `when`(notifications.lockAccount(actor.an)).thenReturn(Account(an = actor.an))
-        `when`(anime.existsById(animeNo)).thenReturn(true)
+        `when`(anime.existsByAnimeNoAndDeletedAtIsNull(animeNo)).thenReturn(true)
         `when`(notifications.findById(key)).thenReturn(Optional.empty())
     }
 
@@ -113,7 +113,7 @@ class NotificationServiceTest {
     @Test
     fun `없는 작품에는 알림을 등록할 수 없다`() {
         allowWrite()
-        `when`(anime.existsById(animeNo)).thenReturn(false)
+        `when`(anime.existsByAnimeNoAndDeletedAtIsNull(animeNo)).thenReturn(false)
 
         assertEquals(ApiResponse.FAIL, service.put(animeNo, EditNotificationRequest(), actor).code)
 

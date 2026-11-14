@@ -1,7 +1,6 @@
 package anissia.wiki
 
 import anissia.account.domain.Account
-import anissia.account.domain.AccountRole
 import anissia.account.repository.AccountRepository
 import anissia.security.Actor
 import anissia.support.ApiResponse
@@ -19,6 +18,9 @@ data class WikiAccess(
     val isOperator: Boolean,
     val eligibleAt: OffsetDateTime?,
     val message: String,
+    val canUploadImage: Boolean = false,
+    val canRequestImageUpload: Boolean = false,
+    val canReplaceImageFile: Boolean = false,
 )
 
 @Service
@@ -30,10 +32,17 @@ class WikiAccessService(private val accounts: AccountRepository) {
     )
 
     @Transactional(readOnly = true)
-    fun requireContributor(actor: Actor): Account {
+    fun requireMember(actor: Actor): Account {
         actor.validateLogin()
         val account = accounts.findWithRolesByAn(actor.an)
             ?: throw FailException("존재하지 않는 회원입니다.")
+        if (account.isBan) throw FailException("차단된 계정은 위키에 참여할 수 없습니다.")
+        return account
+    }
+
+    @Transactional(readOnly = true)
+    fun requireContributor(actor: Actor): Account {
+        val account = requireMember(actor)
         val access = decision(account, OffsetDateTime.now())
         if (!access.canContribute) throw FailException(access.message)
         return account
@@ -41,11 +50,25 @@ class WikiAccessService(private val accounts: AccountRepository) {
 
     @Transactional(readOnly = true)
     fun requireOperator(actor: Actor): Account {
-        actor.validateLogin()
-        val account = accounts.findWithRolesByAn(actor.an)
-            ?: throw FailException("존재하지 않는 회원입니다.")
+        val account = requireMember(actor)
         val access = decision(account, OffsetDateTime.now())
         if (!access.isOperator) throw FailException(access.message.ifBlank { "운영자 권한이 필요합니다." })
+        return account
+    }
+
+    @Transactional(readOnly = true)
+    fun requireImageUpload(actor: Actor): Account = requireImagePermission(actor, WikiAccess::canUploadImage, "이미지 직접 업로드 권한이 필요합니다.")
+
+    @Transactional(readOnly = true)
+    fun requireImageUploadRequest(actor: Actor): Account = requireImagePermission(actor, WikiAccess::canRequestImageUpload, "이미지 업로드 요청 권한이 필요합니다.")
+
+    @Transactional(readOnly = true)
+    fun requireImageFileReplacement(actor: Actor): Account = requireImagePermission(actor, WikiAccess::canReplaceImageFile, "이미지 파일 교체 권한이 필요합니다.")
+
+    private fun requireImagePermission(actor: Actor, permitted: (WikiAccess) -> Boolean, message: String): Account {
+        val account = requireMember(actor)
+        val access = decision(account, OffsetDateTime.now())
+        if (!permitted(access)) throw FailException(access.message.ifBlank { message })
         return account
     }
 
@@ -56,13 +79,10 @@ class WikiAccessService(private val accounts: AccountRepository) {
             if (account.banExpireDt?.isAfter(now) == true) {
                 return WikiAccess(false, false, eligibleAt, "차단된 계정은 위키에 참여할 수 없습니다.")
             }
-            // 임시 제한: 위키 공개 작성 재개 시 이 ROOT 전용 조건을 제거한다.
-            if (AccountRole.ROOT !in account.roles) {
-                return WikiAccess(false, false, eligibleAt, "현재 위키 작성과 이미지 업로드는 ROOT 권한만 가능합니다.")
-            }
             val eligible = account.isAdmin || !now.isBefore(eligibleAt)
             return WikiAccess(eligible, account.isAdmin, eligibleAt,
-                if (eligible) "" else "위키 작성과 이미지 업로드는 가입 후 15일이 지나면 가능합니다.")
+                if (eligible) "" else "위키 참여는 가입 후 15일이 지나면 가능합니다.",
+                canUploadImage = account.isAdmin, canRequestImageUpload = eligible, canReplaceImageFile = eligible)
         }
     }
 }

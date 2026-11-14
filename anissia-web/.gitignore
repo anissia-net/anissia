@@ -25,3 +25,6 @@ dist-ssr
 
 /AGENTS.md
 /ailog
+
+# Public agent documentation is a shipped asset, not local agent configuration.
+!/public/llms.txt

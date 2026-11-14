@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.Query
 interface AnimeNotificationRepository : JpaRepository<AnimeNotification, AnimeNotification.Key> {
 
     @EntityGraph(attributePaths = ["anime", "anime.captions", "anime.captions.account"])
-    @Query("SELECT DISTINCT n FROM AnimeNotification n JOIN n.anime a WHERE n.an = :an ORDER BY n.createdAt DESC, n.animeNo DESC")
+    @Query("SELECT DISTINCT n FROM AnimeNotification n JOIN n.anime a WHERE n.an = :an AND a.deletedAt IS NULL ORDER BY n.createdAt DESC, n.animeNo DESC")
     fun findAllWithAnimeByAn(an: Long): List<AnimeNotification>
 
     fun countByAn(an: Long): Long

@@ -52,6 +52,7 @@ class AnimeQueryRepository(
             )
                 .from(AnimeTable.TABLE)
                 .where(AnimeTable.AUTOCORRECT.startsWith(autocorrect))
+                .and(AnimeTable.DELETED_AT.isNull)
                 .limit(10)
 
         fun translatorNames(dsl: DSLContext, animeNo: Long): Select<Record1<String>> =

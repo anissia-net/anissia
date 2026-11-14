@@ -25,6 +25,7 @@ import java.time.OffsetDateTime
         Index(name = "anime_idx__status_week_time", columnList = "status,week,time"),
         Index(name = "anime_idx__status_animeNo", columnList = "status,animeNo"),
         Index(name = "anime_idx__autocorrect", columnList = "autocorrect"),
+        Index(name = "anime_idx__deleted_at", columnList = "deletedAt,animeNo"),
     ],
 )
 class Anime(
@@ -85,6 +86,9 @@ class Anime(
 
     @Column(length = 1024)
     var thumbnail: String? = null,
+
+    @Column
+    var deletedAt: OffsetDateTime? = null,
 
     @Column(nullable = false)
     var captionCount: Int = 0,

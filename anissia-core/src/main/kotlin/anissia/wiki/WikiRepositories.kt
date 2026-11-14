@@ -34,14 +34,14 @@ interface WikiRevisionRepository : JpaRepository<WikiRevision, Long> {
         from WikiRevision r
         left join Anime a on r.kind = 'anime' and a.animeNo = r.targetNo
         left join WikiTemplate t on r.kind = 'template' and t.templateNo = r.targetNo
-        where (r.kind = 'anime' and a.animeNo is not null)
+        where (r.kind = 'anime' and a.animeNo is not null and a.deletedAt is null)
             or (r.kind = 'template' and t.templateNo is not null and (t.deleted = false or :includeDeleted = true))
         order by r.id desc
     """, countQuery = """
         select count(r) from WikiRevision r
         left join Anime a on r.kind = 'anime' and a.animeNo = r.targetNo
         left join WikiTemplate t on r.kind = 'template' and t.templateNo = r.targetNo
-        where (r.kind = 'anime' and a.animeNo is not null)
+        where (r.kind = 'anime' and a.animeNo is not null and a.deletedAt is null)
             or (r.kind = 'template' and t.templateNo is not null and (t.deleted = false or :includeDeleted = true))
     """)
     fun recent(includeDeleted: Boolean, pageable: Pageable): Page<WikiRecentItem>
@@ -56,10 +56,10 @@ interface WikiReferenceRepository : JpaRepository<WikiReference, Long> {
     @Query(value = """
         select new anissia.wiki.WikiUsageItem('anime', a.animeNo, a.subject)
         from WikiReference r join Anime a on r.ownerKind = 'anime' and a.animeNo = r.ownerNo
-        where r.targetKind = 'template' and r.targetId = :templateId order by a.subject
+        where r.targetKind = 'template' and r.targetId = :templateId and a.deletedAt is null order by a.subject
     """, countQuery = """
         select count(r) from WikiReference r join Anime a on r.ownerKind = 'anime' and a.animeNo = r.ownerNo
-        where r.targetKind = 'template' and r.targetId = :templateId
+        where r.targetKind = 'template' and r.targetId = :templateId and a.deletedAt is null
     """)
     fun templateUsage(templateId: String, pageable: Pageable): Page<WikiUsageItem>
     @Modifying

@@ -12,6 +12,7 @@ import anissia.support.getOrLoad
 import anissia.support.ttlCache
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.event.TransactionalEventListener
 import java.time.OffsetDateTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -31,8 +32,15 @@ class AnimeScheduleService(
             return load(week)
         }
 
-        return cache.getOrLoad(week) { load(it) }
+        val schedule = cache.getOrLoad(week) { load(it) }
+        val visible = if (schedule.isEmpty()) emptySet() else animeRepository.findVisibleAnimeNos(schedule.map { it.animeNo }).toSet()
+        return schedule.filter { it.animeNo in visible }
             .also { sendPageView("/api/anime/schedule/$week", actor, userAgent) }
+    }
+
+    @TransactionalEventListener
+    fun documentsChanged(event: AnimeDocumentChangedEvent) {
+        cache.invalidateAll()
     }
 
     @Transactional(readOnly = true)

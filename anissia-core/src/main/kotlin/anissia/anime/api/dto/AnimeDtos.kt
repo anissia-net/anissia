@@ -43,6 +43,8 @@ class AnimeItem(
     var agendaNo: Long = 0,
     val captions: List<AnimeCaptionItem> = emptyList(),
     val thumbnail: String? = null,
+    var deletedAt: String? = null,
+    var purgeAfter: String? = null,
 ) {
     constructor(anime: Anime, includeCaption: Boolean = false) : this(
         animeNo = anime.animeNo,
@@ -60,6 +62,8 @@ class AnimeItem(
         note = anime.note,
         captions = if (includeCaption) anime.captions.map { AnimeCaptionItem(it) } else emptyList(),
         thumbnail = anime.thumbnail,
+        deletedAt = anime.deletedAt?.toString(),
+        purgeAfter = anime.deletedAt?.plusDays(30)?.toString(),
     )
 }
 

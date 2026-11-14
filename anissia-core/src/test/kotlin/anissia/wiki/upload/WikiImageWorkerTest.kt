@@ -40,7 +40,7 @@ class WikiImageWorkerTest {
 
     private fun allow() {
         `when`(accounts.findWithRolesByAn(owner.an)).thenReturn(owner)
-        `when`(access.requireContributor(any(Actor::class.java) ?: Actor())).thenReturn(owner)
+        `when`(access.requireImageUpload(any(Actor::class.java) ?: Actor())).thenReturn(owner)
     }
 
     @Test
@@ -89,7 +89,7 @@ class WikiImageWorkerTest {
         val storage = WikiImageStorage(properties)
         storage.receive(id, byteArrayOf(1).inputStream())
         `when`(accounts.findWithRolesByAn(owner.an)).thenReturn(owner)
-        `when`(access.requireContributor(any(Actor::class.java) ?: Actor()))
+        `when`(access.requireImageUpload(any(Actor::class.java) ?: Actor()))
             .thenReturn(owner).thenThrow(FailException("blocked"))
         val converter = object : ImageConverter() {
             override fun convert(input: Path, output: Path): ConvertedImage {
@@ -137,5 +137,28 @@ class WikiImageWorkerTest {
         assertTrue(Files.exists(storage.publicFile(id)))
         assertTrue(Files.exists(storage.thumbnailFile(id)))
         assertFalse(Files.exists(storage.input(id)))
+    }
+
+    @Test
+    fun `queued request and replacement recheck their specific file permission before conversion`() {
+        `when`(accounts.findWithRolesByAn(owner.an)).thenReturn(owner)
+        `when`(access.requireImageUploadRequest(any(Actor::class.java) ?: Actor())).thenThrow(FailException("request denied"))
+        `when`(access.requireImageFileReplacement(any(Actor::class.java) ?: Actor())).thenThrow(FailException("replacement denied"))
+        val properties = config()
+        val storage = WikiImageStorage(properties)
+        val converter = mock(ImageConverter::class.java)
+        `when`(repository.find(id)).thenReturn(job.copy(status = WikiImageStatus.FAILED))
+        val worker = WikiImageWorker(repository, storage, converter, properties, accounts, access)
+        try {
+            for (kind in listOf("REQUEST", "REPLACEMENT")) {
+                storage.receive(id, byteArrayOf(1).inputStream())
+                worker.process(job.copy(submissionKind = kind))
+                assertFalse(Files.exists(storage.input(id)))
+            }
+        } finally { worker.stop() }
+        verify(access).requireImageUploadRequest(any(Actor::class.java) ?: Actor())
+        verify(access).requireImageFileReplacement(any(Actor::class.java) ?: Actor())
+        org.mockito.Mockito.verifyNoInteractions(converter)
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.times(2)).fail(id, token, "ACCOUNT_UNAVAILABLE")
     }
 }

@@ -1,8 +1,17 @@
 import sessionService from '../session/remote/sessionService';
+import {wikiImageOwnerFields, type WikiImageOwner} from './wikiImageOwner';
 export {wikiLocation, wikiHistoryLocation} from './wikiLocation';
 
 export interface WikiBody { schemaVersion: 1; blocks: unknown[] }
-export interface WikiAccess { canContribute: boolean; isOperator: boolean; eligibleAt?: string; message: string }
+export interface WikiAccess {
+  canContribute: boolean;
+  isOperator: boolean;
+  canUploadImage?: boolean;
+  canRequestImageUpload?: boolean;
+  canReplaceImageFile?: boolean;
+  eligibleAt?: string;
+  message: string;
+}
 export interface WikiTemplate { templateNo: number; title: string; body: WikiBody; revision: number }
 export interface WikiDocument {
   animeNo?: number;
@@ -15,13 +24,17 @@ export interface WikiDocument {
   templates: WikiTemplate[];
   deleted?: boolean;
   renderWarning?: string;
+  imageVersions?: Record<string, number>;
 }
 export interface WikiUsage { kind: 'anime' | 'template'; targetNo: number; title: string }
 export interface WikiRecent extends WikiUsage { revision: number; summary: string; updatedBy: string; updatedAt: string; deleted: boolean; thumbnail?: string | null }
 export interface WikiHistory { revision: number; summary: string; updatedBy: string; updatedAt: string }
 export interface WikiImage {
   id: string;
-  status: 'WAITING' | 'PROCESSING' | 'READY' | 'FAILED' | 'DELETING' | 'DELETED' | 'RESTORING';
+  documentKind?: 'anime' | 'template' | null;
+  documentNo?: number | null;
+  sourceImageId?: string | null;
+  status: 'WAITING' | 'PROCESSING' | 'READY' | 'FAILED' | 'DELETING' | 'DELETED' | 'RESTORING' | 'REVIEW_READY' | 'APPROVING' | 'CANCELLED';
   revision: number;
   description: string;
   sourceUrl: string;
@@ -36,6 +49,8 @@ export interface WikiImage {
   createdAt: string;
   updatedAt: string;
   updatedBy: string;
+  replacementPending?: boolean;
+  replacementError?: string | null;
 }
 export interface WikiImageUsage extends WikiUsage { url: string; scope: 'current' | 'history'; revision: number | null }
 export interface AnimeWikiImages { thumbnail: string | null; images: WikiImage[] }
@@ -63,10 +78,10 @@ async function request<T>(path: string, method = 'GET', body?: unknown, signal?:
   return result.data;
 }
 
-function upload(file: File, description: string, sourceUrl: string, onProgress: (value: number) => void) {
+export function wikiFileRequest<T>(path: string, method: string, file: File, fields: Record<string, string>, onProgress: (value: number) => void) {
   const xhr = new XMLHttpRequest();
-  const promise = new Promise<WikiImage>((resolve, reject) => {
-    xhr.open('POST', `${api}/wiki/images`);
+  const promise = new Promise<T>((resolve, reject) => {
+    xhr.open(method, `${api}/wiki${path}`);
     const dat = sessionService.getDat();
     if (dat) xhr.setRequestHeader('dat', dat);
     xhr.timeout = 180_000;
@@ -84,17 +99,21 @@ function upload(file: File, description: string, sourceUrl: string, onProgress: 
     };
     const data = new FormData();
     data.append('file', file);
-    if (description.trim()) data.append('description', description.trim());
-    if (sourceUrl.trim()) data.append('sourceUrl', sourceUrl.trim());
+    for (const [key, value] of Object.entries(fields)) data.append(key, value);
     xhr.send(data);
   });
   return {promise, cancel: () => xhr.abort()};
 }
 
+function upload(file: File, description: string, sourceUrl: string, owner: WikiImageOwner, onProgress: (value: number) => void) {
+  return wikiFileRequest<WikiImage>('/images', 'POST', file, {description: description.trim(), sourceUrl: sourceUrl.trim(), ...wikiImageOwnerFields(owner)}, onProgress);
+}
+
 export const wikiRemote = {
   request, emptyBody, upload,
   access: () => request<WikiAccess>('/access'),
-  images: (page = 0, q = '', deleted = false) => request<WikiPage<WikiImage>>(`/images?page=${page}&q=${encodeURIComponent(q)}${deleted ? '&deleted=true' : ''}`),
+  images: (page = 0, q = '', deleted = false, owner?: WikiImageOwner) => request<WikiPage<WikiImage>>(`/images?page=${page}&q=${encodeURIComponent(q)}${deleted ? '&deleted=true' : ''}${owner ? `&${new URLSearchParams(wikiImageOwnerFields(owner))}` : ''}`),
+  attachImage: (id: string, owner: WikiImageOwner) => request<WikiImage>(`/images/${encodeURIComponent(id)}/attach`, 'POST', owner),
   image: (id: string) => request<WikiImage>(`/images/${encodeURIComponent(id)}`),
   animeImages: (animeNo: number, signal?: AbortSignal) => request<AnimeWikiImages>(`/anime/${animeNo}/images`, 'GET', undefined, signal),
   setAnimeThumbnail: (animeNo: number, imageId: string | null) => request<AnimeWikiImages>(`/anime/${animeNo}/thumbnail`, 'PUT', {imageId}),

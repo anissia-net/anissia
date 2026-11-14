@@ -31,17 +31,31 @@ class WikiImageController(private val images: WikiImageService) {
         @RequestParam(defaultValue = "") description: String,
         @RequestParam(defaultValue = "") sourceUrl: String,
         actor: Actor,
+        @RequestParam documentKind: String,
+        @RequestParam documentNo: Long,
     ): ResponseEntity<ApiResponse<WikiImageDto>> = ResponseEntity.ok().cacheControl(CacheControl.noStore())
-        .body(ApiResponse.ok(images.upload(file, description, sourceUrl, actor)))
+        .body(ApiResponse.ok(images.upload(file, description, sourceUrl, actor, documentKind, documentNo)))
 
     @GetMapping("/images/{id}")
     fun detail(@PathVariable id: String, actor: Actor): ResponseEntity<ApiResponse<WikiImageDto>> =
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.get(id, actor)))
 
+    @PutMapping("/images/{id}/file", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun replace(@PathVariable id: String, @RequestParam file: MultipartFile,
+                @RequestParam baseRevision: Long, @RequestParam description: String,
+                @RequestParam sourceUrl: String, actor: Actor) =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(ApiResponse.ok(images.replace(id, file, baseRevision, description, sourceUrl, actor)))
+
     @GetMapping("/images")
     fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "") q: String,
-             @RequestParam(defaultValue = "false") deleted: Boolean, actor: Actor): ResponseEntity<ApiResponse<WikiImagePage>> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.list(page, q, deleted, actor)))
+             @RequestParam(defaultValue = "false") deleted: Boolean, actor: Actor,
+             @RequestParam(required = false) documentKind: String?, @RequestParam(required = false) documentNo: Long?): ResponseEntity<ApiResponse<WikiImagePage>> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.list(page, q, deleted, actor, documentKind, documentNo)))
+
+    @PostMapping("/images/{id}/attach")
+    fun attach(@PathVariable id: String, @RequestBody request: WikiImageAttachRequest, actor: Actor) =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.ok(images.attach(id, request, actor)))
 
     @PutMapping("/images/{id}")
     fun edit(@PathVariable id: String, @RequestBody request: WikiImageEditRequest, actor: Actor) =

@@ -99,8 +99,8 @@ class AnimeRemote {
         return ajax.post(`${api}/anime/caption/${animeNo}`);
     }
 
-    public getAdminAnimeDelist(): Promise<PageData<Anime>> {
-        return ajax.fetch(`${api}/anime/delist`)
+    public getAdminAnimeDelist(page = 0): Promise<PageData<Anime>> {
+        return ajax.fetch(`${api}/anime/delist?page=${page}`)
             .then(e => e.orIgnore)
             .then(data => PageData.cast(data, Anime.assign));
     }
