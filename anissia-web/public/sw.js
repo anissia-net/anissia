@@ -1,9 +1,11 @@
+try { importScripts('/static-assets.js'); } catch (_) { self.AnissiaStaticAssets = []; }
 importScripts('/static-cache.js');
 const staticCache = self.AnissiaStaticCache.createRuntime();
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil((async () => {
   await staticCache.activate().catch(() => {});
   await self.clients.claim();
+  await staticCache.warm();
 })()));
 self.addEventListener('fetch', event => {
   if (self.AnissiaStaticCache.classify(event.request, self.location.origin)) {

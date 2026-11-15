@@ -16,7 +16,10 @@ let unavailable = false;
 const server = createServer((request, response) => {
   const url = new URL(request.url, 'http://localhost');
   hits.set(url.pathname, (hits.get(url.pathname) || 0) + 1);
-  if (url.pathname === '/sw.js' || url.pathname === '/static-cache.js') {
+  if (url.pathname === '/static-assets.js') {
+    response.writeHead(200, {'Content-Type': 'text/javascript', 'Cache-Control': 'no-cache'});
+    response.end('self.AnissiaStaticAssets = ["/assets/index-Abcd1234.js"];');
+  } else if (url.pathname === '/sw.js' || url.pathname === '/static-cache.js') {
     response.writeHead(200, {'Content-Type': 'text/javascript', 'Cache-Control': 'no-cache'});
     response.end(url.pathname === '/sw.js' ? worker : helper);
   } else if (url.pathname.startsWith('/assets/')) {
@@ -26,7 +29,7 @@ const server = createServer((request, response) => {
     const privateAsset = url.pathname.includes('private');
     const fallback = url.pathname.includes('missing');
     response.writeHead(200, {'Content-Type': fallback ? 'text/html' : 'text/javascript',
-      'Cache-Control': privateAsset ? 'private, no-store' : 'public, max-age=31536000, immutable'});
+      ...(url.pathname === '/assets/index-Abcd1234.js' ? {} : {'Cache-Control': privateAsset ? 'private, no-store' : 'public, max-age=31536000, immutable'})});
     response.end(fallback ? '<html>SPA fallback</html>' : `/* ${url.pathname} */`);
   } else if (url.pathname === '/api/account') {
     response.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
@@ -109,7 +112,7 @@ try {
     assert.equal(await evaluate(`caches.open('anissia-static-v1').then(cache => cache.match('${excluded}')).then(Boolean)`), false);
   }
   assert.equal(hits.get('/api/account'), 2);
-  const summary = {passed: true, origin, cacheHitWithoutNetwork: true, survivesWorkerRestart: true,
+  const summary = {passed: true, origin, cacheHitWithoutNetwork: true, cacheWorksWithoutHostingHeaders: true, survivesWorkerRestart: true,
     newDeploymentHashFetched: true, apiPrivateAndHtmlExcluded: true, networkHits: Object.fromEntries(hits)};
   await fs.writeFile(path.join(runtime, 'browser-result.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));

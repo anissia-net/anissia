@@ -17,16 +17,19 @@ function immutableBundleHeaders(): Plugin {
       };
       const priority = (file: string) => /\.(js|css|woff2?|ttf|otf)$/.test(file) ? 1 : 0;
       // Cloudflare permits 100 rules; prioritize code, fonts, and the largest images.
-      const files = Object.keys(bundle)
-        .filter(file => /-[A-Za-z0-9_-]{8,}\.(js|css|avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf)$/.test(file))
+      const fingerprinted = Object.keys(bundle)
+        .filter(file => /^assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(js|css|avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf)$/.test(file));
+      this.emitFile({type: 'asset', fileName: 'static-assets.js',
+        source: `self.AnissiaStaticAssets = ${JSON.stringify(fingerprinted.map(file => `/${file}`).sort())};\n`});
+      const files = fingerprinted
         .sort((left, right) => priority(right) - priority(left) || size(right) - size(left))
-        .slice(0, 100 - images.length - 5);
+        .slice(0, 100 - images.length - 6);
       this.emitFile({
         type: 'asset',
         fileName: '_headers',
         source: files.map(file => `/${file}\n  Cache-Control: public, max-age=31536000, immutable\n`).join('\n')
           + images.map(file => `\n/${file}\n  Cache-Control: public, max-age=3600\n`).join('')
-          + '\n/sw.js\n  Cache-Control: no-cache\n\n/static-cache.js\n  Cache-Control: no-cache\n\n/manifest.webmanifest\n  Cache-Control: no-cache\n'
+          + '\n/sw.js\n  Cache-Control: no-cache\n\n/static-cache.js\n  Cache-Control: no-cache\n\n/static-assets.js\n  Cache-Control: no-cache\n\n/manifest.webmanifest\n  Cache-Control: no-cache\n'
           + '\n/wiki-new.txt\n  Content-Type: text/plain; charset=utf-8\n\n/llms.txt\n  Content-Type: text/plain; charset=utf-8\n'
       });
     }

@@ -7,7 +7,7 @@ import {installStaticCache} from '../src/common/staticCache.ts';
 const origin = 'https://anissia.net';
 const source = await readFile(new URL('../public/static-cache.js', import.meta.url), 'utf8');
 const scope = {location: {origin}};
-vm.runInNewContext(source, {self: scope, URL, Headers, Response, Uint8Array, Date, Promise});
+vm.runInNewContext(source, {self: scope, URL, Headers, Request, Response, Uint8Array, Date, Promise});
 const {classify, createRuntime} = scope.AnissiaStaticCache;
 const asset = '/assets/index-Abcd1234.js';
 const request = (path = asset, options = {}) => new Request(origin + path, options);
@@ -17,19 +17,20 @@ const script = (value = 'code', headers = {}) => new Response(value, {headers: {
 
 function storage() {
   const entries = new Map();
+  const operations = {keys: 0, matches: 0};
   const cache = {
-    async match(key) { return entries.get(key.url)?.clone(); },
+    async match(key) { operations.matches++; return entries.get(key.url)?.clone(); },
     async put(key, response) { entries.set(key.url, response.clone()); },
     async delete(key) { return entries.delete(key.url); },
-    async keys() { return [...entries.keys()].map(url => new Request(url)); },
+    async keys() { operations.keys++; return [...entries.keys()].map(url => new Request(url)); },
   };
-  return {entries, async open() { return cache; }, async keys() { return ['anissia-static-v1']; }, async delete() {}};
+  return {entries, operations, async open() { return cache; }, async keys() { return ['anissia-static-v1']; }, async delete() {}};
 }
 
-function environment(response = () => script()) {
+function environment(response = () => script(), immutableAssets = []) {
   const disk = storage(), lifetime = [], fetched = [];
   let clock = 1000000;
-  const runtime = createRuntime({storage: disk, now: () => clock, fetcher: async value => {
+  const runtime = createRuntime({storage: disk, now: () => clock, immutableAssets, fetcher: async value => {
     fetched.push(value.url);
     return response(value);
   }});
@@ -104,6 +105,73 @@ test('HTTP Age and Date prevent extending an already stale server response', asy
   env.setTime(1002000);
   await env.handle();
   assert.equal(env.fetched.length, 2);
+});
+
+test('trusted build assets persist without cache headers or expiry, including reloads', async () => {
+  const env = environment(() => script('immutable', {'Cache-Control': ''}), [asset]);
+  await env.handle();
+  env.setTime(1000000 + 20 * 365 * 86400 * 1000);
+  assert.equal(await (await env.handle(request(asset, {cache: 'reload'}))).text(), 'immutable');
+  assert.equal(await (await env.handle(request(asset, {cache: 'no-cache'}))).text(), 'immutable');
+  const restarted = createRuntime({storage: env.disk, immutableAssets: [asset], now: () => 9000000000000,
+    fetcher: async () => { throw Error('offline'); }});
+  assert.equal(await (await restarted.handle(request())).text(), 'immutable');
+  assert.equal(env.fetched.length, 1);
+  await env.handle(request('/assets/index-Zyxw9876.js'));
+  assert.equal(env.fetched.length, 2, 'a new build hash still fetches');
+  await env.handle(request(asset, {cache: 'no-store'}));
+  assert.equal(env.fetched.length, 3, 'no-store requests still bypass storage');
+});
+
+test('manifest trust never overrides private/no-store/no-cache, credentials or HTML fallback', async () => {
+  for (const response of [
+    script('private', {'Cache-Control': 'private'}), script('private', {'Cache-Control': 'no-store'}),
+    script('revalidate', {'Cache-Control': 'no-cache'}), script('account', {'Vary': 'Cookie'}),
+    script('<html>fallback</html>', {'Content-Type': 'text/html', 'Cache-Control': ''}),
+  ]) {
+    const env = environment(() => response.clone(), [asset]);
+    await env.handle(); await env.handle();
+    assert.equal(env.disk.entries.size, 0);
+    assert.equal(env.fetched.length, 2);
+  }
+  const env = environment(() => script('private', {'Cache-Control': ''}), [asset, '/api/account']);
+  await env.handle(request(asset, {headers: {Authorization: 'Bearer private'}}));
+  await env.handle(request('/api/account'));
+  assert.equal(env.disk.entries.size, 0);
+});
+
+test('every listed image and font can persist without a scarce hosting header rule', async () => {
+  for (const [path, type] of [['/assets/logo-Abcd1234.svg', 'image/svg+xml'], ['/assets/font-Abcd1234.woff2', 'font/woff2']]) {
+    const env = environment(() => new Response('bytes', {headers: {'Content-Type': type, 'Cache-Control': 'public, max-age=0, must-revalidate'}}), [path]);
+    await env.handle(request(path)); await env.handle(request(path));
+    assert.equal(env.fetched.length, 1);
+    assert.equal(env.disk.entries.size, 1);
+  }
+});
+
+test('activation warms only current public code and fonts without account credentials', async () => {
+  const paths = [asset, '/assets/style-Abcd1234.css', '/assets/font-Abcd1234.woff2', '/assets/image-Abcd1234.svg'];
+  const fetched = [];
+  const disk = storage();
+  const runtime = createRuntime({storage: disk, immutableAssets: paths, fetcher: async value => {
+    fetched.push({url: value.url, credentials: value.credentials});
+    return new Response('bytes', {headers: {'Content-Type': value.url.endsWith('.js') ? 'text/javascript'
+      : value.url.endsWith('.css') ? 'text/css' : 'font/woff2'}});
+  }});
+  await runtime.warm();
+  assert.deepEqual(fetched.map(value => value.url), paths.slice(0, 3).map(path => origin + path));
+  assert.ok(fetched.every(value => value.credentials === 'omit'));
+  assert.equal(disk.entries.size, 3);
+});
+
+test('cache writes scan disk metadata once and retain the current deployment when bounded', async () => {
+  const env = environment(() => script(), [asset]);
+  await env.handle();
+  for (let index = 0; index < 520; index++) await env.handle(request(`/assets/old-${String(index).padStart(8, '0')}.js`));
+  assert.equal(env.disk.operations.keys, 1);
+  assert.ok(env.disk.operations.matches <= 522, 'cache saves do not repeatedly re-read every existing response');
+  assert.ok(env.disk.entries.size <= 512);
+  assert.ok(env.disk.entries.has(origin + asset), 'current manifest assets survive older deployment eviction');
 });
 
 test('cache storage failures never prevent downloading an asset', async () => {

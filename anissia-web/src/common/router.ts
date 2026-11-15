@@ -5,6 +5,7 @@ import {whenIdle} from './idle'
 import {legacyWikiHistoryLocation} from '../domain/wiki/wikiLocation'
 import {legacyDetailLocation} from './detailLocation'
 import {delegateMobileNavigation} from './mobileBridge'
+import {createAnalytics} from './analytics'
 
 const siteLayout = () => import('../page/site/layout.vue')
 
@@ -49,8 +50,7 @@ const adminSearch = () => import('../page/admin/search.vue')
 const defaultTitle = import.meta.env.VITE_TITLE;
 const trackingId = import.meta.env.VITE_GA_TRACKING_ID;
 
-(window as any)['dataLayer'] = (window as any)['dataLayer'] || [];
-(window as any)['gtag'] = function() { (window as any)['dataLayer'].push(arguments); }
+const analytics = createAnalytics(trackingId, whenIdle);
 
 const router = createRouter({
   history: createWebHistory(),
@@ -119,6 +119,7 @@ const router = createRouter({
 });
 
 router.beforeEach(to => {
+  analytics.beforeNavigation(to.fullPath);
   if (delegateMobileNavigation(to.fullPath)) return false;
   if (to.path === '/anime' && (to.query.type === 'templates' || to.query.type === 'images')) {
     const {type, animeNo, ...query} = to.query;
@@ -168,26 +169,13 @@ export function installNoteNavigation() {
 }
 
 export function installAnalytics() {
-  if (!trackingId) return;
-  const load = () => whenIdle(() => {
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(trackingId)}`;
-    document.head.append(script);
-  });
-  if (document.readyState === 'complete') load();
-  else addEventListener('load', load, {once: true});
+  analytics.install();
 }
 
 router.afterEach((to, from) => {
   // @ts-ignore
   document.title = to.meta.title || defaultTitle;
-  const path = to.fullPath.indexOf('#') == -1 ? to.fullPath : to.fullPath.substring(0, to.fullPath.indexOf('#'));
-
-  const gtag = (window as any).gtag;
-  gtag('set', 'title', document.title);
-  gtag('js', new Date());
-  gtag('config', trackingId, {'page_path': path});
+  analytics.page(to.fullPath, document.title);
 });
 
 export default router;

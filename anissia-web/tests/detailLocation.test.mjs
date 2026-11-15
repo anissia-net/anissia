@@ -29,6 +29,7 @@ test('push notifications accept current and old links, while keeping their same-
   const worker = {location: {origin: 'https://anissia.net'}, addEventListener() {}, fetch};
   const context = {self: worker, URL, Headers, Response};
   context.importScripts = path => {
+    if (path === '/static-assets.js') { worker.AnissiaStaticAssets = []; return; }
     assert.equal(path, '/static-cache.js');
     runInNewContext(readFileSync(new URL('../public/static-cache.js', import.meta.url), 'utf8'), context);
   };
