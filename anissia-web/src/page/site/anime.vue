@@ -91,7 +91,7 @@
         </div>
         <div class="anime-list">
           <div v-for="node in list.content" :key="node.animeNo" class="as-card p-3.5 flex items-start gap-2.5">
-            <img v-if="node.thumbnail" :src="node.thumbnail" alt="" width="60" height="60" loading="lazy" decoding="async" class="w-15 h-15 mt-1 shrink-0 rounded-ctl object-cover"/>
+            <AnimeThumbnail v-if="node.thumbnail" :src="node.thumbnail" :width="60" :height="60" class="mt-1"/>
             <div class="min-w-0 flex-1">
               <div class="text-md font-semibold leading-5 text-ink">
                 <router-link :to="toAnimeViewUrl(node.animeNo)" class="hover:text-brand transition-colors">{{node.subject}}</router-link>
@@ -125,6 +125,7 @@
 import {nextTick, onActivated, onDeactivated, onUnmounted, Ref, ref} from "vue";
 import PageData from "../../common/PageData";
 import Anime from "../../domain/anime/Anime";
+import AnimeThumbnail from "../../domain/anime/AnimeThumbnail.vue";
 import WikiNavigation from "../../domain/wiki/WikiNavigation.vue";
 import animeRemote from "../../domain/anime/remote/animeRemote";
 import AnimeAutocorrect from "../../domain/anime/AnimeAutocorrect";

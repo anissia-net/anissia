@@ -77,7 +77,7 @@ class ImageConverterTest {
     }
 
     @Test
-    fun `thumbnail crops the long side at center and produces an opaque 64 square`() {
+    fun `thumbnail preserves the long side and transparent edges within 64 pixels`() {
         requireConverter()
         val converter = ImageConverter(settings)
         for ((width, height) in listOf(300 to 100, 100 to 300)) {
@@ -86,12 +86,28 @@ class ImageConverterTest {
                 val center = if (width > height) x in 100 until 200 else y in 100 until 200
                 image.setRGB(x, y, if (center) 0xff00ff00.toInt() else 0x00ff0000)
             }
-            val input = directory.resolve("crop-$width.png")
+            val input = directory.resolve("fit-$width.png")
             ImageIO.write(image, "png", input.toFile())
-            val result = converter.convertThumbnail(input, directory.resolve("crop-$width.avif"))
-            assertEquals(64, result.width)
-            assertEquals(64, result.height)
+            val result = converter.convertThumbnail(input, directory.resolve("fit-$width.avif"))
+            assertEquals(if (width > height) 64 else 21, result.width)
+            assertEquals(if (height > width) 64 else 21, result.height)
             assertEquals(1, result.frames)
+            assertTrue(result.hasAlpha)
+        }
+    }
+
+    @Test
+    fun `thumbnail keeps small images and handles square and very narrow images`() {
+        requireConverter()
+        val converter = ImageConverter(settings)
+        for ((inputSize, expected) in listOf((24 to 18) to (24 to 18), (300 to 300) to (64 to 64),
+                (1 to 1200) to (1 to 64), (1200 to 1) to (64 to 1))) {
+            val (width, height) = inputSize
+            val input = directory.resolve("$width-$height.png")
+            ImageIO.write(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", input.toFile())
+            val result = converter.convertThumbnail(input, directory.resolve("$width-$height.avif"))
+            assertEquals(expected.first, result.width)
+            assertEquals(expected.second, result.height)
             assertFalse(result.hasAlpha)
         }
     }
@@ -99,8 +115,8 @@ class ImageConverterTest {
     @Test
     fun `animated thumbnail contains only first frame and preserves transparency`() {
         requireConverter()
-        val result = ImageConverter(settings).convertThumbnail(gif(2), directory.resolve("thumbnail.avif"))
-        assertEquals(64, result.width)
+        val result = ImageConverter(settings).convertThumbnail(gif(2, 101, 301), directory.resolve("thumbnail.avif"))
+        assertEquals(21, result.width)
         assertEquals(64, result.height)
         assertEquals(1, result.frames)
         assertEquals(0L, result.durationMillis)

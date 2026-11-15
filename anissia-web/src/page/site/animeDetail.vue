@@ -18,7 +18,7 @@
           </div>
 
           <div class="flex items-start gap-4 mt-4">
-            <img v-if="anime.thumbnail" :src="anime.thumbnail" alt="" width="64" height="64" decoding="async" class="w-16 h-16 shrink-0 rounded-ctl object-cover"/>
+            <AnimeThumbnail v-if="anime.thumbnail" :src="anime.thumbnail" loading="eager"/>
             <div class="min-w-0">
               <h1 id="anime-title" class="as-page-title">{{anime.subject}}</h1>
               <div v-if="anime.originalSubject" class="as-desc mt-1.5" lang="ja">{{anime.originalSubject}}</div>
@@ -73,6 +73,7 @@
 import {onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import Anime from '../../domain/anime/Anime';
+import AnimeThumbnail from '../../domain/anime/AnimeThumbnail.vue';
 import NotificationButton from '../../domain/notification/NotificationButton.vue';
 import WikiSection from '../../domain/wiki/WikiSection.vue';
 import {wikiHistoryLocation} from '../../domain/wiki/wikiLocation';

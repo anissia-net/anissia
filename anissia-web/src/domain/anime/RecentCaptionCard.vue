@@ -1,7 +1,7 @@
 <template>
-  <div class="as-card p-3.5 flex items-start gap-3">
-    <router-link v-if="caption.thumbnail" :to="`/anime/${caption.animeNo}`" class="mt-[0.0625rem] shrink-0 rounded-ctl" :aria-label="`${caption.subject} 작품 정보`">
-      <img :src="caption.thumbnail" alt="" width="48" height="48" loading="lazy" decoding="async" class="w-12 h-12 rounded-ctl object-cover"/>
+  <div class="as-card p-3.5 flex items-center gap-3">
+    <router-link v-if="caption.thumbnail" :to="`/anime/${caption.animeNo}`" class="shrink-0 rounded-ctl" :aria-label="`${caption.subject} 작품 정보`">
+      <AnimeThumbnail :src="caption.thumbnail" :width="48" :height="64"/>
     </router-link>
     <div class="min-w-0 flex-1">
       <div class="text-md font-semibold leading-5 text-ink truncate">
@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import AnimeCaption from "./AnimeCaption";
+import AnimeThumbnail from "./AnimeThumbnail.vue";
 
 defineProps<{caption: AnimeCaption}>();
 </script>

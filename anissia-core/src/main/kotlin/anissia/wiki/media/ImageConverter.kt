@@ -152,11 +152,11 @@ open class ImageConverter(private val settings: MediaSettings = MediaSettings())
     }
 
     private fun dimensions(info: ImageInfo, thumbnail: Boolean): Pair<Int, Int> {
-        if (thumbnail) return 64 to 64
+        val limit = if (thumbnail) 64 else 512
         val largest = maxOf(info.width, info.height)
-        var width = if (largest > 512) (info.width.toLong() * 512 / largest).toInt().coerceAtLeast(1) else info.width
-        var height = if (largest > 512) (info.height.toLong() * 512 / largest).toInt().coerceAtLeast(1) else info.height
-        if (info.animated && width > 1 && height > 1) {
+        var width = if (largest > limit) (info.width.toLong() * limit / largest).toInt().coerceAtLeast(1) else info.width
+        var height = if (largest > limit) (info.height.toLong() * limit / largest).toInt().coerceAtLeast(1) else info.height
+        if (!thumbnail && info.animated && width > 1 && height > 1) {
             width = width and -2
             height = height and -2
         }
@@ -167,14 +167,13 @@ open class ImageConverter(private val settings: MediaSettings = MediaSettings())
                                   width: Int, height: Int, thumbnail: Boolean): List<String> {
         val info = source.info
         val animated = info.animated && !thumbnail
-        val crop = if (thumbnail) "crop=${minOf(info.width, info.height)}:${minOf(info.width, info.height)}:exact=1," else ""
-        val resize = "${crop}scale=$width:$height:flags=lanczos+accurate_rnd:out_color_matrix=bt709:out_range=full,setsar=1"
+        val resize = "scale=$width:$height:flags=lanczos+accurate_rnd:out_color_matrix=bt709:out_range=full,setsar=1"
         val base = (source.alphaStream?.let { "[0:${source.colorStream}][0:$it]alphamerge," }
             ?: "[0:${source.colorStream}]") + plan.filter(source.timings)
         val format = if (!animated) "yuv444p10le" else if (width > 1 && height > 1) "yuv420p10le" else "yuv444p"
         val color = "$resize,format=$format,setparams=color_primaries=${source.primaries}:color_trc=${source.transfer}:colorspace=bt709:range=full"
         val filters = if (info.hasAlpha) {
-            "${base}split[color][alpha];[color]$color[c];[alpha]format=rgba64le,alphaextract,${crop}scale=$width:$height:flags=lanczos+accurate_rnd,format=gray10le,setparams=colorspace=bt709:range=full[a]"
+            "${base}split[color][alpha];[color]$color[c];[alpha]format=rgba64le,alphaextract,scale=$width:$height:flags=lanczos+accurate_rnd,format=gray10le,setparams=colorspace=bt709:range=full[a]"
         } else "$base$color[c]"
         return command(false).apply {
             if (source.codec == "av1") addAll(listOf("-c:v", "libdav1d"))

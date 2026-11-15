@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex flex-wrap items-center gap-4">
-      <img v-if="thumbnail" :src="displayThumbnail(thumbnail)" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
+      <AnimeThumbnail v-if="thumbnail" :src="displayThumbnail(thumbnail)" alt="현재 썸네일"/>
       <span v-else class="as-meta">썸네일이 없습니다.</span>
       <button type="button" class="as-input-btn py-2" @click="open">위키에서 이미지 선택</button>
     </div>
@@ -12,7 +12,7 @@
           <h2 :id="headingId" class="as-section-title">위키 이미지에서 썸네일 선택</h2>
           <button type="button" class="as-input-btn px-3 py-1" :disabled="saving" @click="close">닫기</button>
         </div>
-        <p class="as-desc mb-4">이 작품의 위키와 포함된 템플릿에 있는 업로드 이미지 중에서 선택하세요. 긴 쪽의 양 끝을 잘라 가운데를 64 × 64로 표시합니다.</p>
+        <p class="as-desc mb-4">이 작품의 위키와 포함된 템플릿에 있는 업로드 이미지 중에서 선택하세요. 원본 비율을 유지해 전체 이미지를 표시하며, 남는 공간은 배경색으로 채웁니다.</p>
         <p v-if="loading" class="as-empty" role="status">위키 이미지를 불러오는 중입니다.</p>
         <div v-else-if="loadError" class="space-y-2 mb-4">
           <p class="text-sm text-red-600" role="alert">{{loadError}}</p>
@@ -20,7 +20,7 @@
         </div>
         <template v-else>
           <div v-if="currentThumbnail" class="flex items-center gap-3 mb-4 border-b border-line pb-4">
-            <img :src="displayThumbnail(currentThumbnail)" alt="현재 썸네일" width="64" height="64" class="w-16 h-16 rounded-ctl object-cover"/>
+            <AnimeThumbnail :src="displayThumbnail(currentThumbnail)" alt="현재 썸네일"/>
             <div><p class="text-sm">현재 썸네일</p><p v-if="!currentInImages" class="as-meta mt-1">현재 위키에서 제거된 이미지입니다. 새 이미지를 선택할 수 있습니다.</p></div>
           </div>
           <fieldset :disabled="saving" class="space-y-3">
@@ -32,7 +32,7 @@
             <div v-if="images.length" class="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
               <label v-for="(image, index) in images" :key="image.id" class="thumbnail-choice flex items-center gap-3 p-3" :class="{'is-selected': selected === image.id}">
                 <input v-model="selected" type="radio" :name="headingId" :value="image.id" :aria-label="image.description || `위키 이미지 ${index + 1}`"/>
-                <img :src="wikiImageDisplayUrl(image.thumbnailUrl!, image.revision)" alt="" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 shrink-0 rounded-ctl object-cover"/>
+                <AnimeThumbnail :src="wikiImageDisplayUrl(image.thumbnailUrl!, image.revision)"/>
                 <span class="min-w-0 text-sm break-words">{{image.description || `위키 이미지 ${index + 1}`}}</span>
               </label>
             </div>
@@ -59,6 +59,7 @@ import {computed, nextTick, onBeforeUnmount, ref, useId} from 'vue';
 import toast from '../../common/toast';
 import {wikiRemote, wikiErrorMessage, type AnimeWikiImages, type WikiImage} from '../wiki/wikiRemote';
 import {wikiImageDisplayUrl} from '../wiki/wikiImageVersion';
+import AnimeThumbnail from './AnimeThumbnail.vue';
 import '../wiki/wiki.pcss';
 
 const props = defineProps<{animeNo: number; thumbnail: string | null}>();

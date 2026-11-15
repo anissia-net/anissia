@@ -5,7 +5,7 @@
       <ol class="divide-y divide-line">
         <li v-for="item in items" :key="`${item.kind}:${item.targetNo}:${item.revision}`" class="p-4 cq-md:p-5 flex items-start gap-3">
           <router-link v-if="item.thumbnail" :to="wikiLocation(item)" class="shrink-0" :aria-label="item.title">
-            <img :src="item.thumbnail" alt="" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 rounded-ctl object-cover"/>
+            <AnimeThumbnail :src="item.thumbnail"/>
           </router-link>
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -28,6 +28,7 @@
 import {onBeforeUnmount, ref, watch} from 'vue';
 import {sessionStore} from '../../domain/session/sessionStore';
 import WikiNavigation from '../../domain/wiki/WikiNavigation.vue';
+import AnimeThumbnail from '../../domain/anime/AnimeThumbnail.vue';
 import WikiInfiniteScroll from '../../domain/wiki/WikiInfiniteScroll.vue';
 import {wikiDate, wikiErrorMessage, wikiLocation, wikiRemote, type WikiPage, type WikiRecent} from '../../domain/wiki/wikiRemote';
 const session = sessionStore();
