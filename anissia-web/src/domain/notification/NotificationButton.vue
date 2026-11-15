@@ -14,6 +14,7 @@ import {sessionStore} from '../session/sessionStore';
 import sessionService from '../session/remote/sessionService';
 import Session from '../session/Session';
 import {ensurePushSubscription, requestBrowserPushPermission} from '../push/pushSubscription';
+import {enableNativePush, nativePushSupported} from '../push/nativePushDevice';
 import {notificationStore} from './notificationStore';
 import toast from '../../common/toast';
 
@@ -43,10 +44,19 @@ async function toggle() {
     if (!isCurrent()) throw new Error('로그인 정보가 변경되었습니다. 페이지를 새로고침해 주세요.');
     // Start the native prompt in this click, before the work save can yield.
     // Handle rejection immediately even if saving the work fails first.
-    const permission = !enabled.value
+    const enabling = !enabled.value;
+    const native = nativePushSupported();
+    const permission = enabling && !native
       ? requestBrowserPushPermission().then(value => ({value, error: null}), error => ({value: null, error}))
       : null;
     await notifications.toggle(animeNo);
+    if (native && enabling && isCurrent() && notifications.isEnabled(animeNo)) {
+      const state = await enableNativePush(account, dat, isCurrent);
+      if (isCurrent() && state.permission === 'denied') {
+        toast.error('앱 알림이 차단되어 있습니다. Android 설정에서 애니시아 알림을 허용해 주세요.');
+      }
+      return;
+    }
     if (!permission || !isCurrent() || !notifications.isEnabled(animeNo)) return;
     const result = await permission;
     if (!isCurrent() || !notifications.isEnabled(animeNo)) return;

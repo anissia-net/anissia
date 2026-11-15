@@ -1,6 +1,15 @@
-// Notification-only service worker. Intentionally no fetch handler or cache.
+importScripts('/static-cache.js');
+const staticCache = self.AnissiaStaticCache.createRuntime();
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
-self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+self.addEventListener('activate', event => event.waitUntil((async () => {
+  await staticCache.activate().catch(() => {});
+  await self.clients.claim();
+})()));
+self.addEventListener('fetch', event => {
+  if (self.AnissiaStaticCache.classify(event.request, self.location.origin)) {
+    event.respondWith(staticCache.handle(event.request, promise => event.waitUntil(promise)));
+  }
+});
 
 function readBinding() {
   return new Promise(resolve => {

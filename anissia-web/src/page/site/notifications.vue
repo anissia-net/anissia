@@ -29,6 +29,7 @@
       </section>
 
       <section v-show="activeTab === 'settings'" id="notification-panel-settings" role="tabpanel" aria-labelledby="notification-tab-settings" tabindex="0">
+        <NativeNotificationSettings/>
         <p class="as-desc notifications-settings-description">작품의 ‘알림 받기’를 누르면 새 자막 소식을 알려드립니다.</p>
         <div v-if="notifications.error" class="as-box notifications-error" role="alert">
           <p class="text-danger text-sm">{{notifications.error}}</p>
@@ -81,6 +82,7 @@ import {notificationStore, type NotificationItem} from '../../domain/notificatio
 import {notificationInboxStore, type NotificationInboxItem} from '../../domain/notification/notificationInboxStore';
 import NotificationButton from '../../domain/notification/NotificationButton.vue';
 import NotificationInboxList from '../../domain/notification/NotificationInboxList.vue';
+import NativeNotificationSettings from '../../domain/notification/NativeNotificationSettings.vue';
 
 const session = sessionStore();
 const notifications = notificationStore();

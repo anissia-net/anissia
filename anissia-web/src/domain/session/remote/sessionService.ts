@@ -6,6 +6,7 @@ import Result from "../../../common/Result";
 import {Router} from "vue-router";
 import {cookies, Locate} from "raon";
 import {clearPushDevice} from '../../push/pushDevice';
+import {clearNativePush} from '../../push/nativePushDevice';
 import toast from '../../../common/toast';
 
 class SessionService {
@@ -41,8 +42,9 @@ class SessionService {
         const dat = this.getDat();
         const owner = sessionStore().user.email;
         sessionStore().setUser(Session.notLogin());
-        this.logoutRequest = clearPushDevice(dat)
-            .catch(error => toast.error(error instanceof Error ? error.message : '브라우저 알림 해제를 확인해 주세요.'))
+        this.logoutRequest = Promise.all([clearNativePush(dat), clearPushDevice(dat)])
+            .then(() => {})
+            .catch(error => toast.error(error instanceof Error ? error.message : '이 기기의 알림 해제를 확인해 주세요.'))
             .finally(() => {
                 // A delayed logout must not erase a newer sign-in in another tab.
                 if (this.getDat() === dat || (owner && Session.assign(this.getDat()).email === owner)) {

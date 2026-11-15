@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {classifyMobileNavigation, delegateMobileNavigation, installMobileBridge, mobilePageReady, notifyMobileColorMode, registerMobileBackHandler} from '../src/common/mobileBridge.ts';
+import {classifyMobileNavigation, delegateMobileNavigation, installMobileBridge, mobilePageReady, notifyMobileColorMode, registerMobileBackHandler, nativeNotificationsSupported, requestMobileNotifications} from '../src/common/mobileBridge.ts';
 
 const origin = 'https://anissia.net';
 const config = app => ({version: 1, app, origin, colorMode: 'light'});
@@ -28,11 +28,11 @@ test('browser fallback flags delegate schedule navigation without changing unrel
   }
 });
 
-test('anissia delegates the schedule subtree without swallowing similarly named site paths', () => {
-  for (const path of ['/schedule', '/schedule/', '/schedule/2026#theme', '/schedule/2015/', '/schedule/2009', '/schedule/unknown']) {
+test('anissia keeps the introduction inside and delegates schedule views', () => {
+  for (const path of ['/schedule/2026#theme', '/schedule/2015/', '/schedule/2009', '/schedule/unknown']) {
     assert.equal(classifyMobileNavigation(path, config('anissia')).action, 'delegate', path);
   }
-  for (const path of ['/', '/anime/1?q=2#section', '/wiki/images', '/admin/schedule', '/scheduler', '/schedule-extra']) {
+  for (const path of ['/', '/schedule', '/schedule/', '/schedule?preview=1#customize', '/anime/1?q=2#section', '/wiki/images', '/admin/schedule', '/scheduler', '/schedule-extra']) {
     assert.equal(classifyMobileNavigation(path, config('anissia')).action, 'internal', path);
   }
 });
@@ -135,6 +135,20 @@ test('blank targets and window.open use the same policy without creating extra w
   } finally { env.restore(); }
 });
 
+test('introduction clicks and new windows stay inside Anissia', () => {
+  const env = environment(config('anissia'));
+  try {
+    env.messages.length = 0;
+    assert.equal(delegateMobileNavigation('/schedule'), false);
+    assert.equal(env.click(origin + '/schedule').defaultPrevented, false);
+    assert.equal(env.click(origin + '/schedule/', '_blank').stopped, true);
+    assert.equal(env.view.open('/schedule#customize', '_blank'), null);
+    assert.deepEqual(env.navigation, ['/schedule/', '/schedule#customize']);
+    assert.deepEqual(env.messages, []);
+    assert.deepEqual(env.opened, []);
+  } finally { env.restore(); }
+});
+
 test('browser fallback links are intercepted before WebView or SPA navigation', () => {
   const env = environment(config('schedule'));
   try {
@@ -185,4 +199,61 @@ test('native back closes the latest active popup before falling through to brows
     open = true;
     assert.equal(env.view.__anissiaMobileBack(), false);
   } finally { unregister(); env.restore(); }
+});
+
+const notificationConfig = () => ({...config('anissia'), nativeNotifications: true, notificationNonce: 'document-nonce-for-native-rpc'});
+const notificationState = () => ({supported: true, configured: true, permission: 'granted', enabled: true, clientId: 'device-client'});
+
+test('native notification requests require an Anissia capability and the main document nonce', async () => {
+  for (const value of [config('anissia'), {...notificationConfig(), app: 'schedule'}, {...notificationConfig(), notificationNonce: ''}]) {
+    const env = environment(value);
+    try {
+      assert.equal(nativeNotificationsSupported(), false);
+      await assert.rejects(requestMobileNotifications('status'), /사용할 수 없습니다/);
+      assert.equal(env.messages.some(message => message.type === 'notifications'), false);
+    } finally { env.restore(); }
+  }
+});
+
+test('native notification replies correlate requests and cannot override the document nonce', async () => {
+  const env = environment(notificationConfig());
+  try {
+    const first = requestMobileNotifications('status', {nonce: 'untrusted', requestId: 'untrusted', action: 'bind'});
+    const firstMessage = env.messages.at(-1);
+    const second = requestMobileNotifications('requestPermission');
+    const secondMessage = env.messages.at(-1);
+    assert.equal(firstMessage.action, 'status');
+    assert.equal(firstMessage.nonce, notificationConfig().notificationNonce);
+    assert.notEqual(firstMessage.requestId, 'untrusted');
+    assert.notEqual(firstMessage.requestId, secondMessage.requestId);
+    env.view.__anissiaMobileNotificationReply({requestId: 'unknown', ok: true, state: notificationState()});
+    env.view.__anissiaMobileNotificationReply({requestId: secondMessage.requestId, ok: true, state: {...notificationState(), permission: 'denied'}});
+    env.view.__anissiaMobileNotificationReply({requestId: firstMessage.requestId, ok: true, state: notificationState()});
+    assert.equal((await first).permission, 'granted');
+    assert.equal((await second).permission, 'denied');
+  } finally { env.restore(); }
+});
+
+test('native errors and malformed responses reject instead of activating notifications', async () => {
+  const env = environment(notificationConfig());
+  try {
+    const request = requestMobileNotifications('bind');
+    env.view.__anissiaMobileNotificationReply({requestId: env.messages.at(-1).requestId, ok: false, error: 'stale binding'});
+    await assert.rejects(request, /stale binding/);
+    const malformed = requestMobileNotifications('status');
+    env.view.__anissiaMobileNotificationReply({requestId: env.messages.at(-1).requestId, ok: true, state: {...notificationState(), permission: 'unknown'}});
+    await assert.rejects(malformed, /확인하지 못했습니다/);
+  } finally { env.restore(); }
+});
+
+test('native notification status exposes only credential presence and drops unexpected secret fields', async () => {
+  const env = environment(notificationConfig());
+  try {
+    const request = requestMobileNotifications('status');
+    env.view.__anissiaMobileNotificationReply({requestId: env.messages.at(-1).requestId, ok: true,
+      state: {...notificationState(), hasRefreshSecret: true, refreshSecret: 'must-not-be-returned'}});
+    const state = await request;
+    assert.equal(state.hasRefreshSecret, true);
+    assert.equal('refreshSecret' in state, false);
+  } finally { env.restore(); }
 });

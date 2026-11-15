@@ -9,6 +9,7 @@ import {useRouter} from "vue-router";
 import {sessionStore} from "./domain/session/sessionStore";
 import {onBeforeMount, onUnmounted, watch} from "vue";
 import {syncPushOwner} from './domain/push/pushDevice';
+import {syncNativePush} from './domain/push/nativePushDevice';
 import Session from './domain/session/Session';
 import toast from './common/toast';
 import {onSaveShortcut} from './common/saveShortcut';
@@ -20,10 +21,14 @@ theme.apply()
 
 function syncNotifications() {
   const owner = session.user.isLogin ? session.user.email : '';
-  return syncPushOwner(owner, () => {
+  const isCurrent = () => {
     const cookie = Session.assign(sessionService.getDat());
     return owner === (cookie.isLogin ? cookie.email : '');
-  }).catch(error => toast.error(error instanceof Error ? error.message : '브라우저 알림 설정을 확인해 주세요.'));
+  };
+  return Promise.all([
+    syncPushOwner(owner, isCurrent),
+    syncNativePush(owner, sessionService.getDat(), isCurrent).catch(() => null),
+  ]).catch(error => toast.error(error instanceof Error ? error.message : '기기 알림 설정을 확인해 주세요.'));
 }
 
 watch(() => session.user.email, () => {
@@ -53,12 +58,18 @@ const onFocus = () => { void sync(); };
 onBeforeMount(() => {
   timer = setInterval(onFocus, 60000);
   window.addEventListener('focus', onFocus);
+  window.addEventListener('anissia-mobile-ready', onFocus);
+  window.addEventListener('anissia-mobile-notifications-changed', onFocus);
+  window.addEventListener('anissia-mobile-resumed', onFocus);
   document.addEventListener('keydown', onSaveShortcut);
   void sync();
 });
 onUnmounted(() => {
   clearInterval(timer);
   window.removeEventListener('focus', onFocus);
+  window.removeEventListener('anissia-mobile-ready', onFocus);
+  window.removeEventListener('anissia-mobile-notifications-changed', onFocus);
+  window.removeEventListener('anissia-mobile-resumed', onFocus);
   document.removeEventListener('keydown', onSaveShortcut);
 });
 </script>

@@ -26,8 +26,12 @@ test('list routes, unrelated routes and malformed identifiers are left alone', (
 });
 
 test('push notifications accept current and old links, while keeping their same-origin boundary', () => {
-  const worker = {location: {origin: 'https://anissia.net'}, addEventListener() {}};
-  const context = {self: worker, URL};
+  const worker = {location: {origin: 'https://anissia.net'}, addEventListener() {}, fetch};
+  const context = {self: worker, URL, Headers, Response};
+  context.importScripts = path => {
+    assert.equal(path, '/static-cache.js');
+    runInNewContext(readFileSync(new URL('../public/static-cache.js', import.meta.url), 'utf8'), context);
+  };
   runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), context);
   for (const value of ['/anime/123', '/anime?animeNo=123', 'https://anissia.net/anime/123?q=test']) {
     assert.equal(context.targetUrl(value), 'https://anissia.net/anime/123');

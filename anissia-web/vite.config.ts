@@ -10,12 +10,23 @@ function immutableBundleHeaders(): Plugin {
     generateBundle(_, bundle) {
       // Match only real, fingerprinted bundles. An /assets/* rule would also
       // give the SPA's HTML fallback a one-year TTL for missing asset URLs.
-      const files = Object.keys(bundle).filter(file => /\.(js|css)$/.test(file));
+      const images = ['favicon.ico', 'favicon.png', 'app-icon.svg', 'app-icon-192.png', 'app-icon-512.png', 'apple-touch-icon.png', 'push-icon.svg'];
+      const size = (file: string) => {
+        const output = bundle[file];
+        return output.type === 'chunk' ? output.code.length : output.source.length;
+      };
+      const priority = (file: string) => /\.(js|css|woff2?|ttf|otf)$/.test(file) ? 1 : 0;
+      // Cloudflare permits 100 rules; prioritize code, fonts, and the largest images.
+      const files = Object.keys(bundle)
+        .filter(file => /-[A-Za-z0-9_-]{8,}\.(js|css|avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf)$/.test(file))
+        .sort((left, right) => priority(right) - priority(left) || size(right) - size(left))
+        .slice(0, 100 - images.length - 5);
       this.emitFile({
         type: 'asset',
         fileName: '_headers',
         source: files.map(file => `/${file}\n  Cache-Control: public, max-age=31536000, immutable\n`).join('\n')
-          + '\n/sw.js\n  Cache-Control: no-cache\n\n/manifest.webmanifest\n  Cache-Control: no-cache\n'
+          + images.map(file => `\n/${file}\n  Cache-Control: public, max-age=3600\n`).join('')
+          + '\n/sw.js\n  Cache-Control: no-cache\n\n/static-cache.js\n  Cache-Control: no-cache\n\n/manifest.webmanifest\n  Cache-Control: no-cache\n'
           + '\n/wiki-new.txt\n  Content-Type: text/plain; charset=utf-8\n\n/llms.txt\n  Content-Type: text/plain; charset=utf-8\n'
       });
     }

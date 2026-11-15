@@ -8,6 +8,7 @@ import {installEdgeLight} from "./common/edgeLight";
 import AsIcon from "./common/icon/AsIcon.vue";
 import {installNoteMotion} from './common/noteMotion';
 import {installMobileBridge, mobilePageReady} from './common/mobileBridge';
+import {installStaticCache} from './common/staticCache';
 
 const __origin = location.origin;
 const __server_list = ['https://anissia.net', 'https://test.anissia.net', 'http://localhost', 'http://192.', 'http://172.', 'http://10.'];
@@ -32,3 +33,4 @@ installPrefetch();
 installNoteNavigation();
 installNoteMotion();
 installAnalytics();
+if (import.meta.env.PROD) installStaticCache();

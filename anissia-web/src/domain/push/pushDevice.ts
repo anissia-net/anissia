@@ -1,3 +1,5 @@
+import {nativeNotificationsSupported} from '../../common/mobileBridge';
+
 // Kept independent of the session/ajax modules so logout can revoke this device
 // with the old credentials, without a circular session -> ajax -> session import.
 export interface PushBinding { clientId: string; owner: string }
@@ -6,7 +8,7 @@ const api = import.meta.env.VITE_API_PATH;
 const database = 'anissia-push';
 
 export function pushSupported(): boolean {
-  return window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  return !nativeNotificationsSupported() && window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
 export function needsHomeScreen(): boolean {

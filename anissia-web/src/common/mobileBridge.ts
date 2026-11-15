@@ -4,6 +4,27 @@ export interface MobileConfiguration {
   app: 'anissia' | 'schedule';
   origin: string;
   colorMode: MobileColorMode;
+  nativeNotifications?: boolean;
+  notificationNonce?: string;
+}
+export interface MobileNotificationState {
+  supported: boolean;
+  configured: boolean;
+  permission: NotificationPermission;
+  enabled: boolean;
+  clientId: string;
+  token?: string;
+  owner?: string;
+  bindingId?: string;
+  hasRefreshSecret?: boolean;
+  refreshSecretVersion?: string;
+}
+export type MobileNotificationAction = 'status' | 'requestPermission' | 'bind' | 'revoke';
+interface MobileNotificationReply {
+  requestId: string;
+  ok: boolean;
+  state?: MobileNotificationState;
+  error?: string;
 }
 export interface MobileNavigation {
   action: 'internal' | 'delegate' | 'block';
@@ -17,6 +38,7 @@ declare global {
     __anissiaMobileWebBridgeVersion?: number;
     __anissiaMobileApplyColorMode?: (mode: MobileColorMode) => void;
     __anissiaMobileBack?: () => boolean;
+    __anissiaMobileNotificationReply?: (reply: MobileNotificationReply) => void;
   }
 }
 
@@ -35,12 +57,17 @@ export function classifyMobileNavigation(value: string, config: Pick<MobileConfi
   }
   const internal = config.app === 'schedule'
     ? path === '/schedule/2026' || path === '/schedule/2015'
-    : path !== '/schedule' && !path.startsWith('/schedule/');
+    : !path.startsWith('/schedule/');
   return {action: internal ? 'internal' : 'delegate', url: href};
 }
 
 let applyingNativeColorMode = false;
 const backHandlers = new Set<() => boolean>();
+const notificationRequests = new Map<string, {
+  resolve(state: MobileNotificationState): void;
+  reject(error: Error): void;
+  timer: ReturnType<typeof setTimeout>;
+}>();
 
 function configuration(): MobileConfiguration | null {
   if (typeof window === 'undefined' || window.top !== window) return null;
@@ -54,6 +81,53 @@ function configuration(): MobileConfiguration | null {
 function post(message: Record<string, unknown>) {
   if (!configuration()) return;
   try { window.AnissiaMobile!.postMessage(JSON.stringify({version: 1, ...message})); } catch { }
+}
+
+export function nativeNotificationsSupported(): boolean {
+  const config = configuration();
+  return config?.app === 'anissia' && config.nativeNotifications === true
+    && typeof config.notificationNonce === 'string' && config.notificationNonce.length >= 16;
+}
+
+export function requestMobileNotifications(action: MobileNotificationAction, payload: Record<string, string> = {}): Promise<MobileNotificationState> {
+  if (!nativeNotificationsSupported()) return Promise.reject(new Error('이 앱에서는 기기 알림을 사용할 수 없습니다.'));
+  const requestId = crypto.randomUUID();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      notificationRequests.delete(requestId);
+      reject(new Error('앱의 알림 설정 응답을 기다리다 중단했습니다. 다시 시도해 주세요.'));
+    }, action === 'requestPermission' ? 60000 : 15000);
+    notificationRequests.set(requestId, {resolve, reject, timer});
+    try {
+      window.AnissiaMobile!.postMessage(JSON.stringify({...payload, version: 1, type: 'notifications', requestId, action,
+        nonce: configuration()!.notificationNonce}));
+    } catch {
+      clearTimeout(timer);
+      notificationRequests.delete(requestId);
+      reject(new Error('앱의 알림 설정에 연결하지 못했습니다. 다시 시도해 주세요.'));
+    }
+  });
+}
+
+function notificationReply(reply: MobileNotificationReply) {
+  if (!nativeNotificationsSupported() || !reply || typeof reply.requestId !== 'string') return;
+  const pending = notificationRequests.get(reply.requestId);
+  if (!pending) return;
+  notificationRequests.delete(reply.requestId);
+  clearTimeout(pending.timer);
+  const state = reply.state;
+  if (reply.ok && state && typeof state.supported === 'boolean' && typeof state.configured === 'boolean'
+    && typeof state.enabled === 'boolean' && typeof state.clientId === 'string'
+    && (state.hasRefreshSecret == null || typeof state.hasRefreshSecret === 'boolean')
+    && (state.refreshSecretVersion == null || /^[a-f0-9]{64}$/.test(state.refreshSecretVersion))
+    && ['default', 'granted', 'denied'].includes(state.permission)
+    && ['token', 'owner', 'bindingId'].every(key => state[key] == null || typeof state[key] === 'string')) {
+    pending.resolve({supported: state.supported, configured: state.configured, permission: state.permission,
+      enabled: state.enabled, clientId: state.clientId, token: state.token, owner: state.owner,
+      bindingId: state.bindingId, hasRefreshSecret: state.hasRefreshSecret === true, refreshSecretVersion: state.refreshSecretVersion});
+  } else {
+    pending.reject(new Error(typeof reply.error === 'string' ? reply.error : '앱 알림 설정을 확인하지 못했습니다.'));
+  }
 }
 
 export function delegateMobileNavigation(value: string): boolean {
@@ -99,6 +173,7 @@ export function installMobileBridge(navigateInternal: (path: string) => void): (
   const originalApply = window.__anissiaMobileApplyColorMode;
   const originalBack = window.__anissiaMobileBack;
   const originalVersion = window.__anissiaMobileWebBridgeVersion;
+  const originalNotificationReply = window.__anissiaMobileNotificationReply;
   const navigate = (url: string) => {
     const destination = new URL(url);
     navigateInternal(destination.pathname + destination.search + destination.hash);
@@ -131,6 +206,7 @@ export function installMobileBridge(navigateInternal: (path: string) => void): (
   window.__anissiaMobileWebBridgeVersion = 1;
   window.__anissiaMobileApplyColorMode = applyNativeColorMode;
   window.__anissiaMobileBack = back;
+  window.__anissiaMobileNotificationReply = notificationReply;
   window.open = open;
   document.addEventListener('click', click, true);
   document.addEventListener('auxclick', click, true);
@@ -144,6 +220,12 @@ export function installMobileBridge(navigateInternal: (path: string) => void): (
     if (window.open === open) window.open = originalOpen;
     if (window.__anissiaMobileApplyColorMode === applyNativeColorMode) window.__anissiaMobileApplyColorMode = originalApply;
     if (window.__anissiaMobileBack === back) window.__anissiaMobileBack = originalBack;
+    if (window.__anissiaMobileNotificationReply === notificationReply) window.__anissiaMobileNotificationReply = originalNotificationReply;
+    for (const request of notificationRequests.values()) {
+      clearTimeout(request.timer);
+      request.reject(new Error('앱 연결이 종료되었습니다.'));
+    }
+    notificationRequests.clear();
     window.__anissiaMobileWebBridgeVersion = originalVersion;
   };
 }
