@@ -237,7 +237,11 @@ function search() {
     return;
   }
   searchHelpOn.value = false;
-  router.push({path: '/anime', query: {q}});
+  if (q === listQuery) {
+    reloadList();
+  } else {
+    router.push({path: '/anime', query: {q}});
+  }
 }
 
 function clearAutocorrect() {
