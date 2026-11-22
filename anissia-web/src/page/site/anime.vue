@@ -160,9 +160,9 @@ const autocorrectOn = ref(false);
 const searchHelpOn = ref(false);
 const searchModeChanged = ref(false);
 const semanticExamples = [
-  '시간을 되돌려 친구를 구하는 이야기',
-  '우주에서 현상금 사냥을 하는 사람들',
-  '시골 마을에서 친구들과 여유롭게 보내는 일상',
+  '스파이와 암살자와 사람의 마음을 읽는 소녀가 가족이 된다',
+  '낯가림이 심한 여고생이 기타를 치며 밴드를 결성한다',
+  '전자레인지로 과거에 문자를 보내는 연구자',
 ];
 const autocorrectIndex = ref(-1);
 let autocorrectQuery = '';
