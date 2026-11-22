@@ -16,6 +16,7 @@ export default class Anime {
     public website = '';
     public note = '';
     public thumbnail: string | null = null;
+    public semanticExcerpt: string | null = null;
     public week = '8';
     public captions: AnimeCaption[] = [];
 

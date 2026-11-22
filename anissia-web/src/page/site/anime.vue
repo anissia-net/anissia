@@ -82,12 +82,23 @@
             </div>
           </div>
 
+          <div class="help-item">
+            <div class="help-label">위키 의미 검색</div>
+            <p class="help-desc">기억나는 장면이나 줄거리를 문장으로 검색할 수 있습니다.</p>
+            <ul class="mt-2 space-y-1.5">
+              <li v-for="example in semanticExamples" :key="example">
+                <router-link :to="{path: '/anime', query: {q: example}}" class="as-link text-sm">{{example}}</router-link>
+              </li>
+            </ul>
+          </div>
+
         </div>
       </div>
 
       <div v-if="!list.empty" class="mt-8">
         <div class="as-meta text-right mb-3">
-          총 <b class="text-ink-2">{{list.totalElements}}</b> 작품
+          <span v-if="list.searchMode === 'semantic'">위키 의미 검색 · </span>
+          <span v-else>총 </span><b class="text-ink-2">{{list.totalElements}}</b> 작품
         </div>
         <div class="anime-list">
           <div v-for="node in list.content" :key="node.animeNo" class="as-card p-3.5 flex items-start gap-2.5">
@@ -106,8 +117,13 @@
                 <a class="as-tag-xs as-tag-compact as-icon-link" v-if="node.x" :href="node.x" target="_blank" :aria-label="`${node.subject} X 계정 (새 창)`" :title="`${node.subject} X 계정 (새 창)`"><as-icon name="x-logo"/></a>
                 <span class="as-tag-xs as-tag-compact" v-if="node.captionCount"><as-icon name="cc" class="opacity-70"/>{{node.captionCount}}</span>
               </div>
+              <p v-if="node.semanticExcerpt" class="text-sm leading-5 text-ink-2 mt-2 line-clamp-3">{{node.semanticExcerpt}}</p>
             </div>
           </div>
+        </div>
+        <div v-if="searchModeChanged" class="as-meta mt-4 text-center" role="status">
+          검색 방식이 바뀌었습니다.
+          <button type="button" class="as-link ml-1" @click="reloadList">다시 검색</button>
         </div>
       </div>
       <div v-else-if="list.loaded" class="as-empty">
@@ -127,7 +143,7 @@ import PageData from "../../common/PageData";
 import Anime from "../../domain/anime/Anime";
 import AnimeThumbnail from "../../domain/anime/AnimeThumbnail.vue";
 import WikiNavigation from "../../domain/wiki/WikiNavigation.vue";
-import animeRemote from "../../domain/anime/remote/animeRemote";
+import animeRemote, {type AnimeSearchPage} from "../../domain/anime/remote/animeRemote";
 import AnimeAutocorrect from "../../domain/anime/AnimeAutocorrect";
 import {useRouter} from "vue-router";
 
@@ -135,13 +151,19 @@ import {useListScroll} from '../../common/useListScroll';
 import {animeUpdates} from '../../domain/anime/animeUpdates';
 
 defineOptions({name: 'AnimeList'});
-const list = ref(PageData.empty().notLoaded()) as Ref<PageData<Anime>>;
+const list = ref(PageData.empty().notLoaded()) as Ref<AnimeSearchPage>;
 const page = ref(0);
 const query = ref('');
 const searchedQuery = ref('');
 const autocorrect = ref([]) as Ref<AnimeAutocorrect[]>;
 const autocorrectOn = ref(false);
 const searchHelpOn = ref(false);
+const searchModeChanged = ref(false);
+const semanticExamples = [
+  '시간을 되돌려 친구를 구하는 이야기',
+  '우주에서 현상금 사냥을 하는 사람들',
+  '시골 마을에서 친구들과 여유롭게 보내는 일상',
+];
 const autocorrectIndex = ref(-1);
 let autocorrectQuery = '';
 let autocorrectTimer: ReturnType<typeof setTimeout> | undefined;
@@ -164,10 +186,15 @@ function load(fullPath = window.location.href) {
   searchedQuery.value = q;
   if (listQuery !== q) {
     listQuery = q;
-    page.value = 0;
-    list.value = PageData.empty<Anime>().notLoaded();
-    loadList();
+    reloadList();
   }
+}
+
+function reloadList() {
+  page.value = 0;
+  searchModeChanged.value = false;
+  list.value = PageData.empty<Anime>().notLoaded();
+  loadList();
 }
 
 animeUpdates.subscribe((id, changes) => {
@@ -189,6 +216,9 @@ function loadList() {
     if (request !== listRequest) return;
     if (isFirstPage) {
       list.value = pageData;
+    } else if ((list.value.searchMode ?? 'keyword') !== (pageData.searchMode ?? 'keyword')) {
+      searchModeChanged.value = true;
+      return;
     } else {
       list.value = list.value.merge(pageData);
     }

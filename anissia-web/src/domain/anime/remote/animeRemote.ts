@@ -8,6 +8,8 @@ import {AnimeRankItem} from "../../rank/AnimeRankItem";
 
 const api = import.meta.env.VITE_API_PATH;
 
+export type AnimeSearchPage = PageData<Anime> & {searchMode?: 'keyword' | 'semantic'};
+
 class AnimeRemote {
     private cacheAutocorrect = new Map<string, {expires: number, promise: Promise<AnimeAutocorrect[]>}>();
     private genres: string[] = [];
@@ -25,7 +27,7 @@ class AnimeRemote {
             .then(list => list.map(AnimeCaption.assign));
     }
 
-    public getAnimeList(page: number, query: string): Promise<PageData<Anime>> {
+    public getAnimeList(page: number, query: string): Promise<AnimeSearchPage> {
         return ajax.fetch(`${api}/anime/list/${page}?q=${encodeURIComponent(query)}`)
             .then(e => e.orIgnore)
             .then(data => PageData.cast(data, Anime.assign));
